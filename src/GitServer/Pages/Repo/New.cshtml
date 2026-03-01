@@ -1,0 +1,36 @@
+@page "/Repo/New"
+@model GitServer.Pages.Repo.NewModel
+@{
+    ViewData["Title"] = "Nieuwe repository";
+}
+<div class="container container-sm">
+    <h1>Nieuwe repository aanmaken</h1>
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+    <form method="post">
+        <div class="form-group">
+            <label for="name">Naam <span class="required">*</span></label>
+            <input id="name" name="Name" type="text" class="form-control"
+                   value="@Model.Name" required
+                   pattern="[a-zA-Z0-9_\-\.]+" title="Alleen letters, cijfers, -, _ en ." autofocus />
+            <span class="form-hint">Alleen letters, cijfers, koppeltekens en punten.</span>
+        </div>
+        <div class="form-group">
+            <label for="description">Beschrijving</label>
+            <input id="description" name="Description" type="text" class="form-control"
+                   value="@Model.Description" />
+        </div>
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input name="IsPrivate" type="checkbox" @(Model.IsPrivate ? "checked" : "") />
+                Privé repository
+            </label>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Repository aanmaken</button>
+            <a href="/" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+</div>

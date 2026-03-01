@@ -1,0 +1,95 @@
+@page "/{user}/{repo}/issues/{id:int}"
+@model GitServer.Pages.Repo.Issues.DetailModel
+@using GitServer.Services
+@inject MarkdownService Markdown
+@{
+    ViewData["Title"] = $"#{Model.Issue?.Id} {Model.Issue?.Title} — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "issues"))
+
+    @if (Model.Issue != null)
+    {
+        var issue = Model.Issue;
+        <div class="issue-detail-header">
+            <h1>@issue.Title <span class="text-muted">#@issue.Id</span></h1>
+            <span class="issue-badge @(issue.IsClosed ? "badge-danger" : "badge-success")">
+                @(issue.IsClosed ? "Gesloten" : "Open")
+            </span>
+            <span class="text-muted">
+                Geopend door @issue.Author.UserName op @issue.CreatedAt.ToString("d MMM yyyy")
+            </span>
+        </div>
+
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-avatar">@issue.Author.UserName[0]</div>
+                <div class="timeline-body">
+                    <div class="timeline-header">
+                        <strong>@issue.Author.UserName</strong>
+                        <span class="text-muted">@issue.CreatedAt.ToString("d MMM yyyy, HH:mm")</span>
+                    </div>
+                    <div class="markdown-body">@Html.Raw(Markdown.Render(issue.Body))</div>
+                </div>
+            </div>
+
+            @foreach (var comment in issue.Comments.OrderBy(c => c.CreatedAt))
+            {
+                <div class="timeline-item">
+                    <div class="timeline-avatar">@comment.Author.UserName[0]</div>
+                    <div class="timeline-body">
+                        <div class="timeline-header">
+                            <strong>@comment.Author.UserName</strong>
+                            <span class="text-muted">@comment.CreatedAt.ToString("d MMM yyyy, HH:mm")</span>
+                        </div>
+                        <div class="markdown-body">@Html.Raw(Markdown.Render(comment.Body))</div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="issue-comment-form">
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger">@Model.ErrorMessage</div>
+                }
+                <form method="post" asp-page-handler="Comment">
+                    <div class="form-group">
+                        <label for="commentBody">Reactie toevoegen</label>
+                        <textarea id="commentBody" name="CommentBody" class="form-control editor-textarea" rows="5"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Reageren</button>
+                        @if (Model.CanManage)
+                        {
+                            @if (issue.IsClosed)
+                            {
+                                <button type="submit" name="handler" value="Reopen" class="btn btn-secondary">
+                                    Heropenen
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="submit" name="handler" value="Close" class="btn btn-secondary">
+                                    Sluiten
+                                </button>
+                            }
+                        }
+                    </div>
+                </form>
+            </div>
+        }
+    }
+</div>
+@section Scripts {
+    <script src="~/js/editor.js" asp-append-version="true"></script>
+}

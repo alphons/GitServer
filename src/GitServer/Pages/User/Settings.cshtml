@@ -1,0 +1,49 @@
+@page "/User/Settings"
+@model GitServer.Pages.User.UserSettingsModel
+@{
+    ViewData["Title"] = "Account instellingen";
+}
+<div class="container container-sm">
+    <h1>Account instellingen</h1>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+    }
+
+    <section class="settings-section">
+        <h2>Profiel</h2>
+        <form method="post" asp-page-handler="Profile">
+            <div class="form-group">
+                <label for="displayName">Weergavenaam</label>
+                <input id="displayName" name="DisplayName" type="text" class="form-control"
+                       value="@Model.DisplayName" />
+            </div>
+            <div class="form-group">
+                <label for="bio">Bio</label>
+                <textarea id="bio" name="Bio" class="form-control" rows="3">@Model.Bio</textarea>
+            </div>
+            <div class="form-group">
+                <label for="avatarUrl">Avatar URL</label>
+                <input id="avatarUrl" name="AvatarUrl" type="url" class="form-control"
+                       value="@Model.AvatarUrl" />
+            </div>
+            <button type="submit" class="btn btn-primary">Profiel opslaan</button>
+        </form>
+    </section>
+
+    <section class="settings-section">
+        <h2>Wachtwoord wijzigen</h2>
+        <form method="post" asp-page-handler="Password">
+            <div class="form-group">
+                <label for="currentPassword">Huidig wachtwoord</label>
+                <input id="currentPassword" name="CurrentPassword" type="password" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label for="newPassword">Nieuw wachtwoord</label>
+                <input id="newPassword" name="NewPassword" type="password" class="form-control" minlength="6" />
+            </div>
+            <button type="submit" class="btn btn-primary">Wachtwoord wijzigen</button>
+        </form>
+    </section>
+</div>

@@ -1,0 +1,57 @@
+@page "/explore"
+@model GitServer.Pages.ExploreModel
+@{
+    ViewData["Title"] = "Explore";
+}
+<div class="container">
+    <div class="page-header">
+        <h1>Explore</h1>
+    </div>
+    <form method="get" class="search-form search-form-full">
+        <input name="q" type="search" class="form-control" placeholder="Zoeken naar repositories..."
+               value="@Model.Query" autofocus />
+        <button type="submit" class="btn btn-primary">Zoeken</button>
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.Query))
+    {
+        <p class="search-results-info">@Model.Repos.Count resultaten voor "<strong>@Model.Query</strong>"</p>
+    }
+
+    @if (Model.Repos.Any())
+    {
+        <div class="repo-list">
+            @foreach (var repo in Model.Repos)
+            {
+                <div class="repo-card">
+                    <div class="repo-card-header">
+                        <a class="repo-name" href="/@repo.Owner.UserName/@repo.Name">
+                            @repo.Owner.UserName / @repo.Name
+                        </a>
+                    </div>
+                    @if (!string.IsNullOrEmpty(repo.Description))
+                    {
+                        <p class="repo-description">@repo.Description</p>
+                    }
+                    <div class="repo-meta">
+                        <span class="text-muted">Bijgewerkt @repo.UpdatedAt.ToString("d MMM yyyy")</span>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="pagination">
+            @if (Model.Page > 0)
+            {
+                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page - 1)">&larr; Vorige</a>
+            }
+            @if (Model.Repos.Count == 20)
+            {
+                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page + 1)">Volgende &rarr;</a>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Model.Query))
+    {
+        <div class="empty-state">Geen resultaten gevonden.</div>
+    }
+</div>

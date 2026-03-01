@@ -1,0 +1,32 @@
+@page "/Auth/Login"
+@model GitServer.Pages.Auth.LoginModel
+@{
+    ViewData["Title"] = "Inloggen";
+}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">Inloggen</h1>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Gebruikersnaam of e-mail</label>
+                <input id="username" name="Username" type="text" class="form-control" required autofocus />
+            </div>
+            <div class="form-group">
+                <label for="password">Wachtwoord</label>
+                <input id="password" name="Password" type="password" class="form-control" required />
+            </div>
+            <div class="form-check">
+                <input id="remember" name="RememberMe" type="checkbox" class="form-check-input" />
+                <label for="remember">Onthoud mij</label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Inloggen</button>
+        </form>
+        <div class="auth-links">
+            <a href="/Auth/Register">Nog geen account? Registreer hier</a>
+        </div>
+    </div>
+</div>

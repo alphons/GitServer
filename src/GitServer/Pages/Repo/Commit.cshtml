@@ -1,0 +1,74 @@
+@page "/{user}/{repo}/commit/{sha}"
+@model GitServer.Pages.Repo.CommitModel
+@{
+    ViewData["Title"] = $"{Model.Detail?.Info.ShortSha} — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "commits"))
+
+    @if (Model.Detail != null)
+    {
+        var c = Model.Detail.Info;
+        <div class="commit-detail-header">
+            <h2>@c.Message</h2>
+            <div class="commit-meta">
+                <span class="commit-author">@c.Author</span>
+                <span class="text-muted">&lt;@c.Email&gt;</span>
+                <span class="text-muted">@c.Date.ToString("d MMM yyyy, HH:mm")</span>
+            </div>
+            <div class="commit-sha-full">
+                <code>@c.Sha</code>
+            </div>
+        </div>
+
+        <div class="diff-files-summary">
+            <strong>@Model.Detail.ChangedFiles.Count bestanden gewijzigd</strong>
+            <ul class="changed-files-list">
+                @foreach (var f in Model.Detail.ChangedFiles)
+                {
+                    <li><code>@f</code></li>
+                }
+            </ul>
+        </div>
+
+        <div class="diff-view">
+            @{
+                var diffLines = Model.Detail.Diff.Split('\n');
+                var inDiff = false;
+                var currentFile = "";
+            }
+            @foreach (var line in diffLines)
+            {
+                if (line.StartsWith("diff --git"))
+                {
+                    inDiff = true;
+                    currentFile = line;
+                    <div class="diff-file-header">@line</div>
+                }
+                else if (line.StartsWith("@@"))
+                {
+                    <div class="diff-hunk-header">@line</div>
+                }
+                else if (line.StartsWith("+") && !line.StartsWith("+++"))
+                {
+                    <div class="diff-line diff-add">@line</div>
+                }
+                else if (line.StartsWith("-") && !line.StartsWith("---"))
+                {
+                    <div class="diff-line diff-del">@line</div>
+                }
+                else if (inDiff)
+                {
+                    <div class="diff-line diff-ctx">@line</div>
+                }
+            }
+        </div>
+    }
+</div>

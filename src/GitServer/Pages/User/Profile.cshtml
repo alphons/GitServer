@@ -1,0 +1,67 @@
+@page "/User/{username}"
+@model GitServer.Pages.User.ProfileModel
+@{
+    ViewData["Title"] = Model.ProfileUser?.UserName ?? "Profiel";
+}
+<div class="container">
+    @if (Model.ProfileUser != null)
+    {
+        <div class="profile-header">
+            <div class="profile-avatar">
+                @if (!string.IsNullOrEmpty(Model.ProfileUser.AvatarUrl))
+                {
+                    <img src="@Model.ProfileUser.AvatarUrl" alt="@Model.ProfileUser.UserName" class="avatar-img" />
+                }
+                else
+                {
+                    <div class="avatar-placeholder">@Model.ProfileUser.UserName[0].ToString().ToUpper()</div>
+                }
+            </div>
+            <div class="profile-info">
+                <h1>@Model.ProfileUser.DisplayName</h1>
+                <p class="text-muted">@@@Model.ProfileUser.UserName</p>
+                @if (!string.IsNullOrEmpty(Model.ProfileUser.Bio))
+                {
+                    <p>@Model.ProfileUser.Bio</p>
+                }
+                <p class="text-muted">Lid sinds @Model.ProfileUser.CreatedAt.ToString("MMMM yyyy")</p>
+            </div>
+        </div>
+
+        <h2>Repositories</h2>
+        @if (!Model.Repos.Any())
+        {
+            <div class="empty-state">Geen publieke repositories.</div>
+        }
+        else
+        {
+            <div class="repo-list">
+                @foreach (var repo in Model.Repos)
+                {
+                    <div class="repo-card">
+                        <div class="repo-card-header">
+                            <a class="repo-name" href="/@Model.ProfileUser.UserName/@repo.Name">
+                                @repo.Name
+                            </a>
+                            @if (repo.IsPrivate)
+                            {
+                                <span class="badge badge-warning">Privé</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(repo.Description))
+                        {
+                            <p class="repo-description">@repo.Description</p>
+                        }
+                        <div class="repo-meta">
+                            <span class="text-muted">Bijgewerkt @repo.UpdatedAt.ToString("d MMM yyyy")</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <h1>Gebruiker niet gevonden</h1>
+    }
+</div>

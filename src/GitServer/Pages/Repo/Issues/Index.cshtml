@@ -1,0 +1,57 @@
+@page "/{user}/{repo}/issues"
+@model GitServer.Pages.Repo.Issues.IssueIndexModel
+@{
+    ViewData["Title"] = $"Issues — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "issues"))
+
+    <div class="issues-header">
+        <div class="issues-filter">
+            <a class="@(Model.ShowClosed ? "" : "active")"
+               href="/@Model.UserName/@Model.RepoName/issues">Open</a>
+            <a class="@(Model.ShowClosed ? "active" : "")"
+               href="/@Model.UserName/@Model.RepoName/issues?closed=1">Gesloten</a>
+        </div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-primary" href="/@Model.UserName/@Model.RepoName/issues/new">Nieuw issue</a>
+        }
+    </div>
+
+    @if (!Model.Issues.Any())
+    {
+        <div class="empty-state">
+            Geen @(Model.ShowClosed ? "gesloten" : "open") issues.
+        </div>
+    }
+    else
+    {
+        <div class="issue-list">
+            @foreach (var issue in Model.Issues)
+            {
+                <div class="issue-item">
+                    <span class="issue-state @(issue.IsClosed ? "state-closed" : "state-open")">
+                        @(issue.IsClosed ? "✗" : "✓")
+                    </span>
+                    <div class="issue-content">
+                        <a class="issue-title" href="/@Model.UserName/@Model.RepoName/issues/@issue.Id">
+                            @issue.Title
+                        </a>
+                        <span class="issue-meta text-muted">
+                            #@issue.Id geopend door @issue.Author.UserName op @issue.CreatedAt.ToString("d MMM yyyy")
+                            &nbsp;· @issue.Comments.Count reacties
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

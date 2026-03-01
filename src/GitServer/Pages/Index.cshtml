@@ -1,0 +1,48 @@
+@page
+@model GitServer.Pages.IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+<div class="container">
+    <div class="page-header">
+        <h1>Recente repositories</h1>
+        <div class="header-actions">
+            <form method="get" action="/explore" class="search-form">
+                <input name="q" type="search" class="form-control" placeholder="Zoeken..." />
+                <button type="submit" class="btn btn-secondary">Zoeken</button>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Repos.Any())
+    {
+        <div class="empty-state">
+            <p>Nog geen publieke repositories. <a href="/Repo/New">Maak de eerste aan!</a></p>
+        </div>
+    }
+    else
+    {
+        <div class="repo-list">
+            @foreach (var repo in Model.Repos)
+            {
+                <div class="repo-card">
+                    <div class="repo-card-header">
+                        <a class="repo-name" href="/@repo.Owner.UserName/@repo.Name">
+                            @repo.Owner.UserName / @repo.Name
+                        </a>
+                        <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
+                            @(repo.IsPrivate ? "Privé" : "Publiek")
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(repo.Description))
+                    {
+                        <p class="repo-description">@repo.Description</p>
+                    }
+                    <div class="repo-meta">
+                        <span class="text-muted">Bijgewerkt @repo.UpdatedAt.ToString("d MMM yyyy")</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,40 @@
+@page "/Auth/Register"
+@model GitServer.Pages.Auth.RegisterModel
+@{
+    ViewData["Title"] = "Registreren";
+}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">Account aanmaken</h1>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+        <form method="post">
+            <div class="form-group">
+                <label for="username">Gebruikersnaam</label>
+                <input id="username" name="Username" type="text" class="form-control"
+                       value="@Model.Username" required autofocus
+                       pattern="[a-zA-Z0-9\-_]+" title="Alleen letters, cijfers, - en _" />
+            </div>
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input id="email" name="Email" type="email" class="form-control"
+                       value="@Model.Email" required />
+            </div>
+            <div class="form-group">
+                <label for="displayName">Weergavenaam</label>
+                <input id="displayName" name="DisplayName" type="text" class="form-control"
+                       value="@Model.DisplayName" />
+            </div>
+            <div class="form-group">
+                <label for="password">Wachtwoord</label>
+                <input id="password" name="Password" type="password" class="form-control" required minlength="6" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Account aanmaken</button>
+        </form>
+        <div class="auth-links">
+            <a href="/Auth/Login">Al een account? Log hier in</a>
+        </div>
+    </div>
+</div>

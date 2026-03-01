@@ -1,0 +1,52 @@
+@page "/Admin/Users"
+@model GitServer.Pages.Admin.UsersModel
+@{
+    ViewData["Title"] = "Gebruikersbeheer";
+}
+<div class="container">
+    <h1>Gebruikersbeheer</h1>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert alert-success">@Model.Message</div>
+    }
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Gebruiker</th>
+                <th>E-mail</th>
+                <th>Aangemaakt</th>
+                <th>Admin</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model.Users)
+            {
+                <tr>
+                    <td><a href="/User/@user.UserName">@user.UserName</a></td>
+                    <td>@user.Email</td>
+                    <td>@user.CreatedAt.ToString("d MMM yyyy")</td>
+                    <td>@(user.IsAdmin ? "✓" : "")</td>
+                    <td>
+                        <form method="post" asp-page-handler="ToggleAdmin" style="display:inline">
+                            <input type="hidden" name="userId" value="@user.Id" />
+                            <button type="submit" class="btn btn-sm btn-secondary">
+                                @(user.IsAdmin ? "Admin afnemen" : "Admin maken")
+                            </button>
+                        </form>
+                        @if (user.Id != Model.CurrentUserId)
+                        {
+                            <form method="post" asp-page-handler="Delete" style="display:inline"
+                                  onsubmit="return confirm('Gebruiker @user.UserName verwijderen?')">
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <button type="submit" class="btn btn-sm btn-danger">Verwijderen</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,41 @@
+@page "/{user}/{repo}/issues/new"
+@model GitServer.Pages.Repo.Issues.NewIssueModel
+@{
+    ViewData["Title"] = $"Nieuw issue — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container container-sm">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "issues"))
+
+    <h2>Nieuw issue aanmaken</h2>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
+
+    <form method="post">
+        <div class="form-group">
+            <label for="title">Titel <span class="required">*</span></label>
+            <input id="title" name="Title" type="text" class="form-control"
+                   value="@Model.Title" required autofocus />
+        </div>
+        <div class="form-group">
+            <label for="body">Beschrijving (Markdown)</label>
+            <textarea id="body" name="Body" class="form-control editor-textarea" rows="10">@Model.Body</textarea>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Issue aanmaken</button>
+            <a href="/@Model.UserName/@Model.RepoName/issues" class="btn btn-secondary">Annuleren</a>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    <script src="~/js/editor.js" asp-append-version="true"></script>
+}

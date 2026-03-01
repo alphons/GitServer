@@ -1,0 +1,64 @@
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<GitServer.Models.AppUser> SignInManager
+@inject UserManager<GitServer.Models.AppUser> UserManager
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — GitServer" : "GitServer")</title>
+    <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/repo.css" asp-append-version="true" />
+</head>
+<body>
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a class="navbar-brand" href="/">
+            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/>
+                <circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+                <line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/>
+                <line x1="7" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="17" y2="12"/>
+            </svg>
+            GitServer
+        </a>
+        <button class="navbar-toggle" id="navToggle" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="navbar-menu" id="navMenu">
+            <a class="nav-link" href="/explore">Explore</a>
+            @if (SignInManager.IsSignedIn(User))
+            {
+                var currentUser = await UserManager.GetUserAsync(User);
+                <a class="nav-link" href="/Repo/New">+ Nieuw</a>
+                <a class="nav-link" href="/User/@currentUser!.UserName">@currentUser!.UserName</a>
+                @if (currentUser!.IsAdmin)
+                {
+                    <a class="nav-link" href="/Admin/Users">Admin</a>
+                }
+                <form method="post" action="/Auth/Logout" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-ghost nav-link">Uitloggen</button>
+                </form>
+            }
+            else
+            {
+                <a class="btn btn-ghost nav-link" href="/Auth/Login">Inloggen</a>
+                <a class="btn btn-primary nav-link" href="/Auth/Register">Registreren</a>
+            }
+        </div>
+    </div>
+</nav>
+<main class="main-content">
+    @RenderBody()
+</main>
+<footer class="site-footer">
+    <div class="container">
+        <span>GitServer &mdash; zelfgehoste git</span>
+    </div>
+</footer>
+<script src="~/js/app.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

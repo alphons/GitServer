@@ -1,0 +1,13 @@
+@model (string UserName, string RepoName, string ActiveTab)
+<div class="repo-nav">
+    <a class="repo-nav-link @(Model.ActiveTab == "code" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName">Code</a>
+    <a class="repo-nav-link @(Model.ActiveTab == "commits" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName/commits">Commits</a>
+    <a class="repo-nav-link @(Model.ActiveTab == "branches" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName/branches">Branches</a>
+    <a class="repo-nav-link @(Model.ActiveTab == "issues" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName/issues">Issues</a>
+    <a class="repo-nav-link @(Model.ActiveTab == "settings" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName/settings">Instellingen</a>
+</div>

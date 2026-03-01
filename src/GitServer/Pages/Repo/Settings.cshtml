@@ -1,0 +1,57 @@
+@page "/{user}/{repo}/settings"
+@model GitServer.Pages.Repo.SettingsModel
+@{
+    ViewData["Title"] = $"Instellingen — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container container-sm">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "settings"))
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+    }
+
+    <section class="settings-section">
+        <h2>Algemeen</h2>
+        <form method="post" asp-page-handler="Update">
+            <div class="form-group">
+                <label for="description">Beschrijving</label>
+                <input id="description" name="Description" type="text" class="form-control"
+                       value="@Model.Repo!.Description" />
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input name="IsPrivate" type="checkbox" @(Model.Repo!.IsPrivate ? "checked" : "") />
+                    Privé repository
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="defaultBranch">Standaard branch</label>
+                <input id="defaultBranch" name="DefaultBranch" type="text" class="form-control"
+                       value="@Model.Repo!.DefaultBranch" />
+            </div>
+            <button type="submit" class="btn btn-primary">Opslaan</button>
+        </form>
+    </section>
+
+    <section class="settings-section danger-zone">
+        <h2>Gevarenzone</h2>
+        <div class="danger-item">
+            <div>
+                <strong>Repository verwijderen</strong>
+                <p class="text-muted">Dit kan niet ongedaan worden gemaakt.</p>
+            </div>
+            <form method="post" asp-page-handler="Delete"
+                  onsubmit="return confirm('Weet je zeker dat je @Model.RepoName wilt verwijderen?')">
+                <button type="submit" class="btn btn-danger">Verwijderen</button>
+            </form>
+        </div>
+    </section>
+</div>

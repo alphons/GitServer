@@ -1,0 +1,50 @@
+@page "/{user}/{repo}/blob/{branch}/{**path}"
+@model GitServer.Pages.Repo.BlobModel
+@{
+    ViewData["Title"] = $"{Model.FilePath} — {Model.UserName}/{Model.RepoName}";
+    var ext = System.IO.Path.GetExtension(Model.FilePath).TrimStart('.').ToLower();
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "code"))
+
+    <div class="file-breadcrumb">
+        <a href="/@Model.UserName/@Model.RepoName?branch=@Model.Branch">@Model.RepoName</a>
+        @{
+            var parts = Model.FilePath.Split('/');
+            var accumulated = "";
+        }
+        @for (int i = 0; i < parts.Length - 1; i++)
+        {
+            accumulated += (i > 0 ? "/" : "") + parts[i];
+            var acc = accumulated;
+            <span class="separator">/</span>
+            <a href="/@Model.UserName/@Model.RepoName?branch=@Model.Branch&path=@acc">@parts[i]</a>
+        }
+        <span class="separator">/</span>
+        <strong>@parts[^1]</strong>
+    </div>
+
+    <div class="file-view">
+        <div class="file-view-header">
+            <span class="file-name">@Model.FilePath</span>
+            <span class="file-size text-muted">@Model.FileSize bytes</span>
+        </div>
+        @if (Model.IsBinary)
+        {
+            <div class="file-binary-notice">Binair bestand — kan niet worden weergegeven.</div>
+        }
+        else
+        {
+            <div class="file-content">
+                <pre class="code-view lang-@ext"><code>@Model.Content</code></pre>
+            </div>
+        }
+    </div>
+</div>

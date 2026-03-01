@@ -1,0 +1,13 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Fout";
+}
+<div class="container">
+    <h1>Er is een fout opgetreden</h1>
+    @if (Model.ShowRequestId)
+    {
+        <p class="text-muted">Request ID: <code>@Model.RequestId</code></p>
+    }
+    <p><a href="/">Terug naar home</a></p>
+</div>

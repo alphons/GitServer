@@ -1,0 +1,46 @@
+@page "/{user}/{repo}/commits"
+@model GitServer.Pages.Repo.CommitsModel
+@{
+    ViewData["Title"] = $"Commits — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "commits"))
+
+    <div class="commits-header">
+        <h2>@Model.TotalCount commits op <code>@Model.Branch</code></h2>
+    </div>
+
+    <div class="commit-list">
+        @foreach (var commit in Model.Commits)
+        {
+            <div class="commit-item">
+                <div class="commit-message">
+                    <a href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.Message</a>
+                </div>
+                <div class="commit-meta">
+                    <span class="commit-author">@commit.Author</span>
+                    <span class="commit-date text-muted">@commit.Date.ToString("d MMM yyyy, HH:mm")</span>
+                    <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.ShortSha</a>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="pagination">
+        @if (Model.Page > 0)
+        {
+            <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/commits?branch=@Model.Branch&page=@(Model.Page - 1)">&larr; Nieuwer</a>
+        }
+        @if (Model.Commits.Count == 25)
+        {
+            <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/commits?branch=@Model.Branch&page=@(Model.Page + 1)">Ouder &rarr;</a>
+        }
+    </div>
+</div>

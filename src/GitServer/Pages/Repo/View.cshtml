@@ -1,0 +1,103 @@
+@page "/{user}/{repo}"
+@model GitServer.Pages.Repo.ViewModel
+@{
+    ViewData["Title"] = $"{Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a>
+            <span class="separator">/</span>
+            <strong>@Model.RepoName</strong>
+            <span class="badge @(Model.Repo!.IsPrivate ? "badge-warning" : "badge-muted")">
+                @(Model.Repo.IsPrivate ? "Privé" : "Publiek")
+            </span>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Repo.Description))
+        {
+            <p class="repo-desc">@Model.Repo.Description</p>
+        }
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "code"))
+
+    @if (Model.IsEmpty)
+    {
+        <div class="empty-repo">
+            <h2>Repository is leeg</h2>
+            <p>Maak een commit om te beginnen:</p>
+            <pre class="code-block">git clone @Model.CloneUrl
+cd @Model.RepoName
+echo "# @Model.RepoName" >> README.md
+git add README.md
+git commit -m "first commit"
+git push -u origin @Model.DefaultBranch</pre>
+
+            <p>Of push een bestaande repository:</p>
+            <pre class="code-block">cd bestaande-repo
+git remote add origin @Model.CloneUrl
+git push -u origin @Model.DefaultBranch</pre>
+        </div>
+    }
+    else
+    {
+        <div class="repo-toolbar">
+            <div class="branch-selector">
+                <select onchange="window.location='/@Model.UserName/@Model.RepoName?branch='+this.value">
+                    @foreach (var b in Model.Branches)
+                    {
+                        <option value="@b" selected="@(b == Model.CurrentBranch)">@b</option>
+                    }
+                </select>
+            </div>
+            <div class="repo-actions">
+                <div class="clone-url-box">
+                    <input id="cloneUrl" type="text" readonly value="@Model.CloneUrl" class="form-control clone-input" />
+                    <button class="btn btn-secondary" onclick="copyCloneUrl()">Kopieer</button>
+                </div>
+                @{var archiveBranch = Model.CurrentBranch.Replace('/', '-');}
+                <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/archive/@archiveBranch">
+                    ZIP
+                </a>
+            </div>
+        </div>
+
+        <div class="file-tree">
+            @if (!string.IsNullOrEmpty(Model.CurrentPath))
+            {
+                <div class="file-tree-header">
+                    <a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch">&larr; terug naar root</a>
+                    &nbsp;/ @Model.CurrentPath
+                </div>
+            }
+            @foreach (var entry in Model.Tree)
+            {
+                var href = entry.Type == "tree"
+                    ? $"/{Model.UserName}/{Model.RepoName}?branch={Model.CurrentBranch}&path={entry.Path}"
+                    : $"/{Model.UserName}/{Model.RepoName}/blob/{Model.CurrentBranch}/{entry.Path}";
+                <a class="file-tree-entry" href="@href">
+                    @if (entry.Type == "tree")
+                    {
+                        <span class="file-icon dir-icon">&#128193;</span>
+                    }
+                    else
+                    {
+                        <span class="file-icon">&#128196;</span>
+                    }
+                    @entry.Name
+                </a>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ReadmeHtml))
+        {
+            <div class="readme-container">
+                <div class="readme-header">README</div>
+                <div class="readme-body markdown-body">@Html.Raw(Model.ReadmeHtml)</div>
+            </div>
+        }
+    }
+</div>
+@section Scripts {
+    <script src="~/js/copy.js" asp-append-version="true"></script>
+}

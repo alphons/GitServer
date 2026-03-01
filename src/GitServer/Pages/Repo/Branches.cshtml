@@ -1,0 +1,66 @@
+@page "/{user}/{repo}/branches"
+@model GitServer.Pages.Repo.BranchesModel
+@{
+    ViewData["Title"] = $"Branches — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "branches"))
+
+    <div class="branches-section">
+        <h2>Branches</h2>
+        @if (Model.Branches.Any())
+        {
+            <div class="branch-list">
+                @foreach (var branch in Model.Branches)
+                {
+                    <div class="branch-item">
+                        <span class="branch-name @(branch == Model.DefaultBranch ? "default-branch" : "")">
+                            @branch
+                            @if (branch == Model.DefaultBranch)
+                            {
+                                <span class="badge badge-muted">default</span>
+                            }
+                        </span>
+                        <div class="branch-actions">
+                            <a class="btn btn-sm btn-secondary"
+                               href="/@Model.UserName/@Model.RepoName?branch=@branch">Bekijk</a>
+                            @{var escapedBranch = Uri.EscapeDataString(branch);}
+                            <a class="btn btn-sm btn-secondary"
+                               href="/@Model.UserName/@Model.RepoName/archive/@escapedBranch">ZIP</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">Geen branches gevonden.</p>
+        }
+    </div>
+
+    @if (Model.Tags.Any())
+    {
+        <div class="branches-section">
+            <h2>Tags</h2>
+            <div class="branch-list">
+                @foreach (var tag in Model.Tags)
+                {
+                    <div class="branch-item">
+                        <span class="branch-name">@tag</span>
+                        <div class="branch-actions">
+                            <a class="btn btn-sm btn-secondary"
+                               href="/@Model.UserName/@Model.RepoName?branch=@tag">Bekijk</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
