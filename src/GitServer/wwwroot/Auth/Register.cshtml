@@ -1,40 +1,40 @@
 @page "/Auth/Register"
 @model GitServer.wwwroot.Auth.RegisterModel
 @{
-    ViewData["Title"] = "Registreren";
+    ViewData["Title"] = L["register_page_title"];
 }
 <div class="auth-container">
     <div class="auth-card">
-        <h1 class="auth-title">Account aanmaken</h1>
+        <h1 class="auth-title">@L["register_title"]</h1>
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
             <div class="alert alert-danger">@Model.ErrorMessage</div>
         }
         <form method="post">
             <div class="form-group">
-                <label for="username">Gebruikersnaam</label>
+                <label for="username">@L["username_label"]</label>
                 <input id="username" name="Username" type="text" class="form-control"
                        value="@Model.Username" required autofocus
-                       pattern="[a-zA-Z0-9\-_]+" title="Alleen letters, cijfers, - en _" />
+                       pattern="[a-zA-Z0-9\-_]+" title="@L["username_hint"]" />
             </div>
             <div class="form-group">
-                <label for="email">E-mail</label>
+                <label for="email">@L["email_label"]</label>
                 <input id="email" name="Email" type="email" class="form-control"
                        value="@Model.Email" required />
             </div>
             <div class="form-group">
-                <label for="displayName">Weergavenaam</label>
+                <label for="displayName">@L["display_name_label"]</label>
                 <input id="displayName" name="DisplayName" type="text" class="form-control"
                        value="@Model.DisplayName" />
             </div>
             <div class="form-group">
-                <label for="password">Wachtwoord</label>
+                <label for="password">@L["password_label"]</label>
                 <input id="password" name="Password" type="password" class="form-control" required minlength="6" />
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Account aanmaken</button>
+            <button type="submit" class="btn btn-primary btn-block">@L["register_submit"]</button>
         </form>
         <div class="auth-links">
-            <a href="/Auth/Login">Al een account? Log hier in</a>
+            <a href="/Auth/Login">@L["register_login_link"]</a>
         </div>
     </div>
 </div>

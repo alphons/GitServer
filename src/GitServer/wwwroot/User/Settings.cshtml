@@ -1,10 +1,10 @@
 @page "/User/Settings"
 @model GitServer.User.UserSettingsModel
 @{
-    ViewData["Title"] = "Account instellingen";
+    ViewData["Title"] = L["account_settings"];
 }
 <div class="container container-sm">
-    <h1>Account instellingen</h1>
+    <h1>@L["account_settings"]</h1>
 
     @if (!string.IsNullOrEmpty(Model.Message))
     {
@@ -12,45 +12,45 @@
     }
 
     <section class="settings-section">
-        <h2>Profiel</h2>
+        <h2>@L["profile_section"]</h2>
         <form method="post" asp-page-handler="Profile">
             <div class="form-group">
-                <label for="displayName">Weergavenaam</label>
+                <label for="displayName">@L["display_name_label"]</label>
                 <input id="displayName" name="DisplayName" type="text" class="form-control"
                        value="@Model.DisplayName" />
             </div>
             <div class="form-group">
-                <label for="bio">Bio</label>
+                <label for="bio">@L["bio_label"]</label>
                 <textarea id="bio" name="Bio" class="form-control" rows="3">@Model.Bio</textarea>
             </div>
             <div class="form-group">
-                <label for="avatarUrl">Avatar URL</label>
+                <label for="avatarUrl">@L["avatar_url_label"]</label>
                 <input id="avatarUrl" name="AvatarUrl" type="url" class="form-control"
                        value="@Model.AvatarUrl" />
             </div>
-            <button type="submit" class="btn btn-primary">Profiel opslaan</button>
+            <button type="submit" class="btn btn-primary">@L["settings_save_profile"]</button>
         </form>
     </section>
 
     <section class="settings-section">
-        <h2>@(Model.HasPassword ? "Wachtwoord wijzigen" : "Wachtwoord instellen")</h2>
+        <h2>@(Model.HasPassword ? L["settings_change_password"] : L["settings_set_password"])</h2>
         @if (!Model.HasPassword)
         {
-            <p class="text-muted">Je account heeft nog geen wachtwoord (aangemeld via OAuth). Stel een wachtwoord in om git via HTTPS te gebruiken.</p>
+            <p class="text-muted">@L["settings_no_password_info"]</p>
         }
         <form method="post" asp-page-handler="Password">
             @if (Model.HasPassword)
             {
                 <div class="form-group">
-                    <label for="currentPassword">Huidig wachtwoord</label>
+                    <label for="currentPassword">@L["settings_current_password"]</label>
                     <input id="currentPassword" name="CurrentPassword" type="password" class="form-control" />
                 </div>
             }
             <div class="form-group">
-                <label for="newPassword">Nieuw wachtwoord</label>
+                <label for="newPassword">@L["settings_new_password"]</label>
                 <input id="newPassword" name="NewPassword" type="password" class="form-control" minlength="6" />
             </div>
-            <button type="submit" class="btn btn-primary">@(Model.HasPassword ? "Wachtwoord wijzigen" : "Wachtwoord instellen")</button>
+            <button type="submit" class="btn btn-primary">@(Model.HasPassword ? L["settings_change_password"] : L["settings_set_password"])</button>
         </form>
     </section>
 </div>

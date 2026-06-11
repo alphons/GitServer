@@ -3,7 +3,7 @@
 @using GitServer.Services
 @inject MarkdownService Markdown
 @{
-    ViewData["Title"] = $"#{Model.Issue?.Id} {Model.Issue?.Title} &mdash; {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"#{Model.Issue?.Id} {Model.Issue?.Title} — {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">
@@ -21,10 +21,10 @@
         <div class="issue-detail-header">
             <h1>@issue.Title <span class="text-muted">#@issue.Id</span></h1>
             <span class="issue-badge @(issue.IsClosed ? "badge-danger" : "badge-success")">
-                @(issue.IsClosed ? "Gesloten" : "Open")
+                @(issue.IsClosed ? L["issues_closed"] : L["issues_open"])
             </span>
             <span class="text-muted">
-                Geopend door @issue.Author.UserName op @issue.CreatedAt.ToString("d MMM yyyy")
+                @L["issues_opened_by"] @issue.Author.UserName @L["issues_on"] @issue.CreatedAt.ToString("d MMM yyyy")
             </span>
         </div>
 
@@ -64,23 +64,23 @@
                 }
                 <form method="post" asp-page-handler="Comment">
                     <div class="form-group">
-                        <label for="commentBody">Reactie toevoegen</label>
+                        <label for="commentBody">@L["detail_add_comment"]</label>
                         <textarea id="commentBody" name="CommentBody" class="form-control editor-textarea" rows="5"></textarea>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Reageren</button>
+                        <button type="submit" class="btn btn-primary">@L["detail_submit_comment"]</button>
                         @if (Model.CanManage)
                         {
                             @if (issue.IsClosed)
                             {
                                 <button type="submit" name="handler" value="Reopen" class="btn btn-secondary">
-                                    Heropenen
+                                    @L["detail_reopen"]
                                 </button>
                             }
                             else
                             {
                                 <button type="submit" name="handler" value="Close" class="btn btn-secondary">
-                                    Sluiten
+                                    @L["detail_close"]
                                 </button>
                             }
                         }

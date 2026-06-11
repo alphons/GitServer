@@ -2,11 +2,11 @@
 @inject SignInManager<GitServer.Models.AppUser> SignInManager
 @inject UserManager<GitServer.Models.AppUser> UserManager
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="@L.CurrentLanguage">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " ”” GitServer" : "GitServer")</title>
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — GitServer" : "GitServer")</title>
     <link rel="stylesheet" href="~/css/main.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/components.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/repo.css" asp-append-version="true" />
@@ -27,26 +27,39 @@
             <span></span><span></span><span></span>
         </button>
         <div class="navbar-menu" id="navMenu">
-            <a class="nav-link" href="/explore">Explore</a>
+            <a class="nav-link" href="/explore">@L["nav_explore"]</a>
             @if (SignInManager.IsSignedIn(User))
             {
                 var currentUser = await UserManager.GetUserAsync(User);
-                <a class="nav-link" href="/Repo/New">+ Nieuw</a>
+                <a class="nav-link" href="/Repo/New">@L["nav_new"]</a>
                 <a class="nav-link" href="/User/@currentUser!.UserName">@currentUser!.UserName</a>
                 @if (currentUser!.IsAdmin)
                 {
-                    <a class="nav-link" href="/Admin/Users">Admin</a>
+                    <a class="nav-link" href="/Admin/Users">@L["nav_admin"]</a>
                 }
                 <form method="post" action="/Auth/Logout" style="display:inline">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-ghost nav-link">Uitloggen</button>
+                    <button type="submit" class="btn btn-ghost nav-link">@L["nav_logout"]</button>
                 </form>
             }
             else
             {
-                <a class="btn btn-ghost nav-link" href="/Auth/Login">Inloggen</a>
-                <a class="btn btn-primary nav-link" href="/Auth/Register">Registreren</a>
+                <a class="btn btn-ghost nav-link" href="/Auth/Login">@L["nav_login"]</a>
+                <a class="btn btn-primary nav-link" href="/Auth/Register">@L["nav_register"]</a>
             }
+            <select class="lang-select" onchange="window.location='/set-language?lang='+this.value+'&returnUrl='+encodeURIComponent(window.location.pathname)" aria-label="Language">
+                @foreach (var (code, name) in L.AvailableLanguages())
+                {
+                    if (code == L.CurrentLanguage)
+                    {
+                        <option value="@code" selected>@name</option>
+                    }
+                    else
+                    {
+                        <option value="@code">@name</option>
+                    }
+                }
+            </select>
         </div>
     </div>
 </nav>
@@ -55,7 +68,7 @@
 </main>
 <footer class="site-footer">
     <div class="container">
-        <span>GitServer &mdash; zelfgehoste git</span>
+        <span>GitServer &mdash; @L["footer_tagline"]</span>
     </div>
 </footer>
 <script src="~/js/app.js" asp-append-version="true"></script>

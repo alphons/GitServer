@@ -5,11 +5,11 @@
 }
 <div class="container">
     <div class="page-header">
-        <h1>Recente repositories</h1>
+        <h1>@L["index_recent_repos"]</h1>
         <div class="header-actions">
             <form method="get" action="/explore" class="search-form">
-                <input name="q" type="search" class="form-control" placeholder="Zoeken..." />
-                <button type="submit" class="btn btn-secondary">Zoeken</button>
+                <input name="q" type="search" class="form-control" placeholder="@L["search_placeholder"]" />
+                <button type="submit" class="btn btn-secondary">@L["search_button"]</button>
             </form>
         </div>
     </div>
@@ -17,7 +17,7 @@
     @if (!Model.Repos.Any())
     {
         <div class="empty-state">
-            <p>Nog geen publieke repositories. <a href="/Repo/New">Maak de eerste aan!</a></p>
+            <p>@L["index_empty"] <a href="/Repo/New">@L["index_empty_create"]</a></p>
         </div>
     }
     else
@@ -31,7 +31,7 @@
                             @repo.Owner.UserName / @repo.Name
                         </a>
                         <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
-                            @(repo.IsPrivate ? "Privé" : "Publiek")
+                            @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
                         </span>
                     </div>
                     @if (!string.IsNullOrEmpty(repo.Description))
@@ -39,7 +39,7 @@
                         <p class="repo-description">@repo.Description</p>
                     }
                     <div class="repo-meta">
-                        <span class="text-muted">Bijgewerkt @repo.UpdatedAt.ToString("d MMM yyyy")</span>
+                        <span class="text-muted">@L["updated_prefix"] @repo.UpdatedAt.ToString("d MMM yyyy")</span>
                     </div>
                 </div>
             }

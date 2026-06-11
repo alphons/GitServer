@@ -1,7 +1,7 @@
 @page "/{user}/{repo}/issues"
 @model GitServer.wwwroot.Repo.Issues.IssueIndexModel
 @{
-    ViewData["Title"] = $"Issues &mdash; {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"Issues — {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">
@@ -16,20 +16,20 @@
     <div class="issues-header">
         <div class="issues-filter">
             <a class="@(Model.ShowClosed ? "" : "active")"
-               href="/@Model.UserName/@Model.RepoName/issues">Open</a>
+               href="/@Model.UserName/@Model.RepoName/issues">@L["issues_open"]</a>
             <a class="@(Model.ShowClosed ? "active" : "")"
-               href="/@Model.UserName/@Model.RepoName/issues?closed=1">Gesloten</a>
+               href="/@Model.UserName/@Model.RepoName/issues?closed=1">@L["issues_closed"]</a>
         </div>
         @if (User.Identity?.IsAuthenticated == true)
         {
-            <a class="btn btn-primary" href="/@Model.UserName/@Model.RepoName/issues/new">Nieuw issue</a>
+            <a class="btn btn-primary" href="/@Model.UserName/@Model.RepoName/issues/new">@L["issues_new"]</a>
         }
     </div>
 
     @if (!Model.Issues.Any())
     {
         <div class="empty-state">
-            Geen @(Model.ShowClosed ? "gesloten" : "open") issues.
+            @(Model.ShowClosed ? L["issues_empty_closed"] : L["issues_empty_open"])
         </div>
     }
     else
@@ -46,8 +46,8 @@
                             @issue.Title
                         </a>
                         <span class="issue-meta text-muted">
-                            #@issue.Id geopend door @issue.Author.UserName op @issue.CreatedAt.ToString("d MMM yyyy")
-                            &nbsp;&middot; @issue.Comments.Count reacties
+                            #@issue.Id @L["issues_opened_by"] @issue.Author.UserName @L["issues_on"] @issue.CreatedAt.ToString("d MMM yyyy")
+                            &nbsp;&middot; @issue.Comments.Count @L["issues_comments"]
                         </span>
                     </div>
                 </div>

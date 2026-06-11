@@ -1,4 +1,5 @@
 @model (string UserName, string RepoName, string ActiveTab)
+@inject GitServer.Services.LocalizationService L
 <div class="repo-nav">
     <a class="repo-nav-link @(Model.ActiveTab == "code" ? "active" : "")"
        href="/@Model.UserName/@Model.RepoName">Code</a>
@@ -9,5 +10,5 @@
     <a class="repo-nav-link @(Model.ActiveTab == "issues" ? "active" : "")"
        href="/@Model.UserName/@Model.RepoName/issues">Issues</a>
     <a class="repo-nav-link @(Model.ActiveTab == "settings" ? "active" : "")"
-       href="/@Model.UserName/@Model.RepoName/settings">Instellingen</a>
+       href="/@Model.UserName/@Model.RepoName/settings">@L["repo_nav_settings"]</a>
 </div>

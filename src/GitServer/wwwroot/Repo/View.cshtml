@@ -10,7 +10,7 @@
             <span class="separator">/</span>
             <strong>@Model.RepoName</strong>
             <span class="badge @(Model.Repo!.IsPrivate ? "badge-warning" : "badge-muted")">
-                @(Model.Repo.IsPrivate ? "Privé" : "Publiek")
+                @(Model.Repo.IsPrivate ? L["badge_private"] : L["badge_public"])
             </span>
         </div>
         @if (!string.IsNullOrEmpty(Model.Repo.Description))
@@ -24,8 +24,8 @@
     @if (Model.IsEmpty)
     {
         <div class="empty-repo">
-            <h2>Repository is leeg</h2>
-            <p>Maak een commit om te beginnen:</p>
+            <h2>@L["repo_empty_title"]</h2>
+            <p>@L["repo_empty_start"]</p>
             <pre class="code-block">git clone @Model.CloneUrl
 cd @Model.RepoName
 echo "# @Model.RepoName" >> README.md
@@ -33,7 +33,7 @@ git add README.md
 git commit -m "first commit"
 git push -u origin @Model.DefaultBranch</pre>
 
-            <p>Of push een bestaande repository:</p>
+            <p>@L["repo_empty_push"]</p>
             <pre class="code-block">cd bestaande-repo
 git remote add origin @Model.CloneUrl
 git push -u origin @Model.DefaultBranch</pre>
@@ -53,7 +53,7 @@ git push -u origin @Model.DefaultBranch</pre>
             <div class="repo-actions">
                 <div class="clone-url-box">
                     <input id="cloneUrl" type="text" readonly value="@Model.CloneUrl" class="form-control clone-input" />
-                    <button class="btn btn-secondary" onclick="copyCloneUrl()">Kopieer</button>
+                    <button class="btn btn-secondary" onclick="copyCloneUrl()">@L["copy_button"]</button>
                 </div>
                 @{var archiveBranch = Model.CurrentBranch.Replace('/', '-');}
                 <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/archive/@archiveBranch">
@@ -66,7 +66,7 @@ git push -u origin @Model.DefaultBranch</pre>
             @if (!string.IsNullOrEmpty(Model.CurrentPath))
             {
                 <div class="file-tree-header">
-                    <a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch">&larr; terug naar root</a>
+                    <a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch">@L["back_to_root"]</a>
                     &nbsp;/ @Model.CurrentPath
                 </div>
             }

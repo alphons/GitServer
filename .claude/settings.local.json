@@ -19,7 +19,11 @@
       "Skill(fewer-permission-prompts)",
       "Skill(fewer-permission-prompts:*)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\git\\\\GitServer\" -Depth 0)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(dotnet build *)"
     ]
   }
 }

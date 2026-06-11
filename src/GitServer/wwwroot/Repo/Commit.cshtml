@@ -1,7 +1,7 @@
 @page "/{user}/{repo}/commit/{sha}"
 @model GitServer.wwwroot.Repo.CommitModel
 @{
-    ViewData["Title"] = $"{Model.Detail?.Info.ShortSha} &mdash; {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"{Model.Detail?.Info.ShortSha} — {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">
@@ -29,7 +29,7 @@
         </div>
 
         <div class="diff-files-summary">
-            <strong>@Model.Detail.ChangedFiles.Count bestanden gewijzigd</strong>
+            <strong>@Model.Detail.ChangedFiles.Count @L["commit_files_changed"]</strong>
             <ul class="changed-files-list">
                 @foreach (var f in Model.Detail.ChangedFiles)
                 {

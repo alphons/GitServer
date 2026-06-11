@@ -139,6 +139,21 @@ ul, ol { padding-left: 1.5rem; }
   transition: all 0.2s;
 }
 
+/* === Language selector === */
+.lang-select {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.4rem;
+  cursor: pointer;
+  margin-left: 0.25rem;
+}
+
+.lang-select:hover { border-color: var(--text-muted); color: var(--text); }
+.lang-select option { background: var(--surface); color: var(--text); }
+
 /* === Footer === */
 .site-footer {
   background: var(--surface);

@@ -5,17 +5,17 @@
 }
 <div class="container">
     <div class="page-header">
-        <h1>Explore</h1>
+        <h1>@L["nav_explore"]</h1>
     </div>
     <form method="get" class="search-form search-form-full">
-        <input name="q" type="search" class="form-control" placeholder="Zoeken naar repositories..."
+        <input name="q" type="search" class="form-control" placeholder="@L["explore_search_placeholder"]"
                value="@Model.Query" autofocus />
-        <button type="submit" class="btn btn-primary">Zoeken</button>
+        <button type="submit" class="btn btn-primary">@L["search_button"]</button>
     </form>
 
     @if (!string.IsNullOrEmpty(Model.Query))
     {
-        <p class="search-results-info">@Model.Repos.Count resultaten voor "<strong>@Model.Query</strong>"</p>
+        <p class="search-results-info">@Model.Repos.Count @L["explore_results_for"] "<strong>@Model.Query</strong>"</p>
     }
 
     @if (Model.Repos.Any())
@@ -34,7 +34,7 @@
                         <p class="repo-description">@repo.Description</p>
                     }
                     <div class="repo-meta">
-                        <span class="text-muted">Bijgewerkt @repo.UpdatedAt.ToString("d MMM yyyy")</span>
+                        <span class="text-muted">@L["updated_prefix"] @repo.UpdatedAt.ToString("d MMM yyyy")</span>
                     </div>
                 </div>
             }
@@ -42,16 +42,16 @@
         <div class="pagination">
             @if (Model.Page > 0)
             {
-                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page - 1)">&larr; Vorige</a>
+                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page - 1)">@L["pagination_prev"]</a>
             }
             @if (Model.Repos.Count == 20)
             {
-                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page + 1)">Volgende &rarr;</a>
+                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page + 1)">@L["pagination_next"]</a>
             }
         </div>
     }
     else if (!string.IsNullOrEmpty(Model.Query))
     {
-        <div class="empty-state">Geen resultaten gevonden.</div>
+        <div class="empty-state">@L["explore_no_results"]</div>
     }
 </div>

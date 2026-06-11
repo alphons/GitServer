@@ -1,7 +1,7 @@
 @page "/{user}/{repo}/branches"
 @model GitServer.wwwroot.Repo.BranchesModel
 @{
-    ViewData["Title"] = $"Branches &mdash; {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"Branches — {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">
@@ -14,7 +14,7 @@
     @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "branches"))
 
     <div class="branches-section">
-        <h2>Branches</h2>
+        <h2>@L["branches_title"]</h2>
         @if (Model.Branches.Any())
         {
             <div class="branch-list">
@@ -30,7 +30,7 @@
                         </span>
                         <div class="branch-actions">
                             <a class="btn btn-sm btn-secondary"
-                               href="/@Model.UserName/@Model.RepoName?branch=@branch">Bekijk</a>
+                               href="/@Model.UserName/@Model.RepoName?branch=@branch">@L["branches_view"]</a>
                             @{var escapedBranch = Uri.EscapeDataString(branch);}
                             <a class="btn btn-sm btn-secondary"
                                href="/@Model.UserName/@Model.RepoName/archive/@escapedBranch">ZIP</a>
@@ -41,14 +41,14 @@
         }
         else
         {
-            <p class="text-muted">Geen branches gevonden.</p>
+            <p class="text-muted">@L["branches_empty"]</p>
         }
     </div>
 
     @if (Model.Tags.Any())
     {
         <div class="branches-section">
-            <h2>Tags</h2>
+            <h2>@L["tags_title"]</h2>
             <div class="branch-list">
                 @foreach (var tag in Model.Tags)
                 {
@@ -56,7 +56,7 @@
                         <span class="branch-name">@tag</span>
                         <div class="branch-actions">
                             <a class="btn btn-sm btn-secondary"
-                               href="/@Model.UserName/@Model.RepoName?branch=@tag">Bekijk</a>
+                               href="/@Model.UserName/@Model.RepoName?branch=@tag">@L["branches_view"]</a>
                         </div>
                     </div>
                 }

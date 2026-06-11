@@ -1,32 +1,32 @@
 @page "/Auth/Login"
 @model GitServer.wwwroot.Auth.LoginModel
 @{
-    ViewData["Title"] = "Inloggen";
+    ViewData["Title"] = L["login_title"];
 }
 <div class="auth-container">
     <div class="auth-card">
-        <h1 class="auth-title">Inloggen</h1>
+        <h1 class="auth-title">@L["login_title"]</h1>
         @if (!string.IsNullOrEmpty(Model.ErrorMessage))
         {
             <div class="alert alert-danger">@Model.ErrorMessage</div>
         }
         <form method="post">
             <div class="form-group">
-                <label for="username">Gebruikersnaam of e-mail</label>
+                <label for="username">@L["login_username_label"]</label>
                 <input id="username" name="Username" type="text" class="form-control" required autofocus />
             </div>
             <div class="form-group">
-                <label for="password">Wachtwoord</label>
+                <label for="password">@L["password_label"]</label>
                 <input id="password" name="Password" type="password" class="form-control" required />
             </div>
             <div class="form-check">
                 <input id="remember" name="RememberMe" type="checkbox" class="form-check-input" />
-                <label for="remember">Onthoud mij</label>
+                <label for="remember">@L["login_remember_me"]</label>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Inloggen</button>
+            <button type="submit" class="btn btn-primary btn-block">@L["login_submit"]</button>
         </form>
         <div class="auth-links">
-            <a href="/Auth/Register">Nog geen account? Registreer hier</a>
+            <a href="/Auth/Register">@L["login_register_link"]</a>
         </div>
     </div>
 </div>

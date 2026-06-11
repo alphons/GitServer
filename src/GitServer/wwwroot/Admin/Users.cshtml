@@ -1,10 +1,10 @@
 @page "/Admin/Users"
 @model GitServer.wwwroot.Admin.UsersModel
 @{
-    ViewData["Title"] = "Gebruikersbeheer";
+    ViewData["Title"] = L["admin_users_title"];
 }
 <div class="container">
-    <h1>Gebruikersbeheer</h1>
+    <h1>@L["admin_users_title"]</h1>
 
     @if (!string.IsNullOrEmpty(Model.Message))
     {
@@ -14,11 +14,11 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>Gebruiker</th>
-                <th>E-mail</th>
-                <th>Aangemaakt</th>
-                <th>Admin</th>
-                <th>Acties</th>
+                <th>@L["admin_col_user"]</th>
+                <th>@L["email_label"]</th>
+                <th>@L["admin_col_created"]</th>
+                <th>@L["admin_col_admin"]</th>
+                <th>@L["admin_col_actions"]</th>
             </tr>
         </thead>
         <tbody>
@@ -33,15 +33,15 @@
                         <form method="post" asp-page-handler="ToggleAdmin" style="display:inline">
                             <input type="hidden" name="userId" value="@user.Id" />
                             <button type="submit" class="btn btn-sm btn-secondary">
-                                @(user.IsAdmin ? "Admin afnemen" : "Admin maken")
+                                @(user.IsAdmin ? L["admin_remove_admin"] : L["admin_make_admin"])
                             </button>
                         </form>
                         @if (user.Id != Model.CurrentUserId)
                         {
                             <form method="post" asp-page-handler="Delete" style="display:inline"
-                                  onsubmit="return confirm('Gebruiker @user.UserName verwijderen?')">
+                                  onsubmit="return confirm('@L.Format("confirm_delete_user", user.UserName)')">
                                 <input type="hidden" name="userId" value="@user.Id" />
-                                <button type="submit" class="btn btn-sm btn-danger">Verwijderen</button>
+                                <button type="submit" class="btn btn-sm btn-danger">@L["delete_button"]</button>
                             </form>
                         }
                     </td>

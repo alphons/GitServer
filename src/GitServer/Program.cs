@@ -49,9 +49,11 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 // Services
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<MarkdownService>();
+builder.Services.AddScoped<LocalizationService>();
 
 // MVC + Razor Pages
 builder.Services.AddControllersWithViews();
@@ -84,6 +86,22 @@ app.UseMiddleware<GitAuthMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/set-language", (string? lang, string? returnUrl, HttpResponse response) =>
+{
+    if (!string.IsNullOrEmpty(lang) && lang.Length <= 10 && lang.All(c => char.IsLetterOrDigit(c) || c == '-'))
+    {
+        response.Cookies.Append("lang", lang, new CookieOptions
+        {
+            Expires = DateTimeOffset.UtcNow.AddYears(1),
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax,
+            HttpOnly = true
+        });
+    }
+    var redirect = string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl;
+    return Results.Redirect(redirect);
+});
 
 app.MapControllers();
 app.MapRazorPages();
