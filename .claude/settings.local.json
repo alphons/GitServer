@@ -14,7 +14,12 @@
       "PowerShell(& \"$env:windir\\\\system32\\\\inetsrv\\\\appcmd.exe\" unlock config -section:system.webServer/security/authentication/windowsAuthentication)",
       "Bash(Remove-Item -Recurse -Force \"C:\\\\git\\\\GitServer\\\\src\\\\GitServer\\\\wwwroot\\\\lib\")",
       "Bash(Remove-Item -Force \"C:\\\\git\\\\GitServer\\\\src\\\\GitServer\\\\wwwroot\\\\js\\\\site.js\")",
-      "PowerShell(cd C:\\\\git\\\\GitServer\\\\src\\\\GitServer; dotnet build -c Release --no-restore 2>&1 | Where-Object { $_ -match \"error CS\" } | Select-Object -Unique | Select-Object -First 20)"
+      "PowerShell(cd C:\\\\git\\\\GitServer\\\\src\\\\GitServer; dotnet build -c Release --no-restore 2>&1 | Where-Object { $_ -match \"error CS\" } | Select-Object -Unique | Select-Object -First 20)",
+      "Bash(cat -n /mnt/c/git/GitServer/src/GitServer/Program.cs)",
+      "Skill(fewer-permission-prompts)",
+      "Skill(fewer-permission-prompts:*)",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
     ]
   }
 }

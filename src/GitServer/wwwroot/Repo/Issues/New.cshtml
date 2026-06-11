@@ -1,7 +1,7 @@
-﻿@page "/{user}/{repo}/issues/new"
+@page "/{user}/{repo}/issues/new"
 @model GitServer.wwwroot.Repo.Issues.NewIssueModel
 @{
-    ViewData["Title"] = $"Nieuw issue â€” {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"Nieuw issue &mdash; {Model.UserName}/{Model.RepoName}";
 }
 <div class="container container-sm">
     <div class="repo-header">

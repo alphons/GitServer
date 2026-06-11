@@ -1,4 +1,4 @@
-﻿@page "/{user}/{repo}"
+@page "/{user}/{repo}"
 @model GitServer.wwwroot.Repo.ViewModel
 @{
     ViewData["Title"] = $"{Model.UserName}/{Model.RepoName}";
@@ -10,7 +10,7 @@
             <span class="separator">/</span>
             <strong>@Model.RepoName</strong>
             <span class="badge @(Model.Repo!.IsPrivate ? "badge-warning" : "badge-muted")">
-                @(Model.Repo.IsPrivate ? "PrivÃ©" : "Publiek")
+                @(Model.Repo.IsPrivate ? "Privé" : "Publiek")
             </span>
         </div>
         @if (!string.IsNullOrEmpty(Model.Repo.Description))

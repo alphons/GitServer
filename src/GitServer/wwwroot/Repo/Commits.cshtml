@@ -1,7 +1,7 @@
-﻿@page "/{user}/{repo}/commits"
+@page "/{user}/{repo}/commits"
 @model GitServer.wwwroot.Repo.CommitsModel
 @{
-    ViewData["Title"] = $"Commits â€” {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"Commits &mdash; {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">

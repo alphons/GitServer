@@ -1,4 +1,4 @@
-﻿@page "/User/{username}"
+@page "/User/{username}"
 @model GitServer.User.ProfileModel
 @{
     ViewData["Title"] = Model.ProfileUser?.UserName ?? "Profiel";
@@ -45,7 +45,7 @@
                             </a>
                             @if (repo.IsPrivate)
                             {
-                                <span class="badge badge-warning">PrivÃ©</span>
+                                <span class="badge badge-warning">Privé</span>
                             }
                         </div>
                         @if (!string.IsNullOrEmpty(repo.Description))

@@ -1,9 +1,9 @@
-﻿@page "/{user}/{repo}/issues/{id:int}"
+@page "/{user}/{repo}/issues/{id:int}"
 @model GitServer.wwwroot.Repo.Issues.DetailModel
 @using GitServer.Services
 @inject MarkdownService Markdown
 @{
-    ViewData["Title"] = $"#{Model.Issue?.Id} {Model.Issue?.Title} â€” {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"#{Model.Issue?.Id} {Model.Issue?.Title} &mdash; {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">

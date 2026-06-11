@@ -1,4 +1,5 @@
 using GitServer.Data;
+using Microsoft.AspNetCore.DataProtection;
 using GitServer.Extensions;
 using GitServer.Middleware;
 using GitServer.Models;
@@ -41,6 +42,11 @@ builder.Services.ConfigureApplicationCookie(opt =>
     opt.SlidingExpiration = true;
 });
 
+
+// Data Protection — persist keys so antiforgery tokens survive app restarts
+var keysPath = Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 // Services
 builder.Services.AddScoped<GitProcessService>();

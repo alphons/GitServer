@@ -1,7 +1,7 @@
-﻿@page "/{user}/{repo}/blob/{branch}/{**path}"
+@page "/{user}/{repo}/blob/{branch}/{**path}"
 @model GitServer.wwwroot.Repo.BlobModel
 @{
-    ViewData["Title"] = $"{Model.FilePath} â€” {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"{Model.FilePath} &mdash; {Model.UserName}/{Model.RepoName}";
     var ext = System.IO.Path.GetExtension(Model.FilePath).TrimStart('.').ToLower();
 }
 <div class="container">
@@ -38,7 +38,7 @@
         </div>
         @if (Model.IsBinary)
         {
-            <div class="file-binary-notice">Binair bestand â€” kan niet worden weergegeven.</div>
+            <div class="file-binary-notice">Binair bestand &mdash; kan niet worden weergegeven.</div>
         }
         else
         {

@@ -1,4 +1,4 @@
-﻿@page "/Repo/New"
+@page "/Repo/New"
 @model GitServer.wwwroot.Repo.NewModel
 @{
     ViewData["Title"] = "Nieuwe repository";
@@ -25,7 +25,7 @@
         <div class="form-group">
             <label class="checkbox-label">
                 <input name="IsPrivate" type="checkbox" @(Model.IsPrivate ? "checked" : "") />
-                PrivÃ© repository
+                Privé repository
             </label>
         </div>
         <div class="form-actions">

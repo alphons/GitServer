@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model GitServer.wwwroot.IndexModel
 @{
     ViewData["Title"] = "Home";
@@ -31,7 +31,7 @@
                             @repo.Owner.UserName / @repo.Name
                         </a>
                         <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
-                            @(repo.IsPrivate ? "PrivÃ©" : "Publiek")
+                            @(repo.IsPrivate ? "Privé" : "Publiek")
                         </span>
                     </div>
                     @if (!string.IsNullOrEmpty(repo.Description))

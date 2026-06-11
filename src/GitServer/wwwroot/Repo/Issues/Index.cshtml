@@ -1,7 +1,7 @@
-﻿@page "/{user}/{repo}/issues"
+@page "/{user}/{repo}/issues"
 @model GitServer.wwwroot.Repo.Issues.IssueIndexModel
 @{
-    ViewData["Title"] = $"Issues â€” {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"Issues &mdash; {Model.UserName}/{Model.RepoName}";
 }
 <div class="container">
     <div class="repo-header">
@@ -39,7 +39,7 @@
             {
                 <div class="issue-item">
                     <span class="issue-state @(issue.IsClosed ? "state-closed" : "state-open")">
-                        @(issue.IsClosed ? "âœ—" : "âœ“")
+                        @(issue.IsClosed ? Html.Raw("&#x2716;") : Html.Raw("&#x2714;"))
                     </span>
                     <div class="issue-content">
                         <a class="issue-title" href="/@Model.UserName/@Model.RepoName/issues/@issue.Id">
@@ -47,7 +47,7 @@
                         </a>
                         <span class="issue-meta text-muted">
                             #@issue.Id geopend door @issue.Author.UserName op @issue.CreatedAt.ToString("d MMM yyyy")
-                            &nbsp;Â· @issue.Comments.Count reacties
+                            &nbsp;&middot; @issue.Comments.Count reacties
                         </span>
                     </div>
                 </div>

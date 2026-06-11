@@ -44,7 +44,11 @@ public class RepositoryService
     {
         var path = GetRepoPath(ownerName, repo.Name);
         if (Directory.Exists(path))
+        {
+            foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
             Directory.Delete(path, recursive: true);
+        }
 
         _db.Repositories.Remove(repo);
         await _db.SaveChangesAsync();
