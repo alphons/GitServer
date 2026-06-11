@@ -3,20 +3,14 @@ using System.Text.Json;
 
 namespace GitServer.Services;
 
-public class LocalizationService
+public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env)
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly string _localizationPath;
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly string _localizationPath = Path.Combine(env.ContentRootPath, "Localization");
 
     private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _cache = new();
 
-    public LocalizationService(IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env)
-    {
-        _httpContextAccessor = httpContextAccessor;
-        _localizationPath = Path.Combine(env.ContentRootPath, "Localization");
-    }
-
-    public string CurrentLanguage
+	public string CurrentLanguage
     {
         get
         {

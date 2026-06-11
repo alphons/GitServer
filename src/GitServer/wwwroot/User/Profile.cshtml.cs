@@ -4,31 +4,22 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer.User;
+namespace GitServer.wwwroot.User;
 
-public class ProfileModel : PageModel
+public class ProfileModel(UserManager<AppUser> userManager, RepositoryService repos) : PageModel
 {
-    private readonly UserManager<AppUser> _userManager;
-    private readonly RepositoryService _repos;
+	public AppUser? ProfileUser { get; set; }
+	public List<Repository> Repos { get; set; } = new();
 
-    public ProfileModel(UserManager<AppUser> userManager, RepositoryService repos)
-    {
-        _userManager = userManager;
-        _repos = repos;
-    }
+	public async Task<IActionResult> OnGetAsync(string username)
+	{
+		ProfileUser = await userManager.FindByNameAsync(username);
+		if (ProfileUser == null) return NotFound();
 
-    public AppUser? ProfileUser { get; set; }
-    public List<Repository> Repos { get; set; } = new();
+		var currentUserId = userManager.GetUserId(User);
+		var isOwner = currentUserId == ProfileUser.Id;
 
-    public async Task<IActionResult> OnGetAsync(string username)
-    {
-        ProfileUser = await _userManager.FindByNameAsync(username);
-        if (ProfileUser == null) return NotFound();
-
-        var currentUserId = _userManager.GetUserId(User);
-        var isOwner = currentUserId == ProfileUser.Id;
-
-        Repos = await _repos.GetUserReposAsync(ProfileUser.Id, includePrivate: isOwner);
-        return Page();
-    }
+		Repos = await repos.GetUserReposAsync(ProfileUser.Id, includePrivate: isOwner);
+		return Page();
+	}
 }

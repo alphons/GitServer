@@ -5,24 +5,17 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace GitServer.wwwroot.Auth;
 
-public class LogoutModel : PageModel
+public class LogoutModel(SignInManager<AppUser> signInManager) : PageModel
 {
-    private readonly SignInManager<AppUser> _signInManager;
-
-    public LogoutModel(SignInManager<AppUser> signInManager)
+	public async Task<IActionResult> OnGetAsync()
     {
-        _signInManager = signInManager;
-    }
-
-    public async Task<IActionResult> OnGetAsync()
-    {
-        await _signInManager.SignOutAsync();
+        await signInManager.SignOutAsync();
         return RedirectToPage("/Index");
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        await _signInManager.SignOutAsync();
+        await signInManager.SignOutAsync();
         return RedirectToPage("/Index");
     }
 }

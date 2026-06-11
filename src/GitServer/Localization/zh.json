@@ -120,5 +120,16 @@
   "admin_remove_admin": "撤销管理员",
   "admin_make_admin": "设为管理员",
 
-  "commit_files_changed": "个文件已更改"
+  "commit_files_changed": "个文件已更改",
+
+  "error_invalid_credentials": "用户名或密码无效。",
+  "error_invalid_repo_name": "名称无效。仅允许字母、数字、- _ 和 .",
+  "error_create_repo": "无法创建仓库：",
+  "success_settings_saved": "设置已保存。",
+  "success_profile_saved": "资料已保存。",
+  "success_password_changed": "密码已修改。",
+  "admin_now_is_admin": "{0} 现在是管理员。",
+  "admin_now_not_admin": "{0} 不再是管理员。",
+  "admin_cannot_delete_self": "无法删除自己的账户。",
+  "admin_user_deleted": "用户 {0} 已删除。"
 }

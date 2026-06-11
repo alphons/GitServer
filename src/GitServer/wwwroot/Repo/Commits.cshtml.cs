@@ -6,47 +6,40 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace GitServer.wwwroot.Repo;
 
-public class CommitsModel : PageModel
+public class CommitsModel(
+	RepositoryService repos, 
+	GitProcessService git, 
+	UserManager<AppUser> userManager) : PageModel
 {
-    private readonly RepositoryService _repos;
-    private readonly GitProcessService _git;
-    private readonly UserManager<AppUser> _userManager;
 
-    public CommitsModel(RepositoryService repos, GitProcessService git, UserManager<AppUser> userManager)
-    {
-        _repos = repos;
-        _git = git;
-        _userManager = userManager;
-    }
+	public string UserName { get; set; } = "";
+	public string RepoName { get; set; } = "";
+	public string Branch { get; set; } = "main";
+	public new int Page { get; set; }
+	public int TotalCount { get; set; }
+	public List<CommitInfo> Commits { get; set; } = new();
 
-    public string UserName { get; set; } = "";
-    public string RepoName { get; set; } = "";
-    public string Branch { get; set; } = "main";
-    public new int Page { get; set; }
-    public int TotalCount { get; set; }
-    public List<CommitInfo> Commits { get; set; } = new();
+	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
+	{
+		UserName = user;
+		RepoName = repo;
+		Page = page;
 
-    public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
-    {
-        UserName = user;
-        RepoName = repo;
-        Page = page;
+		var repoObj = await repos.GetAsync(user, repo);
+		if (repoObj == null) return NotFound();
 
-        var repoObj = await _repos.GetAsync(user, repo);
-        if (repoObj == null) return NotFound();
+		var userId = userManager.GetUserId(User);
+		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
-        var userId = _userManager.GetUserId(User);
-        if (!await _repos.CanReadAsync(repoObj, userId)) return Forbid();
+		var repoPath = repos.GetRepoPath(user, repo);
+		if (await git.IsEmpty(repoPath)) return Page();
 
-        var repoPath = _repos.GetRepoPath(user, repo);
-        if (await _git.IsEmpty(repoPath)) return Page();
+		var defaultBranch = await git.GetDefaultBranch(repoPath);
+		Branch = branch ?? defaultBranch;
 
-        var defaultBranch = await _git.GetDefaultBranch(repoPath);
-        Branch = branch ?? defaultBranch;
+		TotalCount = await git.GetCommitCount(repoPath, Branch);
+		Commits = await git.GetCommitLog(repoPath, Branch, page * 25, 25);
 
-        TotalCount = await _git.GetCommitCount(repoPath, Branch);
-        Commits = await _git.GetCommitLog(repoPath, Branch, page * 25, 25);
-
-        return Page();
-    }
+		return Page();
+	}
 }

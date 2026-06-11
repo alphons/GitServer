@@ -6,37 +6,29 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace GitServer.wwwroot.Repo;
 
-public class CommitModel : PageModel
+public class CommitModel(
+	RepositoryService repos, 
+	GitProcessService git, 
+	UserManager<AppUser> userManager) : PageModel
 {
-    private readonly RepositoryService _repos;
-    private readonly GitProcessService _git;
-    private readonly UserManager<AppUser> _userManager;
+	public string UserName { get; set; } = "";
+	public string RepoName { get; set; } = "";
+	public CommitDetail? Detail { get; set; }
 
-    public CommitModel(RepositoryService repos, GitProcessService git, UserManager<AppUser> userManager)
-    {
-        _repos = repos;
-        _git = git;
-        _userManager = userManager;
-    }
+	public async Task<IActionResult> OnGetAsync(string user, string repo, string sha)
+	{
+		UserName = user;
+		RepoName = repo;
 
-    public string UserName { get; set; } = "";
-    public string RepoName { get; set; } = "";
-    public CommitDetail? Detail { get; set; }
+		var repoObj = await repos.GetAsync(user, repo);
+		if (repoObj == null) return NotFound();
 
-    public async Task<IActionResult> OnGetAsync(string user, string repo, string sha)
-    {
-        UserName = user;
-        RepoName = repo;
+		var userId = userManager.GetUserId(User);
+		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
-        var repoObj = await _repos.GetAsync(user, repo);
-        if (repoObj == null) return NotFound();
+		var repoPath = repos.GetRepoPath(user, repo);
+		Detail = await git.GetCommitDetail(repoPath, sha);
 
-        var userId = _userManager.GetUserId(User);
-        if (!await _repos.CanReadAsync(repoObj, userId)) return Forbid();
-
-        var repoPath = _repos.GetRepoPath(user, repo);
-        Detail = await _git.GetCommitDetail(repoPath, sha);
-
-        return Page();
-    }
+		return Page();
+	}
 }

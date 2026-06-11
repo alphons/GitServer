@@ -120,5 +120,16 @@
   "admin_remove_admin": "إلغاء الإدارة",
   "admin_make_admin": "تعيين مديراً",
 
-  "commit_files_changed": "ملفات تم تغييرها"
+  "commit_files_changed": "ملفات تم تغييرها",
+
+  "error_invalid_credentials": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+  "error_invalid_repo_name": "اسم غير صالح. استخدم الحروف والأرقام و - و _ و . فقط.",
+  "error_create_repo": "تعذّر إنشاء المستودع: ",
+  "success_settings_saved": "تم حفظ الإعدادات.",
+  "success_profile_saved": "تم حفظ الملف الشخصي.",
+  "success_password_changed": "تم تغيير كلمة المرور.",
+  "admin_now_is_admin": "{0} أصبح مديراً الآن.",
+  "admin_now_not_admin": "{0} لم يعد مديراً.",
+  "admin_cannot_delete_self": "لا يمكنك حذف حسابك الخاص.",
+  "admin_user_deleted": "تم حذف المستخدم {0}."
 }

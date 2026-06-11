@@ -120,5 +120,16 @@
   "admin_remove_admin": "管理者権限を削除",
   "admin_make_admin": "管理者にする",
 
-  "commit_files_changed": "ファイルが変更されました"
+  "commit_files_changed": "ファイルが変更されました",
+
+  "error_invalid_credentials": "ユーザー名またはパスワードが無効です。",
+  "error_invalid_repo_name": "無効な名前です。文字、数字、- _ および . のみ使用できます。",
+  "error_create_repo": "リポジトリを作成できませんでした：",
+  "success_settings_saved": "設定を保存しました。",
+  "success_profile_saved": "プロフィールを保存しました。",
+  "success_password_changed": "パスワードを変更しました。",
+  "admin_now_is_admin": "{0} は管理者になりました。",
+  "admin_now_not_admin": "{0} は管理者ではなくなりました。",
+  "admin_cannot_delete_self": "自分自身を削除することはできません。",
+  "admin_user_deleted": "ユーザー {0} を削除しました。"
 }

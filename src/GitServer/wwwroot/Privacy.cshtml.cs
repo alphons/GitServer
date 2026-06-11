@@ -4,8 +4,8 @@ namespace GitServer.wwwroot;
 
 public class PrivacyModel : PageModel
 {
-    public void OnGet()
-    {
-    }
+	public void OnGet()
+	{
+	}
 }
 

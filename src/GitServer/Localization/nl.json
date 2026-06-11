@@ -121,5 +121,16 @@
   "admin_remove_admin": "Admin afnemen",
   "admin_make_admin": "Admin maken",
 
-  "commit_files_changed": "bestanden gewijzigd"
+  "commit_files_changed": "bestanden gewijzigd",
+
+  "error_invalid_credentials": "Ongeldige gebruikersnaam of wachtwoord.",
+  "error_invalid_repo_name": "Ongeldige naam. Gebruik alleen letters, cijfers, -, _ en .",
+  "error_create_repo": "Kon repository niet aanmaken: ",
+  "success_settings_saved": "Instellingen opgeslagen.",
+  "success_profile_saved": "Profiel opgeslagen.",
+  "success_password_changed": "Wachtwoord gewijzigd.",
+  "admin_now_is_admin": "{0} is nu admin.",
+  "admin_now_not_admin": "{0} is geen admin meer.",
+  "admin_cannot_delete_self": "Kan jezelf niet verwijderen.",
+  "admin_user_deleted": "Gebruiker {0} verwijderd."
 }

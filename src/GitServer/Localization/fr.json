@@ -120,5 +120,16 @@
   "admin_remove_admin": "Retirer admin",
   "admin_make_admin": "Rendre admin",
 
-  "commit_files_changed": "fichiers modifiés"
+  "commit_files_changed": "fichiers modifiés",
+
+  "error_invalid_credentials": "Nom d'utilisateur ou mot de passe invalide.",
+  "error_invalid_repo_name": "Nom invalide. Utilisez uniquement des lettres, chiffres, -, _ et .",
+  "error_create_repo": "Impossible de créer le dépôt : ",
+  "success_settings_saved": "Paramètres enregistrés.",
+  "success_profile_saved": "Profil enregistré.",
+  "success_password_changed": "Mot de passe modifié.",
+  "admin_now_is_admin": "{0} est maintenant admin.",
+  "admin_now_not_admin": "{0} n'est plus admin.",
+  "admin_cannot_delete_self": "Vous ne pouvez pas vous supprimer vous-même.",
+  "admin_user_deleted": "Utilisateur {0} supprimé."
 }

@@ -5,20 +5,14 @@ using Microsoft.Extensions.Options;
 
 namespace GitServer.Services;
 
-public class RepositoryService
+public class RepositoryService(AppDbContext db, 
+    GitProcessService git, IOptions<GitServerOptions> options)
 {
-    private readonly AppDbContext _db;
-    private readonly GitProcessService _git;
-    private readonly string _reposPath;
+    private readonly AppDbContext _db = db;
+    private readonly GitProcessService _git = git;
+    private readonly string _reposPath = options.Value.RepositoriesPath;
 
-    public RepositoryService(AppDbContext db, GitProcessService git, IOptions<GitServerOptions> options)
-    {
-        _db = db;
-        _git = git;
-        _reposPath = options.Value.RepositoriesPath;
-    }
-
-    public string GetRepoPath(string userName, string repoName) =>
+	public string GetRepoPath(string userName, string repoName) =>
         Path.Combine(_reposPath, userName, repoName + ".git");
 
     public async Task<Repository> CreateAsync(string ownerId, string ownerName, string name, string? description, bool isPrivate)

@@ -7,20 +7,14 @@ using Microsoft.Extensions.Options;
 
 namespace GitServer.wwwroot.Auth;
 
-public class RegisterModel : PageModel
+public class RegisterModel(
+    UserManager<AppUser> userManager, 
+    SignInManager<AppUser> signInManager, 
+    IOptions<GitServerOptions> options) : PageModel
 {
-    private readonly UserManager<AppUser> _userManager;
-    private readonly SignInManager<AppUser> _signInManager;
-    private readonly GitServerOptions _options;
+    private readonly GitServerOptions _options = options.Value;
 
-    public RegisterModel(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, IOptions<GitServerOptions> options)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _options = options.Value;
-    }
-
-    [BindProperty] public string Username { get; set; } = "";
+	[BindProperty] public string Username { get; set; } = "";
     [BindProperty] public string Email { get; set; } = "";
     [BindProperty] public string DisplayName { get; set; } = "";
     [BindProperty] public string Password { get; set; } = "";
@@ -46,17 +40,17 @@ public class RegisterModel : PageModel
         };
 
         // First user becomes admin
-        if (!_userManager.Users.Any())
+        if (!userManager.Users.Any())
             user.IsAdmin = true;
 
-        var result = await _userManager.CreateAsync(user, Password);
+        var result = await userManager.CreateAsync(user, Password);
         if (!result.Succeeded)
         {
             ErrorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
             return Page();
         }
 
-        await _signInManager.SignInAsync(user, isPersistent: false);
+        await signInManager.SignInAsync(user, isPersistent: false);
         return RedirectToPage("/Index");
     }
 }

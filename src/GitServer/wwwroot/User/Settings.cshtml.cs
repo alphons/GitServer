@@ -1,74 +1,71 @@
-﻿using GitServer.Models;
+using GitServer.Models;
+using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer.User;
+namespace GitServer.wwwroot.User;
 
 [Authorize]
-public class UserSettingsModel : PageModel
+public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationService L) : PageModel
 {
-    private readonly UserManager<AppUser> _userManager;
+	public string DisplayName { get; set; } = "";
+	public string? Bio { get; set; }
+	public string? AvatarUrl { get; set; }
+	public string? Message { get; set; }
+	public bool IsError { get; set; }
+	public bool HasPassword { get; set; }
 
-    public UserSettingsModel(UserManager<AppUser> userManager) => _userManager = userManager;
+	[BindProperty] public string NewDisplayName { get; set; } = "";
+	[BindProperty] public string? NewBio { get; set; }
+	[BindProperty] public string? NewAvatarUrl { get; set; }
+	[BindProperty] public string CurrentPassword { get; set; } = "";
+	[BindProperty] public string NewPassword { get; set; } = "";
 
-    public string DisplayName { get; set; } = "";
-    public string? Bio { get; set; }
-    public string? AvatarUrl { get; set; }
-    public string? Message { get; set; }
-    public bool IsError { get; set; }
-    public bool HasPassword { get; set; }
+	public async Task OnGetAsync()
+	{
+		var user = await userManager.GetUserAsync(User);
+		if (user == null) return;
+		DisplayName = user.DisplayName;
+		Bio = user.Bio;
+		AvatarUrl = user.AvatarUrl;
+		HasPassword = await userManager.HasPasswordAsync(user);
+	}
 
-    [BindProperty] public string NewDisplayName { get; set; } = "";
-    [BindProperty] public string? NewBio { get; set; }
-    [BindProperty] public string? NewAvatarUrl { get; set; }
-    [BindProperty] public string CurrentPassword { get; set; } = "";
-    [BindProperty] public string NewPassword { get; set; } = "";
+	public async Task<IActionResult> OnPostProfileAsync()
+	{
+		var user = await userManager.GetUserAsync(User);
+		if (user == null) return NotFound();
 
-    public async Task OnGetAsync()
-    {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return;
-        DisplayName = user.DisplayName;
-        Bio = user.Bio;
-        AvatarUrl = user.AvatarUrl;
-        HasPassword = await _userManager.HasPasswordAsync(user);
-    }
+		user.DisplayName = NewDisplayName;
+		user.Bio = NewBio;
+		user.AvatarUrl = NewAvatarUrl;
 
-    public async Task<IActionResult> OnPostProfileAsync()
-    {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return NotFound();
+		var result = await userManager.UpdateAsync(user);
+		Message = result.Succeeded ? L["success_profile_saved"] : string.Join(" ", result.Errors.Select(e => e.Description));
+		IsError = !result.Succeeded;
 
-        user.DisplayName = NewDisplayName;
-        user.Bio = NewBio;
-        user.AvatarUrl = NewAvatarUrl;
+		DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
+		return Page();
+	}
 
-        var result = await _userManager.UpdateAsync(user);
-        Message = result.Succeeded ? "Profiel opgeslagen." : string.Join(" ", result.Errors.Select(e => e.Description));
-        IsError = !result.Succeeded;
+	public async Task<IActionResult> OnPostPasswordAsync()
+	{
+		var user = await userManager.GetUserAsync(User);
+		if (user == null) return NotFound();
 
-        DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
-        return Page();
-    }
+		IdentityResult result;
+		if (await userManager.HasPasswordAsync(user))
+			result = await userManager.ChangePasswordAsync(user, CurrentPassword, NewPassword);
+		else
+			result = await userManager.AddPasswordAsync(user, NewPassword);
 
-    public async Task<IActionResult> OnPostPasswordAsync()
-    {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return NotFound();
+		Message = result.Succeeded ? L["success_password_changed"] : string.Join(" ", result.Errors.Select(e => e.Description));
+		IsError = !result.Succeeded;
 
-        IdentityResult result;
-        if (await _userManager.HasPasswordAsync(user))
-            result = await _userManager.ChangePasswordAsync(user, CurrentPassword, NewPassword);
-        else
-            result = await _userManager.AddPasswordAsync(user, NewPassword);
-
-        Message = result.Succeeded ? "Wachtwoord gewijzigd." : string.Join(" ", result.Errors.Select(e => e.Description));
-        IsError = !result.Succeeded;
-
-        DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
-        HasPassword = await _userManager.HasPasswordAsync(user);
-        return Page();
-    }
+		DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
+		HasPassword = await userManager.HasPasswordAsync(user);
+		return Page();
+	}
 }

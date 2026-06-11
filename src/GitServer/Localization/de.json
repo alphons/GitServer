@@ -120,5 +120,16 @@
   "admin_remove_admin": "Admin entfernen",
   "admin_make_admin": "Zum Admin machen",
 
-  "commit_files_changed": "Dateien geändert"
+  "commit_files_changed": "Dateien geändert",
+
+  "error_invalid_credentials": "Ungültiger Benutzername oder Passwort.",
+  "error_invalid_repo_name": "Ungültiger Name. Nur Buchstaben, Ziffern, -, _ und . erlaubt.",
+  "error_create_repo": "Repository konnte nicht erstellt werden: ",
+  "success_settings_saved": "Einstellungen gespeichert.",
+  "success_profile_saved": "Profil gespeichert.",
+  "success_password_changed": "Passwort geändert.",
+  "admin_now_is_admin": "{0} ist jetzt Admin.",
+  "admin_now_not_admin": "{0} ist kein Admin mehr.",
+  "admin_cannot_delete_self": "Du kannst dich nicht selbst löschen.",
+  "admin_user_deleted": "Benutzer {0} gelöscht."
 }

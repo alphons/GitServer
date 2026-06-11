@@ -120,5 +120,16 @@
   "admin_remove_admin": "Снять права админа",
   "admin_make_admin": "Сделать админом",
 
-  "commit_files_changed": "файлов изменено"
+  "commit_files_changed": "файлов изменено",
+
+  "error_invalid_credentials": "Неверное имя пользователя или пароль.",
+  "error_invalid_repo_name": "Недопустимое название. Используйте только буквы, цифры, -, _ и .",
+  "error_create_repo": "Не удалось создать репозиторий: ",
+  "success_settings_saved": "Настройки сохранены.",
+  "success_profile_saved": "Профиль сохранён.",
+  "success_password_changed": "Пароль изменён.",
+  "admin_now_is_admin": "{0} теперь администратор.",
+  "admin_now_not_admin": "{0} больше не администратор.",
+  "admin_cannot_delete_self": "Нельзя удалить самого себя.",
+  "admin_user_deleted": "Пользователь {0} удалён."
 }

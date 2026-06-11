@@ -120,5 +120,16 @@
   "admin_remove_admin": "Quitar admin",
   "admin_make_admin": "Hacer admin",
 
-  "commit_files_changed": "archivos modificados"
+  "commit_files_changed": "archivos modificados",
+
+  "error_invalid_credentials": "Nombre de usuario o contraseña incorrectos.",
+  "error_invalid_repo_name": "Nombre inválido. Usa solo letras, dígitos, -, _ y .",
+  "error_create_repo": "No se pudo crear el repositorio: ",
+  "success_settings_saved": "Configuración guardada.",
+  "success_profile_saved": "Perfil guardado.",
+  "success_password_changed": "Contraseña cambiada.",
+  "admin_now_is_admin": "{0} ahora es admin.",
+  "admin_now_not_admin": "{0} ya no es admin.",
+  "admin_cannot_delete_self": "No puedes eliminarte a ti mismo.",
+  "admin_user_deleted": "Usuario {0} eliminado."
 }
