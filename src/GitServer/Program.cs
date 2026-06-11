@@ -2,7 +2,6 @@ using GitServer.Data;
 using GitServer.Middleware;
 using GitServer.Models;
 using GitServer.Services;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

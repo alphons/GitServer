@@ -10,14 +10,10 @@ public class GitAuthMiddleware
 {
     private readonly RequestDelegate _next;
 
-    public GitAuthMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
+    public GitAuthMiddleware(RequestDelegate next) => _next = next;
 
     public async Task InvokeAsync(HttpContext context,
         UserManager<AppUser> userManager,
-        SignInManager<AppUser> signInManager,
         AppDbContext db)
     {
         if (!context.Request.Path.StartsWithSegments("/git"))
@@ -62,6 +58,7 @@ public class GitAuthMiddleware
 
         // Try Basic auth
         var authHeader = context.Request.Headers.Authorization.ToString();
+
         if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
         {
             var encoded = authHeader["Basic ".Length..].Trim();
@@ -75,12 +72,8 @@ public class GitAuthMiddleware
                     var pass = decoded[(colonIdx + 1)..];
                     var found = await userManager.FindByNameAsync(user)
                                 ?? await userManager.FindByEmailAsync(user);
-                    if (found != null)
-                    {
-                        var result = await signInManager.CheckPasswordSignInAsync(found, pass, false);
-                        if (result.Succeeded)
-                            authedUser = found;
-                    }
+                    if (found != null && await userManager.CheckPasswordAsync(found, pass))
+                        authedUser = found;
                 }
             }
             catch { /* invalid base64 */ }

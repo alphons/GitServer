@@ -18,6 +18,7 @@ public class UserSettingsModel : PageModel
     public string? AvatarUrl { get; set; }
     public string? Message { get; set; }
     public bool IsError { get; set; }
+    public bool HasPassword { get; set; }
 
     [BindProperty] public string NewDisplayName { get; set; } = "";
     [BindProperty] public string? NewBio { get; set; }
@@ -32,6 +33,7 @@ public class UserSettingsModel : PageModel
         DisplayName = user.DisplayName;
         Bio = user.Bio;
         AvatarUrl = user.AvatarUrl;
+        HasPassword = await _userManager.HasPasswordAsync(user);
     }
 
     public async Task<IActionResult> OnPostProfileAsync()
@@ -56,11 +58,17 @@ public class UserSettingsModel : PageModel
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
-        var result = await _userManager.ChangePasswordAsync(user, CurrentPassword, NewPassword);
+        IdentityResult result;
+        if (await _userManager.HasPasswordAsync(user))
+            result = await _userManager.ChangePasswordAsync(user, CurrentPassword, NewPassword);
+        else
+            result = await _userManager.AddPasswordAsync(user, NewPassword);
+
         Message = result.Succeeded ? "Wachtwoord gewijzigd." : string.Join(" ", result.Errors.Select(e => e.Description));
         IsError = !result.Succeeded;
 
         DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
+        HasPassword = await _userManager.HasPasswordAsync(user);
         return Page();
     }
 }
