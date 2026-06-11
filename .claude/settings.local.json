@@ -13,7 +13,8 @@
       "Bash(dotnet-ef migrations add InitialCreate --output-dir Data/Migrations)",
       "PowerShell(& \"$env:windir\\\\system32\\\\inetsrv\\\\appcmd.exe\" unlock config -section:system.webServer/security/authentication/windowsAuthentication)",
       "Bash(Remove-Item -Recurse -Force \"C:\\\\git\\\\GitServer\\\\src\\\\GitServer\\\\wwwroot\\\\lib\")",
-      "Bash(Remove-Item -Force \"C:\\\\git\\\\GitServer\\\\src\\\\GitServer\\\\wwwroot\\\\js\\\\site.js\")"
+      "Bash(Remove-Item -Force \"C:\\\\git\\\\GitServer\\\\src\\\\GitServer\\\\wwwroot\\\\js\\\\site.js\")",
+      "PowerShell(cd C:\\\\git\\\\GitServer\\\\src\\\\GitServer; dotnet build -c Release --no-restore 2>&1 | Where-Object { $_ -match \"error CS\" } | Select-Object -Unique | Select-Object -First 20)"
     ]
   }
 }

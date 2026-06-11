@@ -1,3 +1,4 @@
+using GitServer;
 using GitServer.Data;
 using GitServer.Middleware;
 using GitServer.Models;
@@ -40,32 +41,6 @@ builder.Services.ConfigureApplicationCookie(opt =>
     opt.SlidingExpiration = true;
 });
 
-// OAuth
-var githubClientId = builder.Configuration["OAuth:GitHub:ClientId"] ?? "";
-var githubClientSecret = builder.Configuration["OAuth:GitHub:ClientSecret"] ?? "";
-var googleClientId = builder.Configuration["OAuth:Google:ClientId"] ?? "";
-var googleClientSecret = builder.Configuration["OAuth:Google:ClientSecret"] ?? "";
-
-var authBuilder = builder.Services.AddAuthentication();
-
-if (!string.IsNullOrEmpty(githubClientId) && !string.IsNullOrEmpty(githubClientSecret))
-{
-    authBuilder.AddGitHub(opt =>
-    {
-        opt.ClientId = githubClientId;
-        opt.ClientSecret = githubClientSecret;
-        opt.CallbackPath = "/auth/github/callback";
-    });
-}
-
-if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
-{
-    authBuilder.AddGoogle(opt =>
-    {
-        opt.ClientId = googleClientId;
-        opt.ClientSecret = googleClientSecret;
-    });
-}
 
 // Services
 builder.Services.AddScoped<GitProcessService>();
@@ -74,7 +49,7 @@ builder.Services.AddScoped<MarkdownService>();
 
 // MVC + Razor Pages
 builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
+builder.Services.AddWwwRootRazor();
 
 // Disable response buffering globally — git endpoints need streaming
 builder.Services.AddResponseCompression(opt => opt.EnableForHttps = false);
