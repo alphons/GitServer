@@ -1,7 +1,7 @@
-﻿@page "/{user}/{repo}/settings"
-@model GitServer.Repo.SettingsModel
+@page "/{user}/{repo}/settings"
+@model GitServer.wwwroot.Repo.SettingsModel
 @{
-    ViewData["Title"] = $"Instellingen â€” {Model.UserName}/{Model.RepoName}";
+    ViewData["Title"] = $"Instellingen - {Model.UserName}/{Model.RepoName}";
 }
 <div class="container container-sm">
     <div class="repo-header">
@@ -29,7 +29,7 @@
             <div class="form-group">
                 <label class="checkbox-label">
                     <input name="IsPrivate" type="checkbox" @(Model.Repo!.IsPrivate ? "checked" : "") />
-                    PrivÃ© repository
+                    Privé repository
                 </label>
             </div>
             <div class="form-group">

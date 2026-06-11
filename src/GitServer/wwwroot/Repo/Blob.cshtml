@@ -1,5 +1,5 @@
 ﻿@page "/{user}/{repo}/blob/{branch}/{**path}"
-@model GitServer.Repo.BlobModel
+@model GitServer.wwwroot.Repo.BlobModel
 @{
     ViewData["Title"] = $"{Model.FilePath} â€” {Model.UserName}/{Model.RepoName}";
     var ext = System.IO.Path.GetExtension(Model.FilePath).TrimStart('.').ToLower();

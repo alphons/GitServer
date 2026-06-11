@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
 
-namespace GitServer.Repo;
+namespace GitServer.wwwroot.Repo;
 
 public class ViewModel : PageModel
 {

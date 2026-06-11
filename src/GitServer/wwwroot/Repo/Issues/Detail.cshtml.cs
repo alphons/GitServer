@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
-namespace GitServer.Repo.Issues;
+namespace GitServer.wwwroot.Repo.Issues;
 
 public class DetailModel : PageModel
 {

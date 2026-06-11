@@ -2,7 +2,7 @@
 using GitServer.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer;
+namespace GitServer.wwwroot;
 
 public class ExploreModel : PageModel
 {

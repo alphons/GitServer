@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer.Repo;
+namespace GitServer.wwwroot.Repo;
 
 public class BranchesModel : PageModel
 {

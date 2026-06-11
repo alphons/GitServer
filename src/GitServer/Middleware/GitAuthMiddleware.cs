@@ -1,20 +1,20 @@
 using System.Text;
 using GitServer.Data;
 using GitServer.Models;
+using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Middleware;
 
-public class GitAuthMiddleware
+public class GitAuthMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
+    private readonly RequestDelegate _next = next;
 
-    public GitAuthMiddleware(RequestDelegate next) => _next = next;
-
-    public async Task InvokeAsync(HttpContext context,
+	public async Task InvokeAsync(HttpContext context,
         UserManager<AppUser> userManager,
-        AppDbContext db)
+        AppDbContext db,
+        RepositoryService repoService)
     {
         if (!context.Request.Path.StartsWithSegments("/git"))
         {
@@ -45,14 +45,15 @@ public class GitAuthMiddleware
         var repo = await db.Repositories
             .FirstOrDefaultAsync(r => r.OwnerId == owner.Id && r.Name == repoName);
 
-        if (repo == null)
+        // Check if this is a push (receive-pack) — path or query string
+        var isPush = context.Request.Path.Value?.Contains("receive-pack") == true
+            || context.Request.Query["service"] == "git-receive-pack";
+
+        if (repo == null && !isPush)
         {
             context.Response.StatusCode = 404;
             return;
         }
-
-        // Check if this is a push (receive-pack)
-        var isPush = context.Request.Path.Value?.Contains("receive-pack") == true;
 
         AppUser? authedUser = null;
 
@@ -79,8 +80,27 @@ public class GitAuthMiddleware
             catch { /* invalid base64 */ }
         }
 
+        // Auto-create repo on first push if it doesn't exist yet
+        if (repo == null && isPush)
+        {
+            if (authedUser == null)
+            {
+                context.Response.Headers.WWWAuthenticate = "Basic realm=\"GitServer\"";
+                context.Response.StatusCode = 401;
+                return;
+            }
+
+            if (authedUser.Id != owner.Id)
+            {
+                context.Response.StatusCode = 403;
+                return;
+            }
+
+            repo = await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: false);
+        }
+
         // Authorization check
-        if (repo.IsPrivate || isPush)
+        if (repo!.IsPrivate || isPush)
         {
             if (authedUser == null)
             {

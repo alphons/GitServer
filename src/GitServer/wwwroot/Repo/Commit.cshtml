@@ -1,5 +1,5 @@
 ﻿@page "/{user}/{repo}/commit/{sha}"
-@model GitServer.Repo.CommitModel
+@model GitServer.wwwroot.Repo.CommitModel
 @{
     ViewData["Title"] = $"{Model.Detail?.Info.ShortSha} â€” {Model.UserName}/{Model.RepoName}";
 }

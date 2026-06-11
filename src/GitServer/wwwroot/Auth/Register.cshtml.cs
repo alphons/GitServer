@@ -1,12 +1,11 @@
-﻿using GitServer.Data;
-using GitServer.Models;
+﻿using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
 
-namespace GitServer.Auth;
+namespace GitServer.wwwroot.Auth;
 
 public class RegisterModel : PageModel
 {

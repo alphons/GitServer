@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
-namespace GitServer.Admin;
+namespace GitServer.wwwroot.Admin;
 
 public class UsersModel : PageModel
 {

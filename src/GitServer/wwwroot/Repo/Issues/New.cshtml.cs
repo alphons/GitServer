@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer.Repo.Issues;
+namespace GitServer.wwwroot.Repo.Issues;
 
 [Authorize]
 public class NewIssueModel : PageModel

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.RegularExpressions;
 
-namespace GitServer.Repo;
+namespace GitServer.wwwroot.Repo;
 
 [Authorize]
 public class NewModel : PageModel

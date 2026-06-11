@@ -1,5 +1,5 @@
-using GitServer;
 using GitServer.Data;
+using GitServer.Extensions;
 using GitServer.Middleware;
 using GitServer.Models;
 using GitServer.Services;

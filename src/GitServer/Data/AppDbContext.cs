@@ -4,11 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Data;
 
-public class AppDbContext : IdentityDbContext<AppUser>
+public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-    public DbSet<Repository> Repositories => Set<Repository>();
+	public DbSet<Repository> Repositories => Set<Repository>();
     public DbSet<RepositoryAccess> RepositoryAccesses => Set<RepositoryAccess>();
     public DbSet<Issue> Issues => Set<Issue>();
     public DbSet<IssueComment> IssueComments => Set<IssueComment>();

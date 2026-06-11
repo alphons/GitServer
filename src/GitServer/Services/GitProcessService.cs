@@ -1,6 +1,5 @@
-using System.Diagnostics;
-using System.Text;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace GitServer.Services;
 
@@ -8,18 +7,12 @@ public record CommitInfo(string Sha, string ShortSha, string Message, string Aut
 public record CommitDetail(CommitInfo Info, string Diff, List<string> ChangedFiles);
 public record TreeEntry(string Mode, string Type, string Sha, string Name, string Path);
 
-public class GitProcessService
+public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitProcessService> logger)
 {
-    private readonly string _gitExe;
-    private readonly ILogger<GitProcessService> _logger;
+    private readonly string _gitExe = options.Value.GitExecutable;
+    private readonly ILogger<GitProcessService> _logger = logger;
 
-    public GitProcessService(IOptions<GitServerOptions> options, ILogger<GitProcessService> logger)
-    {
-        _gitExe = options.Value.GitExecutable;
-        _logger = logger;
-    }
-
-    private ProcessStartInfo CreatePsi(string repoPath, string arguments)
+	private ProcessStartInfo CreatePsi(string repoPath, string arguments)
     {
         var psi = new ProcessStartInfo(_gitExe)
         {

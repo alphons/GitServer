@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer.Repo;
+namespace GitServer.wwwroot.Repo;
 
 [Authorize]
 public class SettingsModel : PageModel
@@ -76,6 +76,6 @@ public class SettingsModel : PageModel
         if (!isOwner) return Forbid();
 
         await _repos.DeleteAsync(repoObj, user);
-        return RedirectToPage("/Index");
+        return Redirect("/");
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace GitServer.Auth;
+namespace GitServer.wwwroot.Auth;
 
 public class LoginModel : PageModel
 {
