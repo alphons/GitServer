@@ -12,6 +12,17 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
     private readonly string _gitExe = options.Value.GitExecutable;
     private readonly ILogger<GitProcessService> _logger = logger;
 
+	// Repos may be owned by a different account than the one running the app pool
+	// (e.g. after an admin copies/moves the repo folder) — git 2.35.2+ refuses to
+	// operate on such directories ("detected dubious ownership") unless told otherwise.
+	// GIT_CONFIG_* env vars apply this for every invocation without touching any config file.
+	private static void ApplySafeDirectory(ProcessStartInfo psi)
+	{
+		psi.Environment["GIT_CONFIG_COUNT"] = "1";
+		psi.Environment["GIT_CONFIG_KEY_0"] = "safe.directory";
+		psi.Environment["GIT_CONFIG_VALUE_0"] = "*";
+	}
+
 	private ProcessStartInfo CreatePsi(string repoPath, string arguments)
     {
         var psi = new ProcessStartInfo(_gitExe)
@@ -29,6 +40,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         psi.Environment["GIT_HTTP_EXPORT_ALL"] = "1";
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         psi.Environment["GIT_DIR"] = repoPath;
+        ApplySafeDirectory(psi);
         return psi;
     }
 
@@ -81,6 +93,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         };
         psi.Environment["GIT_HTTP_EXPORT_ALL"] = "1";
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        ApplySafeDirectory(psi);
 
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
 
@@ -102,7 +115,10 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         }
 
         await proc.WaitForExitAsync();
-        await stderrTask;
+        var stderr = await stderrTask;
+
+        if (proc.ExitCode != 0)
+            _logger.LogWarning("git {args} exited {code}: {err}", arguments, proc.ExitCode, stderr);
     }
 
     public async Task InitBare(string repoPath)
@@ -117,6 +133,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
             CreateNoWindow = true,
         };
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        ApplySafeDirectory(psi);
 
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
         await proc.WaitForExitAsync();
@@ -231,6 +248,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         };
         psi.Environment["GIT_DIR"] = repoPath;
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        ApplySafeDirectory(psi);
 
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
         var stderrTask = proc.StandardError.ReadToEndAsync();
@@ -251,6 +269,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
             CreateNoWindow = true,
         };
         psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        ApplySafeDirectory(psi);
 
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
         var stderrTask = proc.StandardError.ReadToEndAsync();
