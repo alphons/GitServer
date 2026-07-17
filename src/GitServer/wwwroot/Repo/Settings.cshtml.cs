@@ -42,6 +42,11 @@ public class SettingsModel(
 		var (repoObj, isOwner) = await LoadAsync(user, repo);
 		if (repoObj == null) return NotFound();
 		if (!isOwner) return Forbid();
+
+		Description = repoObj.Description;
+		IsPrivate = repoObj.IsPrivate;
+		DefaultBranch = repoObj.DefaultBranch;
+
 		return Page();
 	}
 
