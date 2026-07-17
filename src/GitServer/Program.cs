@@ -1,52 +1,36 @@
 using GitServer.Data;
-using Microsoft.AspNetCore.DataProtection;
 using GitServer.Extensions;
 using GitServer.Middleware;
-using GitServer.Models;
 using GitServer.Services;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Git pushes can be large and slow (big repos/binaries) — lift Kestrel's default
+// request-size cap and minimum-throughput timeout so they aren't dropped mid-transfer.
+builder.WebHost.ConfigureKestrel(o =>
+{
+	o.Limits.MaxRequestBodySize = null;
+	o.Limits.MinRequestBodyDataRate = null;
+});
+
 // Options
 builder.Services.Configure<GitServerOptions>(
-    builder.Configuration.GetSection("GitServer"));
+	builder.Configuration.GetSection("GitServer"));
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+	opt.UseSqlite(builder.Configuration.GetConnectionString("Default")));
 
-// Identity
-builder.Services.AddIdentity<AppUser, IdentityRole>(opt =>
-{
-    opt.Password.RequireDigit = false;
-    opt.Password.RequireLowercase = false;
-    opt.Password.RequireUppercase = false;
-    opt.Password.RequireNonAlphanumeric = false;
-    opt.Password.RequiredLength = 6;
-    opt.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
-
-// Authentication (cookie + optional OAuth)
-builder.Services.ConfigureApplicationCookie(opt =>
-{
-    opt.LoginPath = "/Auth/Login";
-    opt.LogoutPath = "/Auth/Logout";
-    opt.AccessDeniedPath = "/Auth/Login";
-    opt.Cookie.HttpOnly = true;
-    opt.Cookie.SameSite = SameSiteMode.Lax;
-    opt.ExpireTimeSpan = TimeSpan.FromDays(30);
-    opt.SlidingExpiration = true;
-});
+// Identity + authentication cookie
+builder.Services.AddGitServerIdentity();
 
 
 // Data Protection — persist keys so antiforgery tokens survive app restarts
 var keysPath = Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+	.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
 
 // Services
 builder.Services.AddHttpContextAccessor();
@@ -67,14 +51,14 @@ var app = builder.Build();
 // Auto-migrate on startup
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+	var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+	db.Database.Migrate();
 }
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
+	app.UseExceptionHandler("/Error");
+	app.UseHsts();
 }
 
 app.UseHttpsRedirection();
@@ -87,23 +71,11 @@ app.UseMiddleware<GitAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/set-language", (string? lang, string? returnUrl, HttpResponse response) =>
-{
-    if (!string.IsNullOrEmpty(lang) && lang.Length <= 10 && lang.All(c => char.IsLetterOrDigit(c) || c == '-'))
-    {
-        response.Cookies.Append("lang", lang, new CookieOptions
-        {
-            Expires = DateTimeOffset.UtcNow.AddYears(1),
-            IsEssential = true,
-            SameSite = SameSiteMode.Lax,
-            HttpOnly = true
-        });
-    }
-    var redirect = string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl;
-    return Results.Redirect(redirect);
-});
+app.MapSetLanguage();
 
-var gitOptions = builder.Configuration.GetSection("GitServer").Get<GitServerOptions>() ?? new GitServerOptions();
+var gitOptions = builder.Configuration
+	.GetSection("GitServer")
+	.Get<GitServerOptions>() ?? new GitServerOptions();
 app.MapGroup(gitOptions.NormalizedGitPathPrefix).MapControllers();
 app.MapRazorPages();
 
