@@ -1,0 +1,57 @@
+@page "/{user}/{repo}/settings"
+@model GitServer.wwwroot.Repo.SettingsModel
+@{
+    ViewData["Title"] = $"{L["repo_nav_settings"]} - {Model.UserName}/{Model.RepoName}";
+}
+<div class="container container-sm">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "settings"))
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+    }
+
+    <section class="settings-section">
+        <h2>@L["settings_general"]</h2>
+        <form method="post" asp-page-handler="Update">
+            <div class="form-group">
+                <label for="description">@L["description_label"]</label>
+                <input id="description" name="Description" type="text" class="form-control"
+                       value="@Model.Repo!.Description" />
+            </div>
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input name="IsPrivate" type="checkbox" @(Model.Repo!.IsPrivate ? "checked" : "") />
+                    @L["new_repo_private_label"]
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="defaultBranch">@L["settings_default_branch"]</label>
+                <input id="defaultBranch" name="DefaultBranch" type="text" class="form-control"
+                       value="@Model.Repo!.DefaultBranch" />
+            </div>
+            <button type="submit" class="btn btn-primary">@L["save_button"]</button>
+        </form>
+    </section>
+
+    <section class="settings-section danger-zone">
+        <h2>@L["settings_danger_zone"]</h2>
+        <div class="danger-item">
+            <div>
+                <strong>@L["settings_delete_repo"]</strong>
+                <p class="text-muted">@L["settings_delete_warning"]</p>
+            </div>
+            <form method="post" asp-page-handler="Delete"
+                  onsubmit="return confirm('@L.Format("confirm_delete_repo", Model.RepoName)')">
+                <button type="submit" class="btn btn-danger">@L["delete_button"]</button>
+            </form>
+        </div>
+    </section>
+</div>
