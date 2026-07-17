@@ -116,7 +116,7 @@ public class GitAuthMiddleware(RequestDelegate next)
                 return;
             }
 
-            repo = await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: false);
+            repo = await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
         }
 
         // Authorization check

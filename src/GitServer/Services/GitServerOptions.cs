@@ -7,6 +7,9 @@ public class GitServerOptions
     public bool AllowRegistration { get; set; } = true;
     public bool RequireEmailConfirmation { get; set; } = false;
 
+    /// <summary>Visibility for repositories auto-created on first push (e.g. via "existing remote" in an IDE).</summary>
+    public bool DefaultPrivateOnAutoCreate { get; set; } = true;
+
     /// <summary>Path segment in front of git smart-HTTP URLs, e.g. "/git". Set to "" to serve at the root.</summary>
     public string GitPathPrefix { get; set; } = "/git";
 
