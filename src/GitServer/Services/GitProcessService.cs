@@ -218,6 +218,27 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         return long.TryParse(result.Trim(), out var size) ? size : 0;
     }
 
+    public async Task StreamFileRaw(string repoPath, string treeish, string path, Stream responseStream)
+    {
+        var psi = new ProcessStartInfo(_gitExe)
+        {
+            Arguments = $"show {treeish}:{path}",
+            WorkingDirectory = repoPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        psi.Environment["GIT_DIR"] = repoPath;
+        psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
+        var stderrTask = proc.StandardError.ReadToEndAsync();
+        await proc.StandardOutput.BaseStream.CopyToAsync(responseStream);
+        await proc.WaitForExitAsync();
+        await stderrTask;
+    }
+
     public async Task StreamArchive(string repoPath, string treeish, Stream responseStream)
     {
         var psi = new ProcessStartInfo(_gitExe)

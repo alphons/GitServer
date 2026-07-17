@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = $"{Model.FilePath} &mdash; {Model.UserName}/{Model.RepoName}";
     var ext = System.IO.Path.GetExtension(Model.FilePath).TrimStart('.').ToLower();
+    var imageExts = new HashSet<string> { "png", "jpg", "jpeg", "gif" };
+    var isImage = imageExts.Contains(ext);
 }
 <div class="container">
     <div class="repo-header">
@@ -36,7 +38,13 @@
             <span class="file-name">@Model.FilePath</span>
             <span class="file-size text-muted">@Model.FileSize bytes</span>
         </div>
-        @if (Model.IsBinary)
+        @if (isImage)
+        {
+            <div class="file-image">
+                <img src="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath" alt="@Model.FilePath" />
+            </div>
+        }
+        else if (Model.IsBinary)
         {
             <div class="file-binary-notice">Binair bestand &mdash; kan niet worden weergegeven.</div>
         }
