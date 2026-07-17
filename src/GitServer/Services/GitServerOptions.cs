@@ -22,4 +22,8 @@ public class GitServerOptions
             return trimmed.Length == 0 ? "" : "/" + trimmed;
         }
     }
+
+    /// <summary>Max size in MB for a single push (Kestrel request body). Null = unlimited.
+    /// Note: IIS's own limit in Web.Config (maxAllowedContentLength) is separate and not driven by this setting.</summary>
+    public long? MaxPushSizeMb { get; set; } = null;
 }

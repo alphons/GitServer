@@ -7,11 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var gitOptions = builder.Configuration.GetSection("GitServer").Get<GitServerOptions>() ?? new GitServerOptions();
+
 // Git pushes can be large and slow (big repos/binaries) — lift Kestrel's default
 // request-size cap and minimum-throughput timeout so they aren't dropped mid-transfer.
 builder.WebHost.ConfigureKestrel(o =>
 {
-	o.Limits.MaxRequestBodySize = null;
+	o.Limits.MaxRequestBodySize = gitOptions.MaxPushSizeMb.HasValue ? gitOptions.MaxPushSizeMb * 1024 * 1024 : null;
 	o.Limits.MinRequestBodyDataRate = null;
 });
 
@@ -73,9 +75,6 @@ app.UseAuthorization();
 
 app.MapSetLanguage();
 
-var gitOptions = builder.Configuration
-	.GetSection("GitServer")
-	.Get<GitServerOptions>() ?? new GitServerOptions();
 app.MapGroup(gitOptions.NormalizedGitPathPrefix).MapControllers();
 app.MapRazorPages();
 
