@@ -8,14 +8,7 @@
     {
         <div class="profile-header">
             <div class="profile-avatar">
-                @if (!string.IsNullOrEmpty(Model.ProfileUser.AvatarUrl))
-                {
-                    <img src="@Model.ProfileUser.AvatarUrl" alt="@Model.ProfileUser.UserName" class="avatar-img" />
-                }
-                else
-                {
-                    <div class="avatar-placeholder">@Model.ProfileUser.UserName[0].ToString().ToUpper()</div>
-                }
+                <img src="@Model.ProfileUser.EffectiveAvatarUrl" alt="@Model.ProfileUser.UserName" class="avatar-img" />
             </div>
             <div class="profile-info">
                 <h1>@Model.ProfileUser.DisplayName</h1>
