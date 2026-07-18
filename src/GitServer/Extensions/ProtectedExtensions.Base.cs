@@ -7,12 +7,16 @@ public static partial class ProtectedExtensions
 	public static IServiceCollection AddProtectedBase(this IServiceCollection services,
 		IConfigurationSection section)
 	{
-#pragma warning disable CA1416 // Validate platform compatibility
-		_ = services.AddDataProtection()
+		var builder = services.AddDataProtection()
 			.PersistKeysToFileSystem(new DirectoryInfo(section["KeysPath"]!))
-			.ProtectKeysWithDpapi(protectToLocalMachine: section.GetValue<bool>("ProtectKeysWithDpapi"))
 			.SetApplicationName(section["ApplicationName"]!);
+
+		if (section.GetValue<bool>("ProtectKeysWithDpapi"))
+		{
+#pragma warning disable CA1416 // Validate platform compatibility
+			builder.ProtectKeysWithDpapi(protectToLocalMachine: true);
 #pragma warning restore CA1416 // Validate platform compatibility
+		}
 
 		return services;
 	}
