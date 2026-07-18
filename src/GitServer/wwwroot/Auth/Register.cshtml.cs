@@ -1,8 +1,10 @@
+using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace GitServer.wwwroot.Auth;
@@ -10,6 +12,7 @@ namespace GitServer.wwwroot.Auth;
 public class RegisterModel(
 	UserManager<AppUser> userManager,
 	IEmailService emailService,
+	AppDbContext db,
 	IOptions<GitServerOptions> options,
 	LocalizationService L) : PageModel
 {
@@ -32,9 +35,19 @@ public class RegisterModel(
 			return RedirectToPage("/Auth/Login");
 
 		var email = Email.Trim();
+
+		var blockedPatterns = await db.BlockedEmailPatterns.Select(p => p.Pattern).ToListAsync();
+		if (EmailBlocklist.IsBlocked(email, blockedPatterns))
+		{
+			ErrorMessage = L["error_email_blocked"];
+			return Page();
+		}
+
 		var user = await userManager.FindByEmailAsync(email);
 
-		if (user != null && user.EmailConfirmed)
+		// An account is "already registered" once it has a real password — regardless of
+		// EmailConfirmed, which older accounts predating the email-first flow never had set.
+		if (user != null && (user.EmailConfirmed || await userManager.HasPasswordAsync(user)))
 		{
 			ErrorMessage = L["error_email_already_registered"];
 			return Page();

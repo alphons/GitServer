@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Controllers;
 
 [ApiController]
-public class GitController(GitProcessService git, IOptions<GitServerOptions> options) : ControllerBase
+public class GitController(GitProcessService git, IOptions<GitServerOptions> options, ILogger<GitController> logger) : ControllerBase
 {
 
 	private string GetRepoPath(string user, string repo)
@@ -29,23 +29,31 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 		var repoPath = GetRepoPath(user, repo);
 		Response.Headers.CacheControl = "no-cache";
 
-		if (service == "git-upload-pack")
+		try
 		{
-			Response.ContentType = "application/x-git-upload-pack-advertisement";
-			await WritePacketLineAsync(Response.Body, $"# service={service}\n");
-			await Response.Body.WriteAsync("0000"u8.ToArray());
-			await git.StreamUploadPack(repoPath, Request.Body, Response.Body, advertise: true);
+			if (service == "git-upload-pack")
+			{
+				Response.ContentType = "application/x-git-upload-pack-advertisement";
+				await WritePacketLineAsync(Response.Body, $"# service={service}\n");
+				await Response.Body.WriteAsync("0000"u8.ToArray());
+				await git.StreamUploadPack(repoPath, Request.Body, Response.Body, advertise: true);
+			}
+			else if (service == "git-receive-pack")
+			{
+				Response.ContentType = "application/x-git-receive-pack-advertisement";
+				await WritePacketLineAsync(Response.Body, $"# service={service}\n");
+				await Response.Body.WriteAsync("0000"u8.ToArray());
+				await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: true);
+			}
+			else
+			{
+				Response.StatusCode = 400;
+			}
 		}
-		else if (service == "git-receive-pack")
+		catch (RepositoryDataMissingException ex)
 		{
-			Response.ContentType = "application/x-git-receive-pack-advertisement";
-			await WritePacketLineAsync(Response.Body, $"# service={service}\n");
-			await Response.Body.WriteAsync("0000"u8.ToArray());
-			await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: true);
-		}
-		else
-		{
-			Response.StatusCode = 400;
+			logger.LogWarning(ex, "Repository data missing on disk for {User}/{Repo}", user, repo);
+			if (!Response.HasStarted) Response.StatusCode = 404;
 		}
 	}
 
@@ -59,7 +67,15 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 		Response.ContentType = "application/x-git-upload-pack-result";
 		Response.Headers.CacheControl = "no-cache";
 
-		await git.StreamUploadPack(repoPath, Request.Body, Response.Body, advertise: false);
+		try
+		{
+			await git.StreamUploadPack(repoPath, Request.Body, Response.Body, advertise: false);
+		}
+		catch (RepositoryDataMissingException ex)
+		{
+			logger.LogWarning(ex, "Repository data missing on disk for {User}/{Repo}", user, repo);
+			if (!Response.HasStarted) Response.StatusCode = 404;
+		}
 	}
 
 	[HttpPost("{user}/{repo}.git/git-receive-pack")]
@@ -72,10 +88,18 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 		Response.ContentType = "application/x-git-receive-pack-result";
 		Response.Headers.CacheControl = "no-cache";
 
-		await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: false);
+		try
+		{
+			await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: false);
 
-		// Bijwerken van UpdatedAt na een push
-		repoObj.UpdatedAt = DateTime.UtcNow;
+			// Bijwerken van UpdatedAt na een push
+			repoObj.UpdatedAt = DateTime.UtcNow;
+		}
+		catch (RepositoryDataMissingException ex)
+		{
+			logger.LogWarning(ex, "Repository data missing on disk for {User}/{Repo}", user, repo);
+			if (!Response.HasStarted) Response.StatusCode = 404;
+		}
 	}
 
 	private static async Task WritePacketLineAsync(Stream stream, string line)

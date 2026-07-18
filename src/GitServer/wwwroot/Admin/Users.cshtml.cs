@@ -13,13 +13,21 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L)
     public string? CurrentUserId { get; set; }
     public string? Message { get; set; }
 
+    private async Task ReloadUsersAsync()
+    {
+        Users = await userManager.Users
+            .OrderByDescending(u => u.EmailConfirmed)
+            .ThenBy(u => u.UserName)
+            .ToListAsync();
+    }
+
     public async Task<IActionResult> OnGetAsync()
     {
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser == null || !currentUser.IsAdmin) return Forbid();
 
         CurrentUserId = currentUser.Id;
-        Users = await userManager.Users.OrderBy(u => u.UserName).ToListAsync();
+        await ReloadUsersAsync();
         return Page();
     }
 
@@ -36,7 +44,32 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L)
 
         Message = L.Format(target.IsAdmin ? "admin_now_is_admin" : "admin_now_not_admin", target.UserName!);
         CurrentUserId = currentUser.Id;
-        Users = await userManager.Users.OrderBy(u => u.UserName).ToListAsync();
+        await ReloadUsersAsync();
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostToggleEnabledAsync(string userId)
+    {
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser == null || !currentUser.IsAdmin) return Forbid();
+        if (userId == currentUser.Id) return BadRequest(L["admin_cannot_disable_self"]);
+
+        var target = await userManager.FindByIdAsync(userId);
+        if (target == null) return NotFound();
+
+        if (target.IsDisabled)
+        {
+            await userManager.SetLockoutEndDateAsync(target, null);
+        }
+        else
+        {
+            await userManager.SetLockoutEnabledAsync(target, true);
+            await userManager.SetLockoutEndDateAsync(target, DateTimeOffset.MaxValue);
+        }
+
+        Message = L.Format(target.IsDisabled ? "admin_now_disabled" : "admin_now_enabled", target.UserName!);
+        CurrentUserId = currentUser.Id;
+        await ReloadUsersAsync();
         return Page();
     }
 
@@ -53,7 +86,7 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L)
 
         Message = L.Format("admin_user_deleted", target.UserName!);
         CurrentUserId = currentUser.Id;
-        Users = await userManager.Users.OrderBy(u => u.UserName).ToListAsync();
+        await ReloadUsersAsync();
         return Page();
     }
 }

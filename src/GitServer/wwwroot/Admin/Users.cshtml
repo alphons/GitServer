@@ -19,6 +19,7 @@
                 <th>@L["email_label"]</th>
                 <th>@L["admin_col_created"]</th>
                 <th>@L["admin_col_last_login"]</th>
+                <th>@L["admin_col_status"]</th>
                 <th>@L["admin_col_admin"]</th>
                 <th>@L["admin_col_actions"]</th>
             </tr>
@@ -27,23 +28,51 @@
             @foreach (var user in Model.Users)
             {
                 <tr>
-                    <td><a href="/User/@user.UserName">@user.UserName</a></td>
+                    <td>
+                        @if (user.EmailConfirmed)
+                        {
+                            <a href="/User/@user.UserName">@user.UserName</a>
+                        }
+                        else
+                        {
+                            <span class="badge badge-read">@L["admin_pending_registration"]</span>
+                        }
+                    </td>
                     <td>@user.DisplayName</td>
                     <td>@user.Email</td>
                     <td>@user.CreatedAt.ToString("d MMM yyyy")</td>
                     <td>@(user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("d MMM yyyy HH:mm") : L["admin_never_logged_in"])</td>
+                    <td>
+                        @if (user.IsDisabled)
+                        {
+                            <span class="badge badge-write" style="background:rgba(248,81,73,0.15);color:var(--danger)">@L["admin_status_disabled"]</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-write">@L["admin_status_enabled"]</span>
+                        }
+                    </td>
                     <td>@if (user.IsAdmin) { <text>&#x2714;</text> }</td>
                     <td>
-                        <form method="post" asp-page-handler="ToggleAdmin" style="display:inline">
-                            <input type="hidden" name="userId" value="@user.Id" />
-                            <button type="submit" class="btn btn-sm btn-secondary">
-                                @(user.IsAdmin ? L["admin_remove_admin"] : L["admin_make_admin"])
-                            </button>
-                        </form>
+                        @if (user.EmailConfirmed)
+                        {
+                            <form method="post" asp-page-handler="ToggleAdmin" style="display:inline">
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <button type="submit" class="btn btn-sm btn-secondary">
+                                    @(user.IsAdmin ? L["admin_remove_admin"] : L["admin_make_admin"])
+                                </button>
+                            </form>
+                        }
                         @if (user.Id != Model.CurrentUserId)
                         {
+                            <form method="post" asp-page-handler="ToggleEnabled" style="display:inline">
+                                <input type="hidden" name="userId" value="@user.Id" />
+                                <button type="submit" class="btn btn-sm btn-secondary">
+                                    @(user.IsDisabled ? L["admin_enable_user"] : L["admin_disable_user"])
+                                </button>
+                            </form>
                             <form method="post" asp-page-handler="Delete" style="display:inline"
-                                  onsubmit="return confirm('@L.Format("confirm_delete_user", user.UserName)')">
+                                  onsubmit="return confirm('@L.Format("confirm_delete_user", user.EmailConfirmed ? user.UserName : user.Email)')">
                                 <input type="hidden" name="userId" value="@user.Id" />
                                 <button type="submit" class="btn btn-sm btn-danger">@L["delete_button"]</button>
                             </form>

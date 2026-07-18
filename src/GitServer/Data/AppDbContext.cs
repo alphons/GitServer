@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<RepositoryAccess> RepositoryAccesses => Set<RepositoryAccess>();
     public DbSet<Issue> Issues => Set<Issue>();
     public DbSet<IssueComment> IssueComments => Set<IssueComment>();
+    public DbSet<BlockedEmailPattern> BlockedEmailPatterns => Set<BlockedEmailPattern>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

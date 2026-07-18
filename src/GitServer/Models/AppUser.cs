@@ -19,4 +19,8 @@ public class AppUser : IdentityUser
     /// <summary>AvatarUrl if set, otherwise a Gravatar derived from Email.</summary>
     [NotMapped]
     public string EffectiveAvatarUrl => !string.IsNullOrEmpty(AvatarUrl) ? AvatarUrl : GravatarService.GetUrl(Email);
+
+    /// <summary>An admin-disabled account: LockoutEnd set far into the future (see UsersModel.OnPostToggleEnabledAsync).</summary>
+    [NotMapped]
+    public bool IsDisabled => LockoutEnd.HasValue && LockoutEnd > DateTimeOffset.UtcNow;
 }

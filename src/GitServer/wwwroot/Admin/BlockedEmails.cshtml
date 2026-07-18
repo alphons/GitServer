@@ -1,0 +1,53 @@
+@page "/Admin/BlockedEmails"
+@model GitServer.wwwroot.Admin.BlockedEmailsModel
+@{
+    ViewData["Title"] = L["admin_blocked_emails_title"];
+}
+<div class="container">
+    <h1>@L["admin_blocked_emails_title"]</h1>
+    <p class="text-muted">@L["admin_blocked_emails_hint"]</p>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+    }
+
+    @if (Model.Patterns.Count > 0)
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>@L["admin_col_pattern"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pattern in Model.Patterns)
+                {
+                    <tr>
+                        <td><code>@pattern.Pattern</code></td>
+                        <td>
+                            <form method="post" asp-page-handler="Delete" style="display:inline">
+                                <input type="hidden" name="id" value="@pattern.Id" />
+                                <button type="submit" class="btn btn-sm btn-danger">@L["delete_button"]</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">@L["admin_no_blocked_emails"]</p>
+    }
+
+    <form method="post" asp-page-handler="Add" class="form-inline">
+        <div class="form-group">
+            <label for="newPattern">@L["admin_add_pattern_label"]</label>
+            <input id="newPattern" name="NewPattern" type="text" class="form-control"
+                   placeholder="*hacker*.com" required />
+        </div>
+        <button type="submit" class="btn btn-primary">@L["admin_add_pattern_button"]</button>
+    </form>
+</div>

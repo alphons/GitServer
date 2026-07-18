@@ -7,6 +7,14 @@ public record CommitInfo(string Sha, string ShortSha, string Message, string Aut
 public record CommitDetail(CommitInfo Info, string Diff, List<string> ChangedFiles);
 public record TreeEntry(string Mode, string Type, string Sha, string Name, string Path);
 
+/// <summary>The repository's DB record exists but its bare-git folder is missing on disk
+/// (e.g. deleted or moved outside the application).</summary>
+public class RepositoryDataMissingException(string repoPath)
+    : Exception($"Repository data not found on disk at '{repoPath}'. It may have been deleted or moved outside the application.")
+{
+    public string RepoPath { get; } = repoPath;
+}
+
 public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitProcessService> logger)
 {
     private readonly string _gitExe = options.Value.GitExecutable;
@@ -46,6 +54,9 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
 
     private async Task<string> RunGitAsync(string repoPath, string arguments)
     {
+        if (!Directory.Exists(repoPath))
+            throw new RepositoryDataMissingException(repoPath);
+
         var psi = CreatePsi(repoPath, arguments);
         using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git process");
 
@@ -82,6 +93,9 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
 
     private async Task StreamGitProcess(string repoPath, string arguments, Stream requestBody, Stream responseStream, bool advertise)
     {
+        if (!Directory.Exists(repoPath))
+            throw new RepositoryDataMissingException(repoPath);
+
         var psi = new ProcessStartInfo(_gitExe)
         {
             Arguments = arguments,

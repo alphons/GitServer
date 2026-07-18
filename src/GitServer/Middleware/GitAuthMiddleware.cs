@@ -93,7 +93,7 @@ public class GitAuthMiddleware(RequestDelegate next)
                     var pass = decoded[(colonIdx + 1)..];
                     var found = await userManager.FindByNameAsync(user)
                                 ?? await userManager.FindByEmailAsync(user);
-                    if (found != null && await userManager.CheckPasswordAsync(found, pass))
+                    if (found != null && !found.IsDisabled && await userManager.CheckPasswordAsync(found, pass))
                         authedUser = found;
                 }
             }

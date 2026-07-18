@@ -1,0 +1,26 @@
+@page "/{user}/{repo}/data-missing"
+@model GitServer.wwwroot.Repo.DataMissingModel
+@{
+    ViewData["Title"] = L["repo_data_missing_title"];
+}
+<div class="container container-sm">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <strong>@Model.RepoName</strong>
+        </div>
+    </div>
+
+    <div class="alert alert-danger">
+        <strong>@L["repo_data_missing_title"]</strong>
+        <p>@L["repo_data_missing_body"]</p>
+    </div>
+
+    @if (Model.IsOwnerOrAdmin)
+    {
+        <form method="post" asp-page-handler="Delete"
+              onsubmit="return confirm('@L.Format("confirm_delete_repo", Model.RepoName)')">
+            <button type="submit" class="btn btn-danger">@L["repo_data_missing_delete"]</button>
+        </form>
+    }
+</div>

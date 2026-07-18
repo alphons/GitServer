@@ -36,6 +36,7 @@
                 @if (currentUser!.IsAdmin)
                 {
                     <a class="nav-link" href="/Admin/Users">@L["nav_admin"]</a>
+                    <a class="nav-link" href="/Admin/BlockedEmails">@L["nav_admin_blocked_emails"]</a>
                 }
                 <form method="post" action="/Auth/Logout" style="display:inline">
                     @Html.AntiForgeryToken()
