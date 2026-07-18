@@ -5,7 +5,6 @@ public class GitServerOptions
     public string RepositoriesPath { get; set; } = "C:\\GitRepos";
     public string GitExecutable { get; set; } = "git";
     public bool AllowRegistration { get; set; } = true;
-    public bool RequireEmailConfirmation { get; set; } = false;
 
     /// <summary>Visibility for repositories auto-created on first push (e.g. via "existing remote" in an IDE).</summary>
     public bool DefaultPrivateOnAutoCreate { get; set; } = true;

@@ -10,6 +10,7 @@ public class AppUser : IdentityUser
     public string? Bio { get; set; }
     public string? AvatarUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastLoginAt { get; set; }
     public bool IsAdmin { get; set; }
 
     public ICollection<Repository> Repositories { get; set; } = new List<Repository>();

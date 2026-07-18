@@ -1,3 +1,4 @@
+using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
@@ -7,8 +8,9 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace GitServer.wwwroot.Auth;
 
 public class LoginModel(
-    SignInManager<AppUser> signInManager, 
-    UserManager<AppUser> userManager, 
+    SignInManager<AppUser> signInManager,
+    UserManager<AppUser> userManager,
+    AppDbContext db,
     LocalizationService L) : PageModel
 {
 	[BindProperty] public string Username { get; set; } = "";
@@ -32,7 +34,11 @@ public class LoginModel(
         var result = await signInManager.PasswordSignInAsync(user, Password, RememberMe, lockoutOnFailure: false);
 
         if (result.Succeeded)
+        {
+            user.LastLoginAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
             return LocalRedirect(returnUrl ?? "/");
+        }
 
         ErrorMessage = L["error_invalid_credentials"];
         return Page();

@@ -31,6 +31,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 builder.Services.AddGitServerIdentity();
 
 builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"));
+builder.Services.AddEmailService(builder.Configuration);
 
 // Services
 builder.Services.AddHttpContextAccessor();

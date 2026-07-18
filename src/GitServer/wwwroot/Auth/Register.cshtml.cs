@@ -1,4 +1,4 @@
-﻿using GitServer.Models;
+using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,49 +8,63 @@ using Microsoft.Extensions.Options;
 namespace GitServer.wwwroot.Auth;
 
 public class RegisterModel(
-    UserManager<AppUser> userManager, 
-    SignInManager<AppUser> signInManager, 
-    IOptions<GitServerOptions> options) : PageModel
+	UserManager<AppUser> userManager,
+	IEmailService emailService,
+	IOptions<GitServerOptions> options,
+	LocalizationService L) : PageModel
 {
-    private readonly GitServerOptions _options = options.Value;
+	private readonly GitServerOptions _options = options.Value;
 
-	[BindProperty] public string Username { get; set; } = "";
-    [BindProperty] public string Email { get; set; } = "";
-    [BindProperty] public string DisplayName { get; set; } = "";
-    [BindProperty] public string Password { get; set; } = "";
-    public string? ErrorMessage { get; set; }
+	[BindProperty] public string Email { get; set; } = "";
+	public string? ErrorMessage { get; set; }
+	public string? SuccessMessage { get; set; }
 
-    public IActionResult OnGet()
-    {
-        if (!_options.AllowRegistration)
-            return RedirectToPage("/Auth/Login");
-        return Page();
-    }
+	public IActionResult OnGet()
+	{
+		if (!_options.AllowRegistration)
+			return RedirectToPage("/Auth/Login");
+		return Page();
+	}
 
-    public async Task<IActionResult> OnPostAsync()
-    {
-        if (!_options.AllowRegistration)
-            return RedirectToPage("/Auth/Login");
+	public async Task<IActionResult> OnPostAsync()
+	{
+		if (!_options.AllowRegistration)
+			return RedirectToPage("/Auth/Login");
 
-        var user = new AppUser
-        {
-            UserName = Username,
-            Email = Email,
-            DisplayName = string.IsNullOrEmpty(DisplayName) ? Username : DisplayName,
-        };
+		var email = Email.Trim();
+		var user = await userManager.FindByEmailAsync(email);
 
-        // First user becomes admin
-        if (!userManager.Users.Any())
-            user.IsAdmin = true;
+		if (user != null && user.EmailConfirmed)
+		{
+			ErrorMessage = L["error_email_already_registered"];
+			return Page();
+		}
 
-        var result = await userManager.CreateAsync(user, Password);
-        if (!result.Succeeded)
-        {
-            ErrorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
-            return Page();
-        }
+		if (user == null)
+		{
+			user = new AppUser
+			{
+				UserName = "pending-" + Guid.NewGuid().ToString("N"),
+				Email = email,
+				DisplayName = "",
+			};
 
-        await signInManager.SignInAsync(user, isPersistent: false);
-        return RedirectToPage("/Index");
-    }
+			var createResult = await userManager.CreateAsync(user);
+			if (!createResult.Succeeded)
+			{
+				ErrorMessage = string.Join(" ", createResult.Errors.Select(e => e.Description));
+				return Page();
+			}
+		}
+
+		var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+		var link = Url.Page("/Auth/CompleteRegistration", pageHandler: null,
+			values: new { email = user.Email, token }, protocol: Request.Scheme)!;
+
+		await emailService.SendEmailAsync(email, L["register_email_subject"],
+			L.Format("register_email_body", link));
+
+		SuccessMessage = L["register_email_sent"];
+		return Page();
+	}
 }

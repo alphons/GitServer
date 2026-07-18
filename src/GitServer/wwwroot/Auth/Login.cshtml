@@ -20,13 +20,15 @@
                 <input id="password" name="Password" type="password" class="form-control" required />
             </div>
             <div class="form-check">
-                <input id="remember" name="RememberMe" type="checkbox" class="form-check-input" />
+                <input asp-for="RememberMe" id="remember" class="form-check-input" />
                 <label for="remember">@L["login_remember_me"]</label>
             </div>
             <button type="submit" class="btn btn-primary btn-block">@L["login_submit"]</button>
         </form>
         <div class="auth-links">
             <a href="/Auth/Register">@L["login_register_link"]</a>
+            &middot;
+            <a href="/Auth/ForgotPassword">@L["login_forgot_password_link"]</a>
         </div>
     </div>
 </div>

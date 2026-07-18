@@ -15,8 +15,10 @@
         <thead>
             <tr>
                 <th>@L["admin_col_user"]</th>
+                <th>@L["admin_col_display_name"]</th>
                 <th>@L["email_label"]</th>
                 <th>@L["admin_col_created"]</th>
+                <th>@L["admin_col_last_login"]</th>
                 <th>@L["admin_col_admin"]</th>
                 <th>@L["admin_col_actions"]</th>
             </tr>
@@ -26,8 +28,10 @@
             {
                 <tr>
                     <td><a href="/User/@user.UserName">@user.UserName</a></td>
+                    <td>@user.DisplayName</td>
                     <td>@user.Email</td>
                     <td>@user.CreatedAt.ToString("d MMM yyyy")</td>
+                    <td>@(user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("d MMM yyyy HH:mm") : L["admin_never_logged_in"])</td>
                     <td>@if (user.IsAdmin) { <text>&#x2714;</text> }</td>
                     <td>
                         <form method="post" asp-page-handler="ToggleAdmin" style="display:inline">

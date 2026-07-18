@@ -1,5 +1,6 @@
 using GitServer.Data;
 using GitServer.Models;
+using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 
 namespace GitServer.Extensions;
@@ -8,6 +9,11 @@ public static class IdentityServiceExtensions
 {
 	public static IServiceCollection AddGitServerIdentity(this IServiceCollection services)
 	{
+		services.Configure<EmailConfirmationTokenProviderOptions>(opt =>
+			opt.TokenLifespan = TimeSpan.FromMinutes(20));
+		services.Configure<PasswordResetTokenProviderOptions>(opt =>
+			opt.TokenLifespan = TimeSpan.FromMinutes(30));
+
 		services.AddIdentity<AppUser, IdentityRole>(opt =>
 		{
 			opt.Password.RequireDigit = false;
@@ -16,9 +22,14 @@ public static class IdentityServiceExtensions
 			opt.Password.RequireNonAlphanumeric = false;
 			opt.Password.RequiredLength = 6;
 			opt.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
+			opt.User.RequireUniqueEmail = true;
+			opt.Tokens.EmailConfirmationTokenProvider = "EmailConfirmation";
+			opt.Tokens.PasswordResetTokenProvider = "PasswordReset";
 		})
 		.AddEntityFrameworkStores<AppDbContext>()
-		.AddDefaultTokenProviders();
+		.AddDefaultTokenProviders()
+		.AddTokenProvider<EmailConfirmationTokenProvider>("EmailConfirmation")
+		.AddTokenProvider<PasswordResetTokenProvider>("PasswordReset");
 
 		services.ConfigureApplicationCookie(opt =>
 		{
