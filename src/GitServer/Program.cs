@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var gitOptions = builder.Configuration.GetSection("GitServer").Get<GitServerOptions>() ?? new GitServerOptions();
+var gitOptions = builder.Configuration
+	.GetSection("GitServer")
+	.Get<GitServerOptions>() ?? new GitServerOptions();
 
 // Git pushes can be large and slow (big repos/binaries) — lift Kestrel's default
 // request-size cap and minimum-throughput timeout so they aren't dropped mid-transfer.
@@ -28,11 +30,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 // Identity + authentication cookie
 builder.Services.AddGitServerIdentity();
 
-
-// Data Protection — persist keys so antiforgery tokens survive app restarts
-var keysPath = Path.Combine(builder.Environment.ContentRootPath, "dataprotection-keys");
-builder.Services.AddDataProtection()
-	.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"));
 
 // Services
 builder.Services.AddHttpContextAccessor();

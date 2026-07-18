@@ -9,6 +9,8 @@
        href="/@Model.UserName/@Model.RepoName/branches">Branches</a>
     <a class="repo-nav-link @(Model.ActiveTab == "issues" ? "active" : "")"
        href="/@Model.UserName/@Model.RepoName/issues">Issues</a>
+    <a class="repo-nav-link @(Model.ActiveTab == "collaborators" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName/collaborators">@L["settings_collaborators"]</a>
     <a class="repo-nav-link @(Model.ActiveTab == "settings" ? "active" : "")"
        href="/@Model.UserName/@Model.RepoName/settings">@L["repo_nav_settings"]</a>
 </div>

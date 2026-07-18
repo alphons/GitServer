@@ -1,3 +1,4 @@
+using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -9,8 +10,9 @@ namespace GitServer.wwwroot.Repo;
 
 [Authorize]
 public class SettingsModel(
-	RepositoryService repos, 
-	UserManager<AppUser> userManager, 
+	RepositoryService repos,
+	UserManager<AppUser> userManager,
+	AppDbContext db,
 	LocalizationService L) : PageModel
 {
 
@@ -61,7 +63,6 @@ public class SettingsModel(
 		repoObj.DefaultBranch = string.IsNullOrEmpty(DefaultBranch) ? "main" : DefaultBranch;
 		repoObj.UpdatedAt = DateTime.UtcNow;
 
-		var db = HttpContext.RequestServices.GetRequiredService<GitServer.Data.AppDbContext>();
 		await db.SaveChangesAsync();
 
 		Message = L["success_settings_saved"];
