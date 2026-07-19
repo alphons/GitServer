@@ -19,19 +19,24 @@ public class NewModel(
 	[BindProperty] public string? Description { get; set; }
 	[BindProperty] public bool IsPrivate { get; set; }
 	public string? ErrorMessage { get; set; }
+	public AppUser? CurrentUser { get; set; }
 
-	public void OnGet() { }
+	public async Task OnGetAsync()
+	{
+		CurrentUser = await userManager.GetUserAsync(User);
+	}
 
 	public async Task<IActionResult> OnPostAsync()
 	{
+		var user = await userManager.GetUserAsync(User);
+		if (user == null) return Challenge();
+		CurrentUser = user;
+
 		if (!Regex.IsMatch(Name, @"^[a-zA-Z0-9_\-\.]+$"))
 		{
 			ErrorMessage = L["error_invalid_repo_name"];
 			return Page();
 		}
-
-		var user = await userManager.GetUserAsync(User);
-		if (user == null) return Challenge();
 
 		try
 		{

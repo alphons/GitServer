@@ -1,0 +1,16 @@
+@model GitServer.Models.AppUser
+@inject GitServer.Services.LocalizationService L
+<div class="profile-header">
+    <div class="profile-avatar">
+        <img src="@Model.EffectiveAvatarUrl" alt="@Model.UserName" class="avatar-img" />
+    </div>
+    <div class="profile-info">
+        <h1>@Model.DisplayName</h1>
+        <p class="text-muted">@@@Model.UserName</p>
+        @if (!string.IsNullOrEmpty(Model.Bio))
+        {
+            <p>@Model.Bio</p>
+        }
+        <p class="text-muted">@L["profile_member_since"] @Model.CreatedAt.ToString("MMMM yyyy")</p>
+    </div>
+</div>

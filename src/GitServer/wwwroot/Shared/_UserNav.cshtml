@@ -1,0 +1,13 @@
+@model (string UserName, string ActiveTab, bool IsOwner)
+@inject GitServer.Services.LocalizationService L
+<div class="repo-nav">
+    <a class="repo-nav-link @(Model.ActiveTab == "repositories" ? "active" : "")"
+       href="/User/@Model.UserName">@L["profile_repos"]</a>
+    @if (Model.IsOwner)
+    {
+        <a class="repo-nav-link @(Model.ActiveTab == "new" ? "active" : "")"
+           href="/Repo/New">@L["nav_new"]</a>
+        <a class="repo-nav-link @(Model.ActiveTab == "profile" ? "active" : "")"
+           href="/User/Settings">@L["account_settings"]</a>
+    }
+</div>

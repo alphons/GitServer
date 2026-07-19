@@ -3,8 +3,13 @@
 @{
     ViewData["Title"] = L["account_settings"];
 }
-<div class="container container-sm">
-    <h1>@L["account_settings"]</h1>
+<div class="container">
+    @if (Model.CurrentUser != null)
+    {
+        @await Html.PartialAsync("_ProfileHeader", Model.CurrentUser)
+
+        @await Html.PartialAsync("_UserNav", (Model.CurrentUser.UserName!, "profile", true))
+    }
 
     @if (!string.IsNullOrEmpty(Model.Message))
     {

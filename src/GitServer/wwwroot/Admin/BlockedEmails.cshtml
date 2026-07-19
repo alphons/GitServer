@@ -4,7 +4,11 @@
     ViewData["Title"] = L["admin_blocked_emails_title"];
 }
 <div class="container">
-    <h1>@L["admin_blocked_emails_title"]</h1>
+    <h1>@L["nav_admin"]</h1>
+
+    @await Html.PartialAsync("_AdminNav", "blocked-emails")
+
+    <h2>@L["admin_blocked_emails_title"]</h2>
     <p class="text-muted">@L["admin_blocked_emails_hint"]</p>
 
     @if (!string.IsNullOrEmpty(Model.Message))

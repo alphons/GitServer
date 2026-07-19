@@ -10,16 +10,19 @@ public class ProfileModel(UserManager<AppUser> userManager, RepositoryService re
 {
 	public AppUser? ProfileUser { get; set; }
 	public List<Repository> Repos { get; set; } = new();
+	public bool IsOwner { get; set; }
+	public string Query { get; set; } = "";
 
-	public async Task<IActionResult> OnGetAsync(string username)
+	public async Task<IActionResult> OnGetAsync(string username, string? q)
 	{
 		ProfileUser = await userManager.FindByNameAsync(username);
 		if (ProfileUser == null) return NotFound();
 
 		var currentUserId = userManager.GetUserId(User);
-		var isOwner = currentUserId == ProfileUser.Id;
+		IsOwner = currentUserId == ProfileUser.Id;
+		Query = q ?? "";
 
-		Repos = await repos.GetUserReposAsync(ProfileUser.Id, includePrivate: isOwner);
+		Repos = await repos.GetUserReposAsync(ProfileUser.Id, includePrivate: IsOwner, query: Query);
 		return Page();
 	}
 }

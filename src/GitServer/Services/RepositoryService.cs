@@ -83,7 +83,7 @@ public class RepositoryService(AppDbContext db,
             .ToListAsync();
     }
 
-    public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate)
+    public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null)
     {
         var q = _db.Repositories
             .Include(r => r.Owner)
@@ -91,6 +91,14 @@ public class RepositoryService(AppDbContext db,
 
         if (!includePrivate)
             q = q.Where(r => !r.IsPrivate);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var lower = query.Trim().ToLower();
+            q = q.Where(r =>
+                r.Name.ToLower().Contains(lower) ||
+                (r.Description != null && r.Description.ToLower().Contains(lower)));
+        }
 
         return await q.OrderByDescending(r => r.UpdatedAt).ToListAsync();
     }

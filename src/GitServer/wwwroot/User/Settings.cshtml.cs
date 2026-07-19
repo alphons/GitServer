@@ -10,6 +10,7 @@ namespace GitServer.wwwroot.User;
 [Authorize]
 public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationService L) : PageModel
 {
+	public AppUser? CurrentUser { get; set; }
 	public string DisplayName { get; set; } = "";
 	public string? Bio { get; set; }
 	public string? AvatarUrl { get; set; }
@@ -27,6 +28,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 	{
 		var user = await userManager.GetUserAsync(User);
 		if (user == null) return;
+		CurrentUser = user;
 		DisplayName = user.DisplayName;
 		Bio = user.Bio;
 		AvatarUrl = user.AvatarUrl;
@@ -46,6 +48,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 		Message = result.Succeeded ? L["success_profile_saved"] : string.Join(" ", result.Errors.Select(e => e.Description));
 		IsError = !result.Succeeded;
 
+		CurrentUser = user;
 		DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
 		return Page();
 	}
@@ -64,6 +67,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 		Message = result.Succeeded ? L["success_password_changed"] : string.Join(" ", result.Errors.Select(e => e.Description));
 		IsError = !result.Succeeded;
 
+		CurrentUser = user;
 		DisplayName = user.DisplayName; Bio = user.Bio; AvatarUrl = user.AvatarUrl;
 		HasPassword = await userManager.HasPasswordAsync(user);
 		return Page();

@@ -6,25 +6,24 @@
 <div class="container">
     @if (Model.ProfileUser != null)
     {
-        <div class="profile-header">
-            <div class="profile-avatar">
-                <img src="@Model.ProfileUser.EffectiveAvatarUrl" alt="@Model.ProfileUser.UserName" class="avatar-img" />
-            </div>
-            <div class="profile-info">
-                <h1>@Model.ProfileUser.DisplayName</h1>
-                <p class="text-muted">@@@Model.ProfileUser.UserName</p>
-                @if (!string.IsNullOrEmpty(Model.ProfileUser.Bio))
-                {
-                    <p>@Model.ProfileUser.Bio</p>
-                }
-                <p class="text-muted">@L["profile_member_since"] @Model.ProfileUser.CreatedAt.ToString("MMMM yyyy")</p>
-            </div>
-        </div>
+        @await Html.PartialAsync("_ProfileHeader", Model.ProfileUser)
 
-        <h2>@L["profile_repos"]</h2>
+        @await Html.PartialAsync("_UserNav", (Model.ProfileUser.UserName!, "repositories", Model.IsOwner))
+
+        <form method="get" class="search-form search-form-full">
+            <input name="q" type="search" class="form-control" placeholder="@L["explore_search_placeholder"]"
+                   value="@Model.Query" />
+            <button type="submit" class="btn btn-primary">@L["search_button"]</button>
+        </form>
+
+        @if (!string.IsNullOrEmpty(Model.Query))
+        {
+            <p class="search-results-info">@Model.Repos.Count @L["explore_results_for"] "<strong>@Model.Query</strong>"</p>
+        }
+
         @if (!Model.Repos.Any())
         {
-            <div class="empty-state">@L["profile_no_repos"]</div>
+            <div class="empty-state">@(string.IsNullOrEmpty(Model.Query) ? L["profile_no_repos"] : L["explore_no_results"])</div>
         }
         else
         {

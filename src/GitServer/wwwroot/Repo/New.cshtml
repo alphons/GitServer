@@ -3,7 +3,14 @@
 @{
     ViewData["Title"] = L["new_repo_page_title"];
 }
-<div class="container container-sm">
+<div class="container">
+    @if (Model.CurrentUser != null)
+    {
+        @await Html.PartialAsync("_ProfileHeader", Model.CurrentUser)
+
+        @await Html.PartialAsync("_UserNav", (Model.CurrentUser.UserName!, "new", true))
+    }
+
     <h1>@L["new_repo_title"]</h1>
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
