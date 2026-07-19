@@ -2,7 +2,6 @@ using GitServer.Data;
 using GitServer.Extensions;
 using GitServer.Middleware;
 using GitServer.Services;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
