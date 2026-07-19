@@ -549,7 +549,8 @@ textarea.form-control { resize: vertical; }
 .clone-input {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
-  max-width: 360px;
+  width: 420px;
+  max-width: 100%;
 }
 
 /* === Editor toolbar === */
@@ -578,7 +579,6 @@ textarea.form-control { resize: vertical; }
   .auth-card { padding: 1.25rem; }
   .profile-header { flex-direction: column; }
   .issues-header { flex-direction: column; align-items: flex-start; }
-  .clone-input { max-width: 200px; }
   .data-table { font-size: 0.8125rem; }
   .data-table th, .data-table td { padding: 0.5rem 0.5rem; }
 }
