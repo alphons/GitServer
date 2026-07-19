@@ -37,6 +37,18 @@ public class LoginModel(
         {
             user.LastLoginAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            if (!string.IsNullOrEmpty(user.PreferredLanguage))
+            {
+                Response.Cookies.Append("lang", user.PreferredLanguage, new CookieOptions
+                {
+                    Expires = DateTimeOffset.UtcNow.AddYears(1),
+                    IsEssential = true,
+                    SameSite = SameSiteMode.Lax,
+                    HttpOnly = true
+                });
+            }
+
             return LocalRedirect(returnUrl ?? "/");
         }
 

@@ -48,7 +48,15 @@
                         {
                             <p class="text-muted repo-collaborators">
                                 @L["repo_card_collaborators"]
-                                @string.Join(", ", repo.Accesses.Select(a => a.User.UserName))
+                                @for (var i = 0; i < repo.Accesses.Count; i++)
+                                {
+                                    var access = repo.Accesses.ElementAt(i);
+                                    <a href="/User/@access.User.UserName">@access.User.UserName</a>
+                                    if (i < repo.Accesses.Count - 1)
+                                    {
+                                        @:,
+                                    }
+                                }
                             </p>
                         }
                         <div class="repo-meta">

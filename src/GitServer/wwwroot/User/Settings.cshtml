@@ -33,6 +33,27 @@
                 <input id="avatarUrl" name="NewAvatarUrl" type="url" class="form-control"
                        value="@Model.AvatarUrl" />
             </div>
+            <div class="form-group">
+                <label for="country">@L["country_label"]</label>
+                <input id="country" name="NewCountry" type="text" class="form-control"
+                       value="@Model.Country" />
+            </div>
+            <div class="form-group">
+                <label for="companyName">@L["company_name_label"]</label>
+                <input id="companyName" name="NewCompanyName" type="text" class="form-control"
+                       value="@Model.CompanyName" />
+            </div>
+            <div class="form-group">
+                <label for="preferredLanguage">@L["preferred_language_label"]</label>
+                <select id="preferredLanguage" name="NewPreferredLanguage" class="form-control">
+                    <option value="">@L["preferred_language_default"]</option>
+                    @foreach (var (code, name) in L.AvailableLanguages())
+                    {
+                        <option value="@code" selected="@(code == Model.PreferredLanguage)">@name</option>
+                    }
+                </select>
+                <span class="form-hint">@L["preferred_language_hint"]</span>
+            </div>
             <button type="submit" class="btn btn-primary">@L["settings_save_profile"]</button>
         </form>
     </section>

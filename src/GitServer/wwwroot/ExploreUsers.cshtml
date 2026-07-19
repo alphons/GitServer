@@ -35,6 +35,19 @@
                         {
                             <p class="user-card-bio">@user.Bio</p>
                         }
+                        @if (!string.IsNullOrEmpty(user.CompanyName) || !string.IsNullOrEmpty(user.Country))
+                        {
+                            <p class="text-muted user-card-meta">
+                                @if (!string.IsNullOrEmpty(user.CompanyName))
+                                {
+                                    <span>&#127970; @user.CompanyName</span>
+                                }
+                                @if (!string.IsNullOrEmpty(user.Country))
+                                {
+                                    <span>&#127760; @user.Country</span>
+                                }
+                            </p>
+                        }
                     </div>
                 </a>
             }

@@ -24,7 +24,9 @@ public class ExploreUsersModel(AppDbContext db) : PageModel
 			query = query.Where(u =>
 				u.UserName!.ToLower().Contains(lower) ||
 				u.DisplayName.ToLower().Contains(lower) ||
-				(u.Bio != null && u.Bio.ToLower().Contains(lower)));
+				(u.Bio != null && u.Bio.ToLower().Contains(lower)) ||
+				(u.CompanyName != null && u.CompanyName.ToLower().Contains(lower)) ||
+				(u.Country != null && u.Country.ToLower().Contains(lower)));
 		}
 
 		Users = await query
