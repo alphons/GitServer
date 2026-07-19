@@ -163,7 +163,13 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
     {
         var result = await RunGitAsync(repoPath, "symbolic-ref HEAD");
         var branch = result.Trim();
-        return branch.StartsWith("refs/heads/") ? branch["refs/heads/".Length..] : "main";
+        var headBranch = branch.StartsWith("refs/heads/") ? branch["refs/heads/".Length..] : "main";
+
+        // HEAD can point to a branch that no longer exists (e.g. "master" was never pushed,
+        // only "main" was) — fall back to whatever branch actually exists.
+        var branches = await GetBranches(repoPath);
+        if (branches.Contains(headBranch)) return headBranch;
+        return branches.FirstOrDefault() ?? headBranch;
     }
 
     public async Task<List<string>> GetBranches(string repoPath)
