@@ -7,6 +7,9 @@
     <div class="page-header">
         <h1>@L["nav_explore"]</h1>
     </div>
+
+    @await Html.PartialAsync("_ExploreNav", "repos")
+
     <form method="get" class="search-form search-form-full">
         <input name="q" type="search" class="form-control" placeholder="@L["explore_search_placeholder"]"
                value="@Model.Query" autofocus />

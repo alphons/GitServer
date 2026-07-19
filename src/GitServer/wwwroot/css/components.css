@@ -277,6 +277,54 @@ textarea.form-control { resize: vertical; }
   height: 24px;
 }
 
+.avatar-md {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+/* === User directory (Explore > Users) === */
+.user-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+}
+
+.user-card {
+  display: flex;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.user-card:hover { border-color: var(--accent); text-decoration: none; color: var(--text); }
+
+.user-card-info { min-width: 0; }
+
+.user-card-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.user-card-username {
+  font-size: 0.8125rem;
+  margin-bottom: 0.25rem;
+}
+
+.user-card-bio {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 .badge {
   display: inline-block;
   padding: 0.15rem 0.55rem;

@@ -1,0 +1,57 @@
+@page "/explore/users"
+@model GitServer.wwwroot.ExploreUsersModel
+@{
+    ViewData["Title"] = L["explore_nav_users"];
+}
+<div class="container">
+    <div class="page-header">
+        <h1>@L["nav_explore"]</h1>
+    </div>
+
+    @await Html.PartialAsync("_ExploreNav", "users")
+
+    <form method="get" class="search-form search-form-full">
+        <input name="q" type="search" class="form-control" placeholder="@L["explore_users_search_placeholder"]"
+               value="@Model.Query" autofocus />
+        <button type="submit" class="btn btn-primary">@L["search_button"]</button>
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.Query))
+    {
+        <p class="search-results-info">@Model.Users.Count @L["explore_results_for"] "<strong>@Model.Query</strong>"</p>
+    }
+
+    @if (Model.Users.Any())
+    {
+        <div class="user-list">
+            @foreach (var user in Model.Users)
+            {
+                <a class="user-card" href="/User/@user.UserName">
+                    <img src="@user.EffectiveAvatarUrl" alt="@user.UserName" class="avatar-img avatar-md" />
+                    <div class="user-card-info">
+                        <div class="user-card-name">@user.DisplayName</div>
+                        <div class="text-muted user-card-username">@@@user.UserName</div>
+                        @if (!string.IsNullOrEmpty(user.Bio))
+                        {
+                            <p class="user-card-bio">@user.Bio</p>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+        <div class="pagination">
+            @if (Model.Page > 0)
+            {
+                <a class="btn btn-secondary" href="/explore/users?q=@Model.Query&page=@(Model.Page - 1)">@L["pagination_prev"]</a>
+            }
+            @if (Model.Users.Count == 20)
+            {
+                <a class="btn btn-secondary" href="/explore/users?q=@Model.Query&page=@(Model.Page + 1)">@L["pagination_next"]</a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">@L["explore_no_results"]</div>
+    }
+</div>

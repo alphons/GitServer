@@ -1,0 +1,8 @@
+@model string
+@inject GitServer.Services.LocalizationService L
+<div class="repo-nav">
+    <a class="repo-nav-link @(Model == "repos" ? "active" : "")"
+       href="/explore">@L["explore_nav_repos"]</a>
+    <a class="repo-nav-link @(Model == "users" ? "active" : "")"
+       href="/explore/users">@L["explore_nav_users"]</a>
+</div>
