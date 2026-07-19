@@ -24,6 +24,7 @@
   "badge_private": "Private",
   "badge_public": "Public",
   "updated_prefix": "Updated",
+  "repo_card_collaborators": "Shared with:",
 
   "index_recent_repos": "Recent repositories",
   "index_empty": "No public repositories yet.",

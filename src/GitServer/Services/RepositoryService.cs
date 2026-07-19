@@ -87,6 +87,7 @@ public class RepositoryService(AppDbContext db,
     {
         var q = _db.Repositories
             .Include(r => r.Owner)
+            .Include(r => r.Accesses).ThenInclude(a => a.User)
             .Where(r => r.OwnerId == userId);
 
         if (!includePrivate)

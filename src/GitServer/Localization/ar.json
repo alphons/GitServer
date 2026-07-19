@@ -23,6 +23,7 @@
   "badge_private": "خاص",
   "badge_public": "عام",
   "updated_prefix": "تحديث",
+  "repo_card_collaborators": "مشارك مع:",
 
   "index_recent_repos": "المستودعات الأخيرة",
   "index_empty": "لا توجد مستودعات عامة حتى الآن.",

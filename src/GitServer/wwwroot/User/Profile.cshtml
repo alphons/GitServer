@@ -44,6 +44,13 @@
                         {
                             <p class="repo-description">@repo.Description</p>
                         }
+                        @if (repo.IsPrivate && repo.Accesses.Any())
+                        {
+                            <p class="text-muted repo-collaborators">
+                                @L["repo_card_collaborators"]
+                                @string.Join(", ", repo.Accesses.Select(a => a.User.UserName))
+                            </p>
+                        }
                         <div class="repo-meta">
                             <span class="text-muted">@L["updated_prefix"] @repo.UpdatedAt.ToString("d MMM yyyy")</span>
                         </div>

@@ -24,6 +24,7 @@
   "badge_private": "Privé",
   "badge_public": "Publiek",
   "updated_prefix": "Bijgewerkt",
+  "repo_card_collaborators": "Gedeeld met:",
 
   "index_recent_repos": "Recente repositories",
   "index_empty": "Nog geen publieke repositories.",
