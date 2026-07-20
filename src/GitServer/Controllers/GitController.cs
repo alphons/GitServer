@@ -1,3 +1,4 @@
+using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Controllers;
 
 [ApiController]
-public class GitController(GitProcessService git, IOptions<GitServerOptions> options, ILogger<GitController> logger) : ControllerBase
+public class GitController(GitProcessService git, IOptions<GitServerOptions> options, ILogger<GitController> logger, AppDbContext db) : ControllerBase
 {
 
 	private string GetRepoPath(string user, string repo)
@@ -94,6 +95,7 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 
 			// Bijwerken van UpdatedAt na een push
 			repoObj.UpdatedAt = DateTime.UtcNow;
+			await db.SaveChangesAsync();
 		}
 		catch (RepositoryDataMissingException ex)
 		{
