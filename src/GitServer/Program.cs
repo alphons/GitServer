@@ -14,7 +14,8 @@ var gitOptions = builder.Configuration
 // request-size cap and minimum-throughput timeout so they aren't dropped mid-transfer.
 builder.WebHost.ConfigureKestrel(o =>
 {
-	o.Limits.MaxRequestBodySize = gitOptions.MaxPushSizeMb.HasValue ? gitOptions.MaxPushSizeMb * 1024 * 1024 : null;
+	o.Limits.MaxRequestBodySize = gitOptions.MaxPushSizeMb.HasValue 
+		? gitOptions.MaxPushSizeMb * 1024 * 1024 : null;
 	o.Limits.MinRequestBodyDataRate = null;
 });
 
@@ -38,6 +39,7 @@ builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<MarkdownService>();
 builder.Services.AddScoped<LocalizationService>();
+builder.Services.AddScoped<TimeZoneService>();
 
 // MVC + Razor Pages
 builder.Services.AddControllersWithViews();

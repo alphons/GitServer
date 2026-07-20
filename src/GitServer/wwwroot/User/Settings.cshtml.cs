@@ -17,6 +17,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 	public string? Country { get; set; }
 	public string? CompanyName { get; set; }
 	public string? PreferredLanguage { get; set; }
+	public string? TimeZoneId { get; set; }
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
 	public bool HasPassword { get; set; }
@@ -27,6 +28,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 	[BindProperty] public string? NewCountry { get; set; }
 	[BindProperty] public string? NewCompanyName { get; set; }
 	[BindProperty] public string? NewPreferredLanguage { get; set; }
+	[BindProperty] public string? NewTimeZoneId { get; set; }
 	[BindProperty] public string CurrentPassword { get; set; } = "";
 	[BindProperty] public string NewPassword { get; set; } = "";
 
@@ -39,6 +41,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 		Country = user.Country;
 		CompanyName = user.CompanyName;
 		PreferredLanguage = user.PreferredLanguage;
+		TimeZoneId = user.TimeZoneId;
 	}
 
 	public async Task OnGetAsync()
@@ -60,10 +63,22 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 		user.Country = string.IsNullOrWhiteSpace(NewCountry) ? null : NewCountry.Trim();
 		user.CompanyName = string.IsNullOrWhiteSpace(NewCompanyName) ? null : NewCompanyName.Trim();
 		user.PreferredLanguage = string.IsNullOrWhiteSpace(NewPreferredLanguage) ? null : NewPreferredLanguage;
+		user.TimeZoneId = string.IsNullOrWhiteSpace(NewTimeZoneId) ? null : NewTimeZoneId;
 
 		var result = await userManager.UpdateAsync(user);
 		Message = result.Succeeded ? L["success_profile_saved"] : string.Join(" ", result.Errors.Select(e => e.Description));
 		IsError = !result.Succeeded;
+
+		if (result.Succeeded && !string.IsNullOrEmpty(user.TimeZoneId))
+		{
+			Response.Cookies.Append(TimeZoneService.CookieName, user.TimeZoneId, new CookieOptions
+			{
+				Expires = DateTimeOffset.UtcNow.AddYears(1),
+				IsEssential = true,
+				SameSite = SameSiteMode.Lax,
+				HttpOnly = true
+			});
+		}
 
 		LoadFrom(user);
 		HasPassword = await userManager.HasPasswordAsync(user);

@@ -20,10 +20,10 @@
                 }
                 @if (!string.IsNullOrEmpty(Model.Country))
                 {
-                    <span>&#127760; @Model.Country</span>
+                    <span>&#127760; @L.CountryName(Model.Country)</span>
                 }
             </p>
         }
-        <p class="text-muted">@L["profile_member_since"] @Model.CreatedAt.ToString("MMMM yyyy")</p>
+        <p class="text-muted">@L["profile_member_since"] @TZ.ToLocal(Model.CreatedAt).ToString("MMMM yyyy")</p>
     </div>
 </div>

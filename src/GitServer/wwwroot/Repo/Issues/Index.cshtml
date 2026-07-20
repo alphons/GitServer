@@ -46,7 +46,7 @@
                             @issue.Title
                         </a>
                         <span class="issue-meta text-muted">
-                            #@issue.Id @L["issues_opened_by"] @issue.Author.UserName @L["issues_on"] @issue.CreatedAt.ToString("d MMM yyyy")
+                            #@issue.Id @L["issues_opened_by"] @issue.Author.UserName @L["issues_on"] @TZ.ToLocal(issue.CreatedAt).ToString("d MMM yyyy")
                             &nbsp;&middot; @issue.Comments.Count @L["issues_comments"]
                         </span>
                     </div>

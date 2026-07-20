@@ -20,14 +20,38 @@
     <div class="commit-list">
         @foreach (var commit in Model.Commits)
         {
+            var committer = Model.AuthorsByEmail.GetValueOrDefault(commit.Email);
             <div class="commit-item">
-                <div class="commit-message">
-                    <a href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.Message</a>
+                <div class="commit-main">
+                    <div class="commit-message">
+                        <a href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.Message</a>
+                    </div>
+                    <div class="commit-meta">
+                        <span class="commit-author">@commit.Author</span>
+                        <span class="commit-date text-muted">@TZ.ToLocal(commit.Date).ToString("d MMM yyyy, HH:mm")</span>
+                        <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.ShortSha</a>
+                    </div>
                 </div>
-                <div class="commit-meta">
-                    <span class="commit-author">@commit.Author</span>
-                    <span class="commit-date text-muted">@commit.Date.ToString("d MMM yyyy, HH:mm")</span>
-                    <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.ShortSha</a>
+                <div class="commit-side">
+                    <div class="commit-committer">
+                        <img class="commit-committer-avatar" src="@(committer?.EffectiveAvatarUrl ?? GravatarService.GetUrl(commit.Email))" alt="@(committer?.DisplayName ?? commit.Author)" />
+                        @if (committer != null)
+                        {
+                            <a href="/User/@committer.UserName">@committer.DisplayName</a>
+                        }
+                        else
+                        {
+                            <span>@commit.Author</span>
+                        }
+                    </div>
+                    <div class="commit-tree text-muted"><span class="commit-side-label">Tree</span> <code>@commit.Tree[..7]</code></div>
+                    <div class="commit-parents text-muted">
+                        <span class="commit-side-label">Parents</span>
+                        @foreach (var parent in commit.Parents)
+                        {
+                            <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@parent">@parent[..7]</a>
+                        }
+                    </div>
                 </div>
             </div>
         }

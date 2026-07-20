@@ -49,6 +49,17 @@ public class LoginModel(
                 });
             }
 
+            if (!string.IsNullOrEmpty(user.TimeZoneId))
+            {
+                Response.Cookies.Append(TimeZoneService.CookieName, user.TimeZoneId, new CookieOptions
+                {
+                    Expires = DateTimeOffset.UtcNow.AddYears(1),
+                    IsEssential = true,
+                    SameSite = SameSiteMode.Lax,
+                    HttpOnly = true
+                });
+            }
+
             return LocalRedirect(returnUrl ?? "/");
         }
 

@@ -12,6 +12,7 @@ public class AppUser : IdentityUser
     public string? Country { get; set; }
     public string? CompanyName { get; set; }
     public string? PreferredLanguage { get; set; }
+    public string? TimeZoneId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
     public bool IsAdmin { get; set; }

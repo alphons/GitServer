@@ -3,6 +3,7 @@ using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.wwwroot.Repo;
 
@@ -18,6 +19,7 @@ public class CommitsModel(
 	public new int Page { get; set; }
 	public int TotalCount { get; set; }
 	public List<CommitInfo> Commits { get; set; } = new();
+	public Dictionary<string, AppUser> AuthorsByEmail { get; set; } = new();
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
 	{
@@ -39,6 +41,11 @@ public class CommitsModel(
 
 		TotalCount = await git.GetCommitCount(repoPath, Branch);
 		Commits = await git.GetCommitLog(repoPath, Branch, page * 25, 25);
+
+		var emails = Commits.Select(c => c.Email).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+		AuthorsByEmail = await userManager.Users
+			.Where(u => emails.Contains(u.Email!))
+			.ToDictionaryAsync(u => u.Email!, u => u, StringComparer.OrdinalIgnoreCase);
 
 		return Page();
 	}

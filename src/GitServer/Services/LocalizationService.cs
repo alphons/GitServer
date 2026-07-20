@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 
 namespace GitServer.Services;
@@ -9,6 +10,22 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
     private readonly string _localizationPath = Path.Combine(env.ContentRootPath, "Localization");
 
     private static readonly ConcurrentDictionary<string, Dictionary<string, string>> _cache = new();
+    private static readonly ConcurrentDictionary<string, List<(string Code, string Name)>> _countryCache = new();
+
+    // Maps each ISO 3166-1 region code to one representative "xx-CC" culture name for that region
+    // (e.g. "NL" -> "nl-NL"). CultureInfo.DisplayName translates properly per CurrentUICulture,
+    // unlike RegionInfo.DisplayName, which always returns the region's own native name regardless
+    // of CurrentUICulture.
+    private static readonly Lazy<Dictionary<string, string>> _regionToCulture = new(() =>
+        CultureInfo.GetCultures(CultureTypes.SpecificCultures)
+            .Select(c =>
+            {
+                try { return (Culture: c.Name, Region: new RegionInfo(c.Name).TwoLetterISORegionName); }
+                catch { return (Culture: (string?)null, Region: (string?)null); }
+            })
+            .Where(x => x.Culture != null && x.Region != null)
+            .GroupBy(x => x.Region!)
+            .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Culture, StringComparer.Ordinal).First().Culture!));
 
 	public string CurrentLanguage
     {
@@ -44,6 +61,63 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
 
         foreach (var (code, name, _) in langs)
             yield return (code, name);
+    }
+
+    /// <summary>All known countries as (ISO 3166-1 alpha-2 code, localized name), sorted by localized name.</summary>
+    public IEnumerable<(string Code, string Name)> AvailableCountries() =>
+        _countryCache.GetOrAdd(CurrentLanguage, lang =>
+        {
+            var culture = GetCultureOrDefault(lang);
+            var list = _regionToCulture.Value.Keys
+                .Select(code => (Code: code, Name: LocalizedRegionName(code, culture)))
+                .Where(x => x.Name != null)
+                .Select(x => (x.Code, Name: x.Name!))
+                .ToList();
+            list.Sort((a, b) => string.Compare(a.Name, b.Name, culture, CompareOptions.None));
+            return list;
+        });
+
+    /// <summary>Localized display name for a stored ISO 3166-1 alpha-2 country code, or the code itself if unknown.</summary>
+    public string CountryName(string? code)
+    {
+        if (string.IsNullOrEmpty(code)) return "";
+        var culture = GetCultureOrDefault(CurrentLanguage);
+        return LocalizedRegionName(code, culture) ?? code;
+    }
+
+    private static CultureInfo GetCultureOrDefault(string lang)
+    {
+        try { return CultureInfo.GetCultureInfo(lang); }
+        catch (CultureNotFoundException) { return CultureInfo.GetCultureInfo("en"); }
+    }
+
+    private static string? LocalizedRegionName(string regionCode, CultureInfo culture)
+    {
+        if (!_regionToCulture.Value.TryGetValue(regionCode, out var representativeCulture))
+            return null;
+
+        var original = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = culture;
+            var displayName = CultureInfo.GetCultureInfo(representativeCulture).DisplayName;
+
+            // "Niederländisch (Niederlande)" -> "Niederlande"
+            var open = displayName.IndexOf('(');
+            var close = displayName.LastIndexOf(')');
+            if (open >= 0 && close > open)
+                return displayName[(open + 1)..close];
+
+            return new RegionInfo(regionCode).EnglishName;
+        }
+        catch (ArgumentException)
+        {
+            return null;
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = original;
+        }
     }
 
     public string this[string key]

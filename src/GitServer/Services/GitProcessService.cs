@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace GitServer.Services;
 
-public record CommitInfo(string Sha, string ShortSha, string Message, string Author, string Email, DateTime Date);
+public record CommitInfo(string Sha, string ShortSha, string Message, string Author, string Email, DateTime Date, string Tree, List<string> Parents);
 public record CommitDetail(CommitInfo Info, string Diff, List<string> ChangedFiles);
 public record TreeEntry(string Mode, string Type, string Sha, string Name, string Path);
 
@@ -177,10 +177,13 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         var stdout = await proc.StandardOutput.ReadToEndAsync();
         await proc.WaitForExitAsync();
 
-        // "git version 2.45.1.windows.1" -> "2.45.1.windows.1"
+        // "git version 2.45.1.windows.1" -> "2.45.1"
         var prefix = "git version ";
         var text = stdout.Trim();
-        return text.StartsWith(prefix) ? text[prefix.Length..] : text;
+        var version = text.StartsWith(prefix) ? text[prefix.Length..] : text;
+
+        var windowsSuffixIndex = version.IndexOf(".windows.", StringComparison.OrdinalIgnoreCase);
+        return windowsSuffixIndex >= 0 ? version[..windowsSuffixIndex] : version;
     }
 
     public async Task<bool> IsEmpty(string repoPath)
@@ -216,7 +219,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
 
     public async Task<List<CommitInfo>> GetCommitLog(string repoPath, string branch, int skip, int take)
     {
-        var format = "--format=%H%n%h%n%s%n%an%n%ae%n%aI%n---COMMIT---";
+        var format = "--format=%H%n%h%n%s%n%an%n%ae%n%aI%n%T%n%P%n---COMMIT---";
         var result = await RunGitAsync(repoPath, $"log {format} --skip={skip} --max-count={take} {branch} --");
 
         var commits = new List<CommitInfo>();
@@ -227,7 +230,9 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
             var lines = block.Split('\n');
             if (lines.Length < 6) continue;
             var date = DateTime.TryParse(lines[5].Trim(), out var d) ? d : DateTime.UtcNow;
-            commits.Add(new CommitInfo(lines[0].Trim(), lines[1].Trim(), lines[2].Trim(), lines[3].Trim(), lines[4].Trim(), date));
+            var tree = lines.ElementAtOrDefault(6)?.Trim() ?? "";
+            var parents = lines.ElementAtOrDefault(7)?.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList() ?? [];
+            commits.Add(new CommitInfo(lines[0].Trim(), lines[1].Trim(), lines[2].Trim(), lines[3].Trim(), lines[4].Trim(), date, tree, parents));
         }
 
         return commits;
@@ -235,7 +240,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
 
     public async Task<CommitDetail> GetCommitDetail(string repoPath, string sha)
     {
-        var infoResult = await RunGitAsync(repoPath, $"log -1 --format=%H%n%h%n%s%n%an%n%ae%n%aI {sha}");
+        var infoResult = await RunGitAsync(repoPath, $"log -1 --format=%H%n%h%n%s%n%an%n%ae%n%aI%n%T%n%P {sha}");
         var lines = infoResult.Split('\n');
         var date = DateTime.TryParse(lines.ElementAtOrDefault(5)?.Trim(), out var d) ? d : DateTime.UtcNow;
         var info = new CommitInfo(
@@ -244,7 +249,9 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
             lines.ElementAtOrDefault(2)?.Trim() ?? "",
             lines.ElementAtOrDefault(3)?.Trim() ?? "",
             lines.ElementAtOrDefault(4)?.Trim() ?? "",
-            date);
+            date,
+            lines.ElementAtOrDefault(6)?.Trim() ?? "",
+            lines.ElementAtOrDefault(7)?.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList() ?? []);
 
         var diff = await RunGitAsync(repoPath, $"show --stat --patch {sha}");
         var changedFiles = await RunGitAsync(repoPath, $"diff-tree --no-commit-id -r --name-only {sha}");
