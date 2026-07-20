@@ -1,6 +1,8 @@
 @using Microsoft.AspNetCore.Identity
+@using GitServer.Services
 @inject SignInManager<GitServer.Models.AppUser> SignInManager
 @inject UserManager<GitServer.Models.AppUser> UserManager
+@inject GitProcessService GitProcess
 <!DOCTYPE html>
 <html lang="@L.CurrentLanguage">
 <head>
@@ -28,6 +30,7 @@
 				</svg>
 				GitServer
 				<span class="version-badge">v@(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(2))</span>
+				<span class="version-badge">git @(await GitProcess.GetVersion())</span>
 			</a>
 			<button class="navbar-toggle" id="navToggle" aria-label="Menu">
 				<span></span><span></span><span></span>

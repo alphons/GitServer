@@ -153,6 +153,36 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         await proc.WaitForExitAsync();
     }
 
+    private static Lazy<Task<string>>? _versionCache;
+
+    public Task<string> GetVersion()
+    {
+        // git.exe's version never changes while the app is running, so query it once and reuse it.
+        _versionCache ??= new Lazy<Task<string>>(FetchVersion);
+        return _versionCache.Value;
+    }
+
+    private async Task<string> FetchVersion()
+    {
+        var psi = new ProcessStartInfo(_gitExe)
+        {
+            Arguments = "--version",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
+        var stdout = await proc.StandardOutput.ReadToEndAsync();
+        await proc.WaitForExitAsync();
+
+        // "git version 2.45.1.windows.1" -> "2.45.1.windows.1"
+        var prefix = "git version ";
+        var text = stdout.Trim();
+        return text.StartsWith(prefix) ? text[prefix.Length..] : text;
+    }
+
     public async Task<bool> IsEmpty(string repoPath)
     {
         var result = await RunGitAsync(repoPath, "rev-list --all --count");
