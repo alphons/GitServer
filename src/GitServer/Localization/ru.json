@@ -26,6 +26,7 @@
   "badge_private": "Приватный",
   "badge_public": "Публичный",
   "updated_prefix": "Обновлено",
+  "created_prefix": "Создано",
   "repo_card_collaborators": "Доступ есть у:",
 
   "index_recent_repos": "Последние репозитории",

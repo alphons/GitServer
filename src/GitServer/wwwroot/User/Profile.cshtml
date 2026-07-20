@@ -60,7 +60,8 @@
                             </p>
                         }
                         <div class="repo-meta">
-                            <span class="text-muted">@L["updated_prefix"] @repo.UpdatedAt.ToString("d MMM yyyy")</span>
+                            <span class="text-muted">@L["updated_prefix"] @repo.UpdatedAt.ToString("d MMM yyyy HH:mm")</span>
+                            <span class="text-muted">@L["created_prefix"] @repo.CreatedAt.ToString("d MMM yyyy HH:mm")</span>
                         </div>
                     </div>
                 }

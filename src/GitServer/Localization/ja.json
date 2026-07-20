@@ -26,6 +26,7 @@
   "badge_private": "プライベート",
   "badge_public": "パブリック",
   "updated_prefix": "更新",
+  "created_prefix": "作成日",
   "repo_card_collaborators": "共有先:",
 
   "index_recent_repos": "最近のリポジトリ",

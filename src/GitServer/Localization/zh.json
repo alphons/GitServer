@@ -26,6 +26,7 @@
   "badge_private": "私有",
   "badge_public": "公开",
   "updated_prefix": "更新于",
+  "created_prefix": "创建于",
   "repo_card_collaborators": "共享给：",
 
   "index_recent_repos": "最近的仓库",

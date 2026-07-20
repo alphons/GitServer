@@ -26,6 +26,7 @@
   "badge_private": "Privat",
   "badge_public": "Öffentlich",
   "updated_prefix": "Aktualisiert",
+  "created_prefix": "Erstellt",
   "repo_card_collaborators": "Geteilt mit:",
 
   "index_recent_repos": "Neueste Repositories",

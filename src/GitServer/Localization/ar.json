@@ -26,6 +26,7 @@
   "badge_private": "خاص",
   "badge_public": "عام",
   "updated_prefix": "تحديث",
+  "created_prefix": "تم الإنشاء",
   "repo_card_collaborators": "مشارك مع:",
 
   "index_recent_repos": "المستودعات الأخيرة",
