@@ -5,6 +5,8 @@
     var ext = System.IO.Path.GetExtension(Model.FilePath).TrimStart('.').ToLower();
     var imageExts = new HashSet<string> { "png", "jpg", "jpeg", "gif" };
     var isImage = imageExts.Contains(ext);
+    var trimmedContent = Model.Content.TrimEnd('\n', '\r');
+    var lineCount = trimmedContent.Length == 0 ? 0 : trimmedContent.Split('\n').Length;
 }
 <div class="container">
     <div class="repo-header">
@@ -35,8 +37,32 @@
 
     <div class="file-view">
         <div class="file-view-header">
-            <span class="file-name">@Model.FilePath</span>
-            <span class="file-size text-muted">@Model.FileSize bytes</span>
+            <div class="file-view-info text-muted">
+                <span>Code</span>
+                @if (!isImage && !Model.IsBinary)
+                {
+                    <span class="separator">&middot;</span>
+                    <span>@lineCount lines</span>
+                }
+                <span class="separator">&middot;</span>
+                <span>@Model.FileSize bytes</span>
+            </div>
+            <div class="file-view-actions">
+                <a class="file-action-link" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath">Raw</a>
+                <button type="button" class="icon-btn" id="copyRawBtn" title="Copy Raw File" aria-label="Copy Raw File">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="11" height="11" rx="1" />
+                        <path d="M5 15V5a1 1 0 0 1 1-1h10" />
+                    </svg>
+                </button>
+                <a class="icon-btn" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath" download title="Download Raw File" aria-label="Download Raw File">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 3v12" />
+                        <path d="M7 10l5 5 5-5" />
+                        <path d="M5 21h14" />
+                    </svg>
+                </a>
+            </div>
         </div>
         @if (isImage)
         {
@@ -51,8 +77,24 @@
         else
         {
             <div class="file-content">
-                <pre class="code-view lang-@ext"><code>@Model.Content</code></pre>
+                <pre class="code-view lang-@ext"><span class="line-numbers">@string.Join("\n", Enumerable.Range(1, lineCount))</span><code class="language-@ext">@trimmedContent</code></pre>
             </div>
         }
     </div>
 </div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <script>
+        document.getElementById('copyRawBtn')?.addEventListener('click', async function () {
+            const code = document.querySelector('.code-view code');
+            if (!code) return;
+            await navigator.clipboard.writeText(code.innerText);
+            const original = this.title;
+            this.title = 'Copied!';
+            setTimeout(() => { this.title = original; }, 1500);
+        });
+    </script>
+}

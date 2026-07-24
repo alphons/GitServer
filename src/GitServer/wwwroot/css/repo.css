@@ -201,6 +201,48 @@
 .file-name { font-family: var(--font-mono); }
 .file-size { font-size: 0.8125rem; }
 
+.file-view-info {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.file-view-info .separator { opacity: 0.5; }
+
+.file-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.file-action-link {
+  font-size: 0.8125rem;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, inherit);
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.icon-btn:hover {
+  background: var(--surface3, rgba(127, 127, 127, 0.15));
+  color: var(--text);
+}
+
+.icon-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 .file-content {
   overflow-x: auto;
 }
@@ -222,6 +264,27 @@
   display: table-cell;
   padding: 0.75rem 1rem;
   white-space: pre;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  vertical-align: top;
+}
+
+.line-numbers {
+  display: table-cell;
+  padding: 0.75rem 0.75rem;
+  white-space: pre;
+  text-align: right;
+  color: var(--text-muted);
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  vertical-align: top;
 }
 
 .file-binary-notice {

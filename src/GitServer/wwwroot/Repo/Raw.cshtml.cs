@@ -28,7 +28,7 @@ public class RawModel(
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var ext = System.IO.Path.GetExtension(path);
-		if (!ContentTypes.TryGetValue(ext, out var contentType)) return NotFound();
+		if (!ContentTypes.TryGetValue(ext, out var contentType)) contentType = "text/plain; charset=utf-8";
 
 		var repoPath = repos.GetRepoPath(user, repo);
 		Response.ContentType = contentType;

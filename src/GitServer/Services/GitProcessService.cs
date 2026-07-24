@@ -261,8 +261,8 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
 
     public async Task<List<TreeEntry>> GetTree(string repoPath, string treeish, string path)
     {
-        var pathArg = string.IsNullOrEmpty(path) ? "" : $":{path}";
-        var result = await RunGitAsync(repoPath, $"ls-tree {treeish}{pathArg}");
+        var treeishArg = string.IsNullOrEmpty(path) ? treeish : $"{treeish}:{path}";
+        var result = await RunGitAsync(repoPath, $"ls-tree \"{treeishArg}\"");
         var entries = new List<TreeEntry>();
 
         foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -283,12 +283,12 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
 
     public async Task<string> GetFileContent(string repoPath, string treeish, string path)
     {
-        return await RunGitAsync(repoPath, $"show {treeish}:{path}");
+        return await RunGitAsync(repoPath, $"show \"{treeish}:{path}\"");
     }
 
     public async Task<long> GetFileSize(string repoPath, string treeish, string path)
     {
-        var result = await RunGitAsync(repoPath, $"cat-file -s {treeish}:{path}");
+        var result = await RunGitAsync(repoPath, $"cat-file -s \"{treeish}:{path}\"");
         return long.TryParse(result.Trim(), out var size) ? size : 0;
     }
 
@@ -296,7 +296,7 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
     {
         var psi = new ProcessStartInfo(_gitExe)
         {
-            Arguments = $"show {treeish}:{path}",
+            Arguments = $"show \"{treeish}:{path}\"",
             WorkingDirectory = repoPath,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

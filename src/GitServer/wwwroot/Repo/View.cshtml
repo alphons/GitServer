@@ -65,9 +65,26 @@ git push -u origin @Model.DefaultBranch</pre>
         <div class="file-tree">
             @if (!string.IsNullOrEmpty(Model.CurrentPath))
             {
-                <div class="file-tree-header">
-                    <a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch">@L["back_to_root"]</a>
-                    &nbsp;/ @Model.CurrentPath
+                <div class="file-tree-header file-breadcrumb">
+                    <a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch">@Model.RepoName</a>
+                    @{
+                        var treeParts = Model.CurrentPath.Split('/');
+                        var treeAccumulated = "";
+                    }
+                    @for (int i = 0; i < treeParts.Length; i++)
+                    {
+                        treeAccumulated += (i > 0 ? "/" : "") + treeParts[i];
+                        var treeAcc = treeAccumulated;
+                        <span class="separator">/</span>
+                        @if (i == treeParts.Length - 1)
+                        {
+                            <strong>@treeParts[i]</strong>
+                        }
+                        else
+                        {
+                            <a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch&path=@treeAcc">@treeParts[i]</a>
+                        }
+                    }
                 </div>
             }
             @foreach (var entry in Model.Tree)
