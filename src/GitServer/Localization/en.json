@@ -32,6 +32,8 @@
   "repo_card_collaborators": "Shared with:",
 
   "index_recent_repos": "Recent repositories",
+  "index_all_repos": "All public repositories",
+  "index_all_my_repos": "All my repositories",
   "index_empty": "No public repositories yet.",
   "index_empty_create": "Create the first one!",
 

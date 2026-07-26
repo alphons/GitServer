@@ -30,6 +30,8 @@
   "repo_card_collaborators": "Доступ есть у:",
 
   "index_recent_repos": "Последние репозитории",
+  "index_all_repos": "Все публичные репозитории",
+  "index_all_my_repos": "Все мои репозитории",
   "index_empty": "Публичных репозиториев пока нет.",
   "index_empty_create": "Создать первый!",
 

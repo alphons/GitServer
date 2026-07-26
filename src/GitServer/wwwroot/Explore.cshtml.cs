@@ -1,23 +1,28 @@
 ﻿using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 
 namespace GitServer.wwwroot;
 
-public class ExploreModel(RepositoryService repos) : PageModel
+public class ExploreModel(RepositoryService repos, IOptions<GitServerOptions> options) : PageModel
 {
 	public string Query { get; set; } = "";
 	public new int Page { get; set; }
+	public int PageSize { get; } = options.Value.ExploreRepoPageSize;
 	public List<Repository> Repos { get; set; } = [];
+	public bool HasNextPage { get; set; }
 
-	public async Task OnGetAsync(string? q, int page = 0)
+	public async Task OnGetAsync(string? q, int p = 0)
 	{
 		Query = q ?? "";
-		Page = page;
+		Page = p;
 
-		if (!string.IsNullOrWhiteSpace(Query))
-			Repos = await repos.SearchAsync(Query, page * 20, 20);
-		else
-			Repos = await repos.GetPublicReposAsync(page * 20, 20);
+		var fetched = !string.IsNullOrWhiteSpace(Query)
+			? await repos.SearchAsync(Query, p * PageSize, PageSize + 1)
+			: await repos.GetPublicReposAsync(p * PageSize, PageSize + 1);
+
+		HasNextPage = fetched.Count > PageSize;
+		Repos = fetched.Take(PageSize).ToList();
 	}
 }

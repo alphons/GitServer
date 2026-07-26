@@ -1,20 +1,24 @@
 using GitServer.Data;
 using GitServer.Models;
+using GitServer.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GitServer.wwwroot;
 
-public class ExploreUsersModel(AppDbContext db) : PageModel
+public class ExploreUsersModel(AppDbContext db, IOptions<GitServerOptions> options) : PageModel
 {
 	public string Query { get; set; } = "";
 	public new int Page { get; set; }
+	public int PageSize { get; } = options.Value.ExploreUserPageSize;
 	public List<AppUser> Users { get; set; } = [];
+	public bool HasNextPage { get; set; }
 
-	public async Task OnGetAsync(string? q, int page = 0)
+	public async Task OnGetAsync(string? q, int p = 0)
 	{
 		Query = q ?? "";
-		Page = page;
+		Page = p;
 
 		var query = db.Users.Where(u => u.EmailConfirmed);
 
@@ -29,10 +33,13 @@ public class ExploreUsersModel(AppDbContext db) : PageModel
 				(u.Country != null && u.Country.ToLower().Contains(lower)));
 		}
 
-		Users = await query
+		var fetched = await query
 			.OrderBy(u => u.UserName)
-			.Skip(page * 20)
-			.Take(20)
+			.Skip(p * PageSize)
+			.Take(PageSize + 1)
 			.ToListAsync();
+
+		HasNextPage = fetched.Count > PageSize;
+		Users = fetched.Take(PageSize).ToList();
 	}
 }

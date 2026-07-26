@@ -30,6 +30,8 @@
   "repo_card_collaborators": "共享给：",
 
   "index_recent_repos": "最近的仓库",
+  "index_all_repos": "所有公开仓库",
+  "index_all_my_repos": "我的所有仓库",
   "index_empty": "暂无公开仓库。",
   "index_empty_create": "创建第一个！",
 

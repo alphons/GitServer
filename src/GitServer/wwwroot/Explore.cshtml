@@ -21,6 +21,15 @@
         <p class="search-results-info">@Model.Repos.Count @L["explore_results_for"] "<strong>@Model.Query</strong>"</p>
     }
 
+    @{
+        var prevUrl = $"/explore?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page - 1}";
+        var nextUrl = $"/explore?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page + 1}";
+    }
+    @if (Model.Page > 0 || Model.HasNextPage)
+    {
+        @await Html.PartialAsync("_Pagination", (Model.Page, Model.HasNextPage, prevUrl, nextUrl))
+    }
+
     @if (Model.Repos.Any())
     {
         <div class="repo-list">
@@ -31,6 +40,7 @@
                         <a class="repo-name" href="/@repo.Owner.UserName/@repo.Name">
                             @repo.Owner.UserName / @repo.Name
                         </a>
+                        <span class="badge badge-success">@L["badge_public"]</span>
                     </div>
                     @if (!string.IsNullOrEmpty(repo.Description))
                     {
@@ -43,19 +53,13 @@
                 </div>
             }
         </div>
-        <div class="pagination">
-            @if (Model.Page > 0)
-            {
-                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page - 1)">@L["pagination_prev"]</a>
-            }
-            @if (Model.Repos.Count == 20)
-            {
-                <a class="btn btn-secondary" href="/explore?q=@Model.Query&page=@(Model.Page + 1)">@L["pagination_next"]</a>
-            }
-        </div>
     }
-    else if (!string.IsNullOrEmpty(Model.Query))
+    else if (!string.IsNullOrEmpty(Model.Query) || Model.Page > 0)
     {
         <div class="empty-state">@L["explore_no_results"]</div>
+    }
+    @if (Model.Page > 0 || Model.HasNextPage)
+    {
+        @await Html.PartialAsync("_Pagination", (Model.Page, Model.HasNextPage, prevUrl, nextUrl))
     }
 </div>

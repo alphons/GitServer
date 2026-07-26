@@ -85,11 +85,12 @@ public class RepositoryService(AppDbContext db,
             .ToListAsync();
     }
 
-    public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null)
+    public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null, int skip = 0, int take = int.MaxValue)
     {
         var q = _db.Repositories
             .Include(r => r.Owner)
             .Include(r => r.Accesses).ThenInclude(a => a.User)
+            .Include(r => r.Accesses).ThenInclude(a => a.Group)
             .Where(r => r.OwnerId == userId);
 
         if (!includePrivate)
@@ -103,7 +104,7 @@ public class RepositoryService(AppDbContext db,
                 (r.Description != null && r.Description.ToLower().Contains(lower)));
         }
 
-        return await q.OrderByDescending(r => r.UpdatedAt).ToListAsync();
+        return await q.OrderByDescending(r => r.UpdatedAt).Skip(skip).Take(take).ToListAsync();
     }
 
     public async Task<List<Repository>> SearchAsync(string query, int skip = 0, int take = 20)

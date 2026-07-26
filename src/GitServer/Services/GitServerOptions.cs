@@ -25,4 +25,16 @@ public class GitServerOptions
     /// <summary>Max size in MB for a single push (Kestrel request body). Null = unlimited.
     /// Note: IIS's own limit in Web.Config (maxAllowedContentLength) is separate and not driven by this setting.</summary>
     public long? MaxPushSizeMb { get; set; } = null;
+
+    /// <summary>Number of items per page on the /explore repo listing.</summary>
+    public int ExploreRepoPageSize { get; set; } = 10;
+
+    /// <summary>Number of items per page on the /explore/users listing.</summary>
+    public int ExploreUserPageSize { get; set; } = 10;
+
+    /// <summary>Number of repos shown on the home page's "recent repositories" list.</summary>
+    public int IndexRecentReposCount { get; set; } = 20;
+
+    /// <summary>Number of items per page on a user's profile repository listing.</summary>
+    public int ProfileRepoPageSize { get; set; } = 10;
 }

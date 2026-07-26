@@ -32,6 +32,8 @@
   "repo_card_collaborators": "Gedeeld met:",
 
   "index_recent_repos": "Recente repositories",
+  "index_all_repos": "Alle publieke repositories",
+  "index_all_my_repos": "Al mijn repositories",
   "index_empty": "Nog geen publieke repositories.",
   "index_empty_create": "Maak de eerste aan!",
 

@@ -45,5 +45,15 @@
                 </div>
             }
         </div>
+        <p class="text-muted">
+            @if (Model.CurrentUserName != null)
+            {
+                <a href="/User/@Model.CurrentUserName">@L["index_all_my_repos"]</a>
+            }
+            else
+            {
+                <a href="/explore">@L["index_all_repos"]</a>
+            }
+        </p>
     }
 </div>

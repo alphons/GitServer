@@ -21,6 +21,13 @@
             <p class="search-results-info">@Model.Repos.Count @L["explore_results_for"] "<strong>@Model.Query</strong>"</p>
         }
 
+        var prevUrl = $"/User/{Model.ProfileUser.UserName}?q={Uri.EscapeDataString(Model.Query)}&p={Model.CurrentPage - 1}";
+        var nextUrl = $"/User/{Model.ProfileUser.UserName}?q={Uri.EscapeDataString(Model.Query)}&p={Model.CurrentPage + 1}";
+        @if (Model.Repos.Any() && (Model.CurrentPage > 0 || Model.HasNextPage))
+        {
+            @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
+        }
+
         @if (!Model.Repos.Any())
         {
             <div class="empty-state">@(string.IsNullOrEmpty(Model.Query) ? L["profile_no_repos"] : L["explore_no_results"])</div>
@@ -39,6 +46,10 @@
                             {
                                 <span class="badge badge-warning">@L["badge_private"]</span>
                             }
+                            else
+                            {
+                                <span class="badge badge-success">@L["badge_public"]</span>
+                            }
                         </div>
                         @if (!string.IsNullOrEmpty(repo.Description))
                         {
@@ -51,7 +62,14 @@
                                 @for (var i = 0; i < repo.Accesses.Count; i++)
                                 {
                                     var access = repo.Accesses.ElementAt(i);
-                                    <a href="/User/@access.User.UserName">@access.User.UserName</a>
+                                    if (access.User != null)
+                                    {
+                                        <a href="/User/@access.User.UserName">@access.User.UserName</a>
+                                    }
+                                    else if (access.Group != null)
+                                    {
+                                        <span>@access.Group.Name</span>
+                                    }
                                     if (i < repo.Accesses.Count - 1)
                                     {
                                         @:,
@@ -66,6 +84,10 @@
                     </div>
                 }
             </div>
+            @if (Model.CurrentPage > 0 || Model.HasNextPage)
+            {
+                @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
+            }
         }
     }
     else

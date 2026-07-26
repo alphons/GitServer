@@ -30,6 +30,8 @@
   "repo_card_collaborators": "Geteilt mit:",
 
   "index_recent_repos": "Neueste Repositories",
+  "index_all_repos": "Alle öffentlichen Repositories",
+  "index_all_my_repos": "Alle meine Repositories",
   "index_empty": "Noch keine öffentlichen Repositories.",
   "index_empty_create": "Erstes erstellen!",
 

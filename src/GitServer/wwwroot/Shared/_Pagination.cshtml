@@ -1,0 +1,12 @@
+@model (int Page, bool HasNextPage, string PrevUrl, string NextUrl)
+@inject GitServer.Services.LocalizationService L
+<div class="pagination">
+    @if (Model.Page > 0)
+    {
+        <a class="btn btn-secondary" href="@Model.PrevUrl">@L["pagination_prev"]</a>
+    }
+    @if (Model.HasNextPage)
+    {
+        <a class="btn btn-secondary" href="@Model.NextUrl">@L["pagination_next"]</a>
+    }
+</div>

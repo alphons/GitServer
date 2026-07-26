@@ -30,6 +30,8 @@
   "repo_card_collaborators": "共有先:",
 
   "index_recent_repos": "最近のリポジトリ",
+  "index_all_repos": "すべての公開リポジトリ",
+  "index_all_my_repos": "自分のすべてのリポジトリ",
   "index_empty": "公開リポジトリはまだありません。",
   "index_empty_create": "最初のものを作成！",
 

@@ -30,6 +30,8 @@
   "repo_card_collaborators": "Partagé avec :",
 
   "index_recent_repos": "Dépôts récents",
+  "index_all_repos": "Tous les dépôts publics",
+  "index_all_my_repos": "Tous mes dépôts",
   "index_empty": "Aucun dépôt public pour l'instant.",
   "index_empty_create": "Créer le premier !",
 
