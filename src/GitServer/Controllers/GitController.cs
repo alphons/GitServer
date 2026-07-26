@@ -22,6 +22,11 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 		!string.IsNullOrEmpty(name) &&
 		System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_\-\.]+$");
 
+	[HttpGet("{user}/{repo}.git")]
+	[HttpHead("{user}/{repo}.git")]
+	public IActionResult RedirectBareGitUrl(string user, string repo) =>
+		Redirect($"/{user}/{repo}");
+
 	[HttpGet("{user}/{repo}.git/info/refs")]
 	public async Task InfoRefs(string user, string repo, [FromQuery] string? service)
 	{
