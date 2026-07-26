@@ -131,13 +131,7 @@ public class GitAuthMiddleware(RequestDelegate next)
 
             if (isPush)
             {
-                var canWrite = authedUser.Id == repo.OwnerId ||
-                    await db.RepositoryAccesses.AnyAsync(a =>
-                        a.RepositoryId == repo.Id &&
-                        a.UserId == authedUser.Id &&
-                        a.Level == Models.AccessLevel.Write);
-
-                if (!canWrite)
+                if (!await repoService.CanWriteAsync(repo, authedUser.Id))
                 {
                     context.Response.StatusCode = 403;
                     return;
@@ -145,11 +139,7 @@ public class GitAuthMiddleware(RequestDelegate next)
             }
             else
             {
-                var canRead = authedUser.Id == repo.OwnerId ||
-                    await db.RepositoryAccesses.AnyAsync(a =>
-                        a.RepositoryId == repo.Id && a.UserId == authedUser.Id);
-
-                if (!canRead)
+                if (!await repoService.CanReadAsync(repo, authedUser.Id))
                 {
                     context.Response.StatusCode = 403;
                     return;

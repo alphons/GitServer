@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Issue> Issues => Set<Issue>();
     public DbSet<IssueComment> IssueComments => Set<IssueComment>();
     public DbSet<BlockedEmailPattern> BlockedEmailPatterns => Set<BlockedEmailPattern>();
+    public DbSet<Group> Groups => Set<Group>();
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -27,7 +29,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<RepositoryAccess>(e =>
         {
-            e.HasIndex(a => new { a.RepositoryId, a.UserId }).IsUnique();
+            e.HasIndex(a => new { a.RepositoryId, a.UserId }).IsUnique().HasFilter("[UserId] IS NOT NULL");
+            e.HasIndex(a => new { a.RepositoryId, a.GroupId }).IsUnique().HasFilter("[GroupId] IS NOT NULL");
             e.HasOne(a => a.Repository)
              .WithMany(r => r.Accesses)
              .HasForeignKey(a => a.RepositoryId)
@@ -36,6 +39,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
              .WithMany(u => u.RepositoryAccesses)
              .HasForeignKey(a => a.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Group)
+             .WithMany(g => g.Accesses)
+             .HasForeignKey(a => a.GroupId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Group>(e =>
+        {
+            e.HasIndex(g => new { g.OwnerId, g.Name }).IsUnique();
+            e.HasOne(g => g.Owner)
+             .WithMany(u => u.Groups)
+             .HasForeignKey(g => g.OwnerId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<GroupMember>(e =>
+        {
+            e.HasIndex(m => new { m.GroupId, m.UserId }).IsUnique();
+            e.HasOne(m => m.Group)
+             .WithMany(g => g.Members)
+             .HasForeignKey(m => m.GroupId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.User)
+             .WithMany()
+             .HasForeignKey(m => m.UserId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<Issue>(e =>

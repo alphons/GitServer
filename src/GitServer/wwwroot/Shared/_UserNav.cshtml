@@ -7,6 +7,8 @@
     {
         <a class="repo-nav-link @(Model.ActiveTab == "new" ? "active" : "")"
            href="/Repo/New">@L["nav_new"]</a>
+        <a class="repo-nav-link @(Model.ActiveTab == "groups" ? "active" : "")"
+           href="/User/Groups">@L["nav_groups"]</a>
         <a class="repo-nav-link @(Model.ActiveTab == "profile" ? "active" : "")"
            href="/User/Settings">@L["account_settings"]</a>
     }

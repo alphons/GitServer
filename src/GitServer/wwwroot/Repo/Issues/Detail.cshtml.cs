@@ -34,8 +34,7 @@ public class DetailModel(
 			.FirstOrDefaultAsync(i => i.RepositoryId == repoObj.Id && i.Id == id);
 
 		var userId = userManager.GetUserId(User);
-		CanManage = userId != null && (repoObj.OwnerId == userId || Issue?.AuthorId == userId ||
-			await db.RepositoryAccesses.AnyAsync(a => a.RepositoryId == repoObj.Id && a.UserId == userId && a.Level == AccessLevel.Write));
+		CanManage = userId != null && (Issue?.AuthorId == userId || await repos.CanWriteAsync(repoObj, userId));
 
 		return (repoObj, Issue);
 	}

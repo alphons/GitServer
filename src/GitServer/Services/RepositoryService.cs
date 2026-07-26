@@ -61,7 +61,8 @@ public class RepositoryService(AppDbContext db,
         if (userId == null) return false;
         if (repo.OwnerId == userId) return true;
         return await _db.RepositoryAccesses
-            .AnyAsync(a => a.RepositoryId == repo.Id && a.UserId == userId);
+            .AnyAsync(a => a.RepositoryId == repo.Id &&
+                (a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))));
     }
 
     public async Task<bool> CanWriteAsync(Repository repo, string? userId)
@@ -69,7 +70,8 @@ public class RepositoryService(AppDbContext db,
         if (userId == null) return false;
         if (repo.OwnerId == userId) return true;
         return await _db.RepositoryAccesses
-            .AnyAsync(a => a.RepositoryId == repo.Id && a.UserId == userId && a.Level == AccessLevel.Write);
+            .AnyAsync(a => a.RepositoryId == repo.Id && a.Level == AccessLevel.Write &&
+                (a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))));
     }
 
     public async Task<List<Repository>> GetPublicReposAsync(int skip = 0, int take = 20)

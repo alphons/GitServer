@@ -22,9 +22,12 @@ public class CollaboratorsModel(
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
 	public List<RepositoryAccess> Collaborators { get; set; } = new();
+	public List<Group> OwnGroups { get; set; } = new();
 
 	[BindProperty] public string? CollaboratorName { get; set; }
 	[BindProperty] public AccessLevel CollaboratorLevel { get; set; } = AccessLevel.Write;
+	[BindProperty] public int GroupId { get; set; }
+	[BindProperty] public AccessLevel GroupLevel { get; set; } = AccessLevel.Write;
 
 	private async Task<(Repository? repo, bool isOwner)> LoadAsync(string user, string repo)
 	{
@@ -43,8 +46,17 @@ public class CollaboratorsModel(
 	{
 		Collaborators = await db.RepositoryAccesses
 			.Include(a => a.User)
+			.Include(a => a.Group)
 			.Where(a => a.RepositoryId == repositoryId)
-			.OrderBy(a => a.User.UserName)
+			.OrderBy(a => a.User != null ? a.User.UserName : a.Group!.Name)
+			.ToListAsync();
+	}
+
+	private async Task LoadOwnGroupsAsync(string ownerId)
+	{
+		OwnGroups = await db.Groups
+			.Where(g => g.OwnerId == ownerId)
+			.OrderBy(g => g.Name)
 			.ToListAsync();
 	}
 
@@ -55,6 +67,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
+		await LoadOwnGroupsAsync(repoObj.OwnerId);
 		return Page();
 	}
 
@@ -88,6 +101,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
+		await LoadOwnGroupsAsync(repoObj.OwnerId);
 
 		var name = CollaboratorName?.Trim();
 		if (string.IsNullOrEmpty(name))
@@ -129,6 +143,43 @@ public class CollaboratorsModel(
 
 		await db.SaveChangesAsync();
 		Message = L["success_collaborator_added"];
+		return RedirectToPage(new { user, repo });
+	}
+
+	public async Task<IActionResult> OnPostAddGroupAsync(string user, string repo)
+	{
+		var (repoObj, isOwner) = await LoadAsync(user, repo);
+		if (repoObj == null) return NotFound();
+		if (!isOwner) return Forbid();
+
+		await LoadCollaboratorsAsync(repoObj.Id);
+		await LoadOwnGroupsAsync(repoObj.OwnerId);
+
+		var group = OwnGroups.FirstOrDefault(g => g.Id == GroupId);
+		if (group == null)
+		{
+			Message = L["error_group_not_found"];
+			IsError = true;
+			return Page();
+		}
+
+		var existing = Collaborators.FirstOrDefault(a => a.GroupId == group.Id);
+		if (existing != null)
+		{
+			existing.Level = GroupLevel;
+		}
+		else
+		{
+			db.RepositoryAccesses.Add(new RepositoryAccess
+			{
+				RepositoryId = repoObj.Id,
+				GroupId = group.Id,
+				Level = GroupLevel,
+			});
+		}
+
+		await db.SaveChangesAsync();
+		Message = L["success_group_added"];
 		return RedirectToPage(new { user, repo });
 	}
 

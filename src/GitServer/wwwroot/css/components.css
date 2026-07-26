@@ -354,6 +354,12 @@ textarea.form-control { resize: vertical; }
   color: #3fb950;
 }
 
+.badge-group {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+  margin-right: 0.4rem;
+}
+
 .collaborator-add-form {
   margin-top: 1.25rem;
   align-items: flex-end;

@@ -19,6 +19,7 @@ public class AppUser : IdentityUser
 
     public ICollection<Repository> Repositories { get; set; } = new List<Repository>();
     public ICollection<RepositoryAccess> RepositoryAccesses { get; set; } = new List<RepositoryAccess>();
+    public ICollection<Group> Groups { get; set; } = new List<Group>();
 
     /// <summary>AvatarUrl if set, otherwise a Gravatar derived from Email.</summary>
     [NotMapped]

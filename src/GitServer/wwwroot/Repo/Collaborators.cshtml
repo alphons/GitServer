@@ -37,16 +37,26 @@
                     {
                         <tr>
                             <td>
-                                <a href="/User/@access.User.UserName" class="collaborator-user">
-                                    <img src="@access.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
-                                    <span>
-                                        <strong>@access.User.UserName</strong>
-                                        @if (!string.IsNullOrEmpty(access.User.DisplayName))
-                                        {
-                                            <span class="text-muted"> — @access.User.DisplayName</span>
-                                        }
+                                @if (access.User != null)
+                                {
+                                    <a href="/User/@access.User.UserName" class="collaborator-user">
+                                        <img src="@access.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+                                        <span>
+                                            <strong>@access.User.UserName</strong>
+                                            @if (!string.IsNullOrEmpty(access.User.DisplayName))
+                                            {
+                                                <span class="text-muted"> — @access.User.DisplayName</span>
+                                            }
+                                        </span>
+                                    </a>
+                                }
+                                else if (access.Group != null)
+                                {
+                                    <span class="collaborator-user">
+                                        <span class="badge badge-group">@L["group_label"]</span>
+                                        <strong>@access.Group.Name</strong>
                                     </span>
-                                </a>
+                                }
                             </td>
                             <td>
                                 <span class="badge @(access.Level == AccessLevel.Write ? "badge-write" : "badge-read")">
@@ -86,6 +96,29 @@
             </div>
             <button type="submit" class="btn btn-primary">@L["settings_add_collaborator"]</button>
         </form>
+
+        @if (Model.OwnGroups.Count > 0)
+        {
+            <form method="post" asp-page-handler="AddGroup" class="form-inline collaborator-add-form">
+                <div class="form-group">
+                    <label for="groupId">@L["group_label"]</label>
+                    <select asp-for="GroupId" id="groupId" class="form-control">
+                        @foreach (var group in Model.OwnGroups)
+                        {
+                            <option value="@group.Id">@group.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="groupLevel">@L["settings_collaborator_level"]</label>
+                    <select asp-for="GroupLevel" id="groupLevel" class="form-control">
+                        <option value="@AccessLevel.Read">@L["settings_access_read"]</option>
+                        <option value="@AccessLevel.Write">@L["settings_access_write"]</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">@L["settings_add_group"]</button>
+            </form>
+        }
     </section>
 </div>
 
