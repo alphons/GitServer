@@ -40,9 +40,7 @@
 				{
 					var currentUser = await UserManager.GetUserAsync(User);
 					<a class="nav-link" href="/User/@currentUser!.UserName">@currentUser!.UserName</a>
-					<a class="nav-link" href="/explore">@L["nav_explore"]</a>
 					@if (currentUser!.IsAdmin)
-
 					{
 						<a class="nav-link" href="/Admin/Users">@L["nav_admin"]</a>
 					}
