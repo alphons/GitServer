@@ -40,11 +40,11 @@ Because your code doesn't belong to anyone else.
 - Markdown support in issue bodies and comments
 
 ### User Management
-- User registration and authentication
-- Secure password hashing via ASP.NET Core Identity
-- OAuth-ready architecture
-- Admin panel for user management — promote to admin, remove users
-- Per-user profile pages with bio and avatar
+- User registration and authentication via ASP.NET Core Identity (email confirmation, password reset)
+- Groups with members, usable as a unit when granting repository access
+- Per-repository access control — grant individual users or whole groups **Read** or **Write** access to private repos
+- Admin panel for user management and blocked email-pattern configuration for sign-ups
+- Per-user profile pages with bio and avatar (via Gravatar)
 
 ### Internationalization
 - Ships with **10 languages** out of the box: English, Dutch, German, French, Spanish, Portuguese, Russian, Chinese, Japanese, Arabic
@@ -55,7 +55,7 @@ Because your code doesn't belong to anyone else.
 - CSRF protection on all forms
 - Secure HTTP-only cookies with configurable expiry
 - Git push/pull protected by Basic Authentication
-- Data Protection API for antiforgery key persistence across restarts
+- Data Protection API keys persisted to disk, so sessions and tokens survive app restarts
 
 ---
 
@@ -95,7 +95,15 @@ Edit `src/GitServer/appsettings.json`:
   "GitServer": {
     "RepositoriesPath": "/var/git/repos",
     "GitExecutable": "/usr/bin/git",
-    "AllowRegistration": true
+    "AllowRegistration": true,
+    "GitPathPrefix": "",
+    "DefaultPrivateOnAutoCreate": true,
+    "MaxPushSizeMb": 2048
+  },
+  "Authentication": {
+    "KeysPath": "/var/gitserver/dataprotection-keys",
+    "ApplicationName": "GitServer",
+    "ProtectKeysWithDpapi": false
   },
   "ConnectionStrings": {
     "Default": "Data Source=gitserver.db"
@@ -105,9 +113,17 @@ Edit `src/GitServer/appsettings.json`:
 
 | Setting | Description |
 |---------|-------------|
-| `RepositoriesPath` | Where bare Git repositories are stored on disk |
-| `GitExecutable` | Path to the `git` binary |
-| `AllowRegistration` | Set to `false` to lock down new sign-ups |
+| `GitServer:RepositoriesPath` | Where bare Git repositories are stored on disk |
+| `GitServer:GitExecutable` | Path to the `git` binary |
+| `GitServer:AllowRegistration` | Set to `false` to lock down new sign-ups |
+| `GitServer:GitPathPrefix` | URL path segment in front of Git Smart HTTP endpoints (e.g. `/git`); empty serves at the root |
+| `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
+| `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
+| `Authentication:KeysPath` | Folder where Data Protection keys are persisted (antiforgery tokens, auth cookies) |
+| `Authentication:ProtectKeysWithDpapi` | Encrypt the keys at rest using Windows DPAPI (Windows only) |
+| `ConnectionStrings:Default` | SQLite connection string |
+
+> **Note:** `ProtectKeysWithDpapi` only applies on Windows. On Linux/macOS, leave it `false` and make sure `KeysPath` is on a volume only the app can read.
 
 ### 3. Run
 
@@ -186,26 +202,14 @@ src/GitServer/
 - ASP.NET Core 10 Razor Pages
 - Entity Framework Core with SQLite
 - ASP.NET Core Identity
-- LibGit2Sharp-style process-based Git execution (no native library deps)
+- Git operations run as plain `git.exe` subprocesses (`Process.Start`) — no native Git library dependency
 - Zero JavaScript frameworks — vanilla JS only
-
----
-
-## Configuration Reference
-
-| Key | Default | Description |
-|-----|---------|-------------|
-| `GitServer:RepositoriesPath` | *(required)* | Directory where bare repos are stored |
-| `GitServer:GitExecutable` | *(required)* | Path to `git` binary |
-| `GitServer:AllowRegistration` | `true` | Whether new users can self-register |
-| `ConnectionStrings:Default` | `Data Source=gitserver.db` | SQLite connection string |
 
 ---
 
 ## Roadmap
 
 - SSH key authentication
-- Repository access control (per-user read/write permissions)
 - Webhook support
 - Organization/team accounts
 - Git LFS support
@@ -226,7 +230,7 @@ Pull requests are welcome. For major changes, open an issue first to discuss wha
 
 ## License
 
-MIT License — do whatever you want with it. See [LICENSE](LICENSE) for details.
+MIT License — do whatever you want with it.
 
 ---
 
