@@ -89,6 +89,51 @@ public class MarkdownService
                 continue;
             }
 
+            // Raw HTML block (line starts with a block-level HTML tag)
+            if (Regex.IsMatch(line.TrimStart(), @"^</?[a-zA-Z][\w-]*(\s[^>]*)?>"))
+            {
+                while (i < lines.Length && !string.IsNullOrWhiteSpace(lines[i]))
+                {
+                    sb.AppendLine(lines[i]);
+                    i++;
+                }
+                continue;
+            }
+
+            // Table (header row + separator row like |---|---|)
+            if (IsTableRow(line) && i + 1 < lines.Length && IsTableSeparator(lines[i + 1]))
+            {
+                var headerCells = SplitTableRow(line);
+                var aligns = ParseAligns(lines[i + 1]);
+                sb.AppendLine("<table>");
+                sb.Append("<thead><tr>");
+                for (var c = 0; c < headerCells.Count; c++)
+                {
+                    var align = c < aligns.Count ? aligns[c] : null;
+                    var style = align != null ? $" style=\"text-align:{align}\"" : "";
+                    sb.Append($"<th{style}>{RenderInline(headerCells[c])}</th>");
+                }
+                sb.AppendLine("</tr></thead>");
+                i += 2;
+                sb.AppendLine("<tbody>");
+                while (i < lines.Length && IsTableRow(lines[i]))
+                {
+                    var cells = SplitTableRow(lines[i]);
+                    sb.Append("<tr>");
+                    for (var c = 0; c < cells.Count; c++)
+                    {
+                        var align = c < aligns.Count ? aligns[c] : null;
+                        var style = align != null ? $" style=\"text-align:{align}\"" : "";
+                        sb.Append($"<td{style}>{RenderInline(cells[c])}</td>");
+                    }
+                    sb.AppendLine("</tr>");
+                    i++;
+                }
+                sb.AppendLine("</tbody>");
+                sb.AppendLine("</table>");
+                continue;
+            }
+
             // Headings
             var headingMatch = Regex.Match(line, @"^(#{1,6})\s+(.+)$");
             if (headingMatch.Success)
@@ -122,7 +167,8 @@ public class MarkdownService
                 && !lines[i].StartsWith("- ")
                 && !lines[i].StartsWith("* ")
                 && !Regex.IsMatch(lines[i], @"^\d+\. ")
-                && !Regex.IsMatch(lines[i], @"^-{3,}$"))
+                && !Regex.IsMatch(lines[i], @"^-{3,}$")
+                && !(IsTableRow(lines[i]) && i + 1 < lines.Length && IsTableSeparator(lines[i + 1])))
             {
                 para.Append(RenderInline(lines[i]) + " ");
                 i++;
@@ -132,6 +178,67 @@ public class MarkdownService
         }
 
         return sb.ToString();
+    }
+
+    private static bool IsTableRow(string line)
+    {
+        line = line.Trim();
+        return line.StartsWith("|") || (line.Contains('|') && !string.IsNullOrWhiteSpace(line));
+    }
+
+    private static bool IsTableSeparator(string line)
+    {
+        line = line.Trim();
+        if (line.Length == 0) return false;
+        if (!Regex.IsMatch(line, @"^\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?$")) return false;
+        return line.Contains('-');
+    }
+
+    private static List<string> ParseAligns(string separatorLine)
+    {
+        var cells = SplitTableRow(separatorLine);
+        var result = new List<string>();
+        foreach (var cell in cells)
+        {
+            var c = cell.Trim();
+            var left = c.StartsWith(":");
+            var right = c.EndsWith(":");
+            if (left && right) result.Add("center");
+            else if (right) result.Add("right");
+            else if (left) result.Add("left");
+            else result.Add(null!);
+        }
+        return result;
+    }
+
+    private static List<string> SplitTableRow(string line)
+    {
+        var trimmed = line.Trim();
+        if (trimmed.StartsWith("|")) trimmed = trimmed[1..];
+        if (trimmed.EndsWith("|")) trimmed = trimmed[..^1];
+
+        var cells = new List<string>();
+        var current = new StringBuilder();
+        for (var idx = 0; idx < trimmed.Length; idx++)
+        {
+            var ch = trimmed[idx];
+            if (ch == '\\' && idx + 1 < trimmed.Length && trimmed[idx + 1] == '|')
+            {
+                current.Append('|');
+                idx++;
+            }
+            else if (ch == '|')
+            {
+                cells.Add(current.ToString().Trim());
+                current.Clear();
+            }
+            else
+            {
+                current.Append(ch);
+            }
+        }
+        cells.Add(current.ToString().Trim());
+        return cells;
     }
 
     private string RenderInline(string text)
