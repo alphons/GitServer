@@ -149,6 +149,7 @@
   "branches_empty": "Aucune branche trouvée.",
   "branches_view": "Voir",
   "tags_title": "Tags",
+  "tags_empty": "Aucun tag trouvé.",
 
   "profile_repos": "Dépôts",
   "profile_no_repos": "Aucun dépôt public.",

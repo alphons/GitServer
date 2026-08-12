@@ -18,6 +18,19 @@
         var c = Model.Detail.Info;
         <div class="commit-detail-header">
             <h2>@c.Message</h2>
+            @if (!string.IsNullOrWhiteSpace(c.Body))
+            {
+                <pre class="commit-body">@c.Body</pre>
+            }
+            @if (Model.Tags.Any())
+            {
+                <div class="commit-tags">
+                    @foreach (var tag in Model.Tags)
+                    {
+                        <a class="badge badge-tag" href="/@Model.UserName/@Model.RepoName/tags">@tag</a>
+                    }
+                </div>
+            }
             <div class="commit-meta">
                 <span class="commit-author">@c.Author</span>
                 <span class="text-muted">&lt;@c.Email&gt;</span>

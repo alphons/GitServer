@@ -25,7 +25,15 @@
                 <div class="commit-main">
                     <div class="commit-message">
                         <a href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.Message</a>
+                        @foreach (var tag in Model.TagsByCommit.GetValueOrDefault(commit.Sha) ?? [])
+                        {
+                            <a class="badge badge-tag" href="/@Model.UserName/@Model.RepoName/tags">@tag</a>
+                        }
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(commit.Body))
+                    {
+                        <pre class="commit-body">@commit.Body</pre>
+                    }
                     <div class="commit-meta">
                         <span class="commit-author">@commit.Author</span>
                         <span class="commit-date text-muted">@TZ.ToLocal(commit.Date).ToString("d MMM yyyy, HH:mm")</span>

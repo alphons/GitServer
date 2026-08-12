@@ -149,6 +149,7 @@
   "branches_empty": "لم يتم العثور على فروع.",
   "branches_view": "عرض",
   "tags_title": "الوسوم",
+  "tags_empty": "لا توجد وسوم.",
 
   "profile_repos": "المستودعات",
   "profile_no_repos": "لا توجد مستودعات عامة.",

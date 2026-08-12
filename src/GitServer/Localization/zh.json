@@ -149,6 +149,7 @@
   "branches_empty": "未找到分支。",
   "branches_view": "查看",
   "tags_title": "标签",
+  "tags_empty": "未找到标签。",
 
   "profile_repos": "仓库",
   "profile_no_repos": "没有公开仓库。",

@@ -149,6 +149,7 @@
   "branches_empty": "No se encontraron ramas.",
   "branches_view": "Ver",
   "tags_title": "Etiquetas",
+  "tags_empty": "No se encontraron etiquetas.",
 
   "profile_repos": "Repositorios",
   "profile_no_repos": "No hay repositorios públicos.",

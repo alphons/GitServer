@@ -1,0 +1,65 @@
+@page "/{user}/{repo}/tags"
+@model GitServer.wwwroot.Repo.TagsModel
+@{
+    ViewData["Title"] = $"Tags — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "tags"))
+
+    <div class="branches-section">
+        <h2>@L["tags_title"]</h2>
+        @if (Model.Tags.Any())
+        {
+            <div class="branch-list">
+                @foreach (var tag in Model.Tags)
+                {
+                    var escapedTag = Uri.EscapeDataString(tag.Name);
+                    <div class="branch-item">
+                        <div class="tag-info">
+                            <span class="branch-name">
+                                @tag.Name
+                                @if (tag.Annotated)
+                                {
+                                    <span class="badge badge-muted">annotated</span>
+                                }
+                            </span>
+                            <div class="commit-meta">
+                                <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@tag.Sha">@tag.ShortSha</a>
+                                @if (!string.IsNullOrEmpty(tag.Tagger))
+                                {
+                                    <span class="commit-author">@tag.Tagger</span>
+                                }
+                                <span class="text-muted">@TZ.ToLocal(tag.Date).ToString("d MMM yyyy, HH:mm")</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(tag.Subject))
+                            {
+                                <div class="tag-subject">@tag.Subject</div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(tag.Body))
+                            {
+                                <pre class="commit-body">@tag.Body</pre>
+                            }
+                        </div>
+                        <div class="branch-actions">
+                            <a class="btn btn-sm btn-secondary"
+                               href="/@Model.UserName/@Model.RepoName?branch=@escapedTag">@L["branches_view"]</a>
+                            <a class="btn btn-sm btn-secondary"
+                               href="/@Model.UserName/@Model.RepoName/archive/@escapedTag">ZIP</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">@L["tags_empty"]</p>
+        }
+    </div>
+</div>

@@ -49,18 +49,7 @@
     {
         <div class="branches-section">
             <h2>@L["tags_title"]</h2>
-            <div class="branch-list">
-                @foreach (var tag in Model.Tags)
-                {
-                    <div class="branch-item">
-                        <span class="branch-name">@tag</span>
-                        <div class="branch-actions">
-                            <a class="btn btn-sm btn-secondary"
-                               href="/@Model.UserName/@Model.RepoName?branch=@tag">@L["branches_view"]</a>
-                        </div>
-                    </div>
-                }
-            </div>
+            <p><a href="/@Model.UserName/@Model.RepoName/tags">@Model.Tags.Count &times; @L["tags_title"]</a></p>
         </div>
     }
 </div>

@@ -7,6 +7,8 @@
        href="/@Model.UserName/@Model.RepoName/commits">Commits</a>
     <a class="repo-nav-link @(Model.ActiveTab == "branches" ? "active" : "")"
        href="/@Model.UserName/@Model.RepoName/branches">Branches</a>
+    <a class="repo-nav-link @(Model.ActiveTab == "tags" ? "active" : "")"
+       href="/@Model.UserName/@Model.RepoName/tags">@L["tags_title"]</a>
     <a class="repo-nav-link @(Model.ActiveTab == "issues" ? "active" : "")"
        href="/@Model.UserName/@Model.RepoName/issues">Issues</a>
     <a class="repo-nav-link @(Model.ActiveTab == "collaborators" ? "active" : "")"

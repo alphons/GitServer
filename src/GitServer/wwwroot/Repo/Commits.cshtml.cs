@@ -20,6 +20,7 @@ public class CommitsModel(
 	public int TotalCount { get; set; }
 	public List<CommitInfo> Commits { get; set; } = new();
 	public Dictionary<string, AppUser> AuthorsByEmail { get; set; } = new();
+	public Dictionary<string, List<string>> TagsByCommit { get; set; } = new();
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
 	{
@@ -41,6 +42,8 @@ public class CommitsModel(
 
 		TotalCount = await git.GetCommitCount(repoPath, Branch);
 		Commits = await git.GetCommitLog(repoPath, Branch, page * 25, 25);
+
+		TagsByCommit = await git.GetTagsByCommit(repoPath);
 
 		var emails = Commits.Select(c => c.Email).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 		AuthorsByEmail = await userManager.Users

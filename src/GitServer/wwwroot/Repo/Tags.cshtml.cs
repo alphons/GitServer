@@ -1,4 +1,4 @@
-﻿using GitServer.Models;
+using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -6,17 +6,16 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace GitServer.wwwroot.Repo;
 
-public class CommitModel(
-	RepositoryService repos, 
-	GitProcessService git, 
+public class TagsModel(
+	RepositoryService repos,
+	GitProcessService git,
 	UserManager<AppUser> userManager) : PageModel
 {
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
-	public CommitDetail? Detail { get; set; }
-	public List<string> Tags { get; set; } = new();
+	public List<TagInfo> Tags { get; set; } = new();
 
-	public async Task<IActionResult> OnGetAsync(string user, string repo, string sha)
+	public async Task<IActionResult> OnGetAsync(string user, string repo)
 	{
 		UserName = user;
 		RepoName = repo;
@@ -28,10 +27,9 @@ public class CommitModel(
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var repoPath = repos.GetRepoPath(user, repo);
-		Detail = await git.GetCommitDetail(repoPath, sha);
+		if (await git.IsEmpty(repoPath)) return Page();
 
-		var tagsByCommit = await git.GetTagsByCommit(repoPath);
-		Tags = tagsByCommit.GetValueOrDefault(Detail.Info.Sha) ?? [];
+		Tags = await git.GetTagInfos(repoPath);
 
 		return Page();
 	}

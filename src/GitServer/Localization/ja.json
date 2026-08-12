@@ -149,6 +149,7 @@
   "branches_empty": "ブランチが見つかりません。",
   "branches_view": "表示",
   "tags_title": "タグ",
+  "tags_empty": "タグが見つかりません。",
 
   "profile_repos": "リポジトリ",
   "profile_no_repos": "公開リポジトリはありません。",

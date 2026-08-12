@@ -3,7 +3,8 @@ using System.Diagnostics;
 
 namespace GitServer.Services;
 
-public record CommitInfo(string Sha, string ShortSha, string Message, string Author, string Email, DateTime Date, string Tree, List<string> Parents);
+public record CommitInfo(string Sha, string ShortSha, string Message, string Author, string Email, DateTime Date, string Tree, List<string> Parents, string Body = "");
+public record TagInfo(string Name, string Sha, string ShortSha, DateTime Date, string Subject, string Body, string Tagger, bool Annotated);
 public record CommitDetail(CommitInfo Info, string Diff, List<string> ChangedFiles);
 public record TreeEntry(string Mode, string Type, string Sha, string Name, string Path);
 
@@ -214,44 +215,80 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
     public async Task<List<string>> GetTags(string repoPath)
     {
         var result = await RunGitAsync(repoPath, "tag");
-        return result.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+        return result.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+    }
+
+    /// <summary>Tags with their target commit and (for annotated tags) the tag message.
+    /// "*objectname" resolves an annotated tag to the commit it points at; for a lightweight
+    /// tag it is empty and "objectname" is already the commit.</summary>
+    public async Task<List<TagInfo>> GetTagInfos(string repoPath)
+    {
+        var format = "%(refname:short)%1f%(objectname)%1f%(*objectname)%1f%(creatordate:iso-strict)%1f%(contents:subject)%1f%(objecttype)%1f%(taggername)%1f%(contents:body)%1e";
+        var result = await RunGitAsync(repoPath, $"for-each-ref --sort=-creatordate --format=\"{format}\" refs/tags");
+
+        var tags = new List<TagInfo>();
+        foreach (var block in result.Split('\x1e', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var f = block.TrimStart('\n', '\r').Split('\x1f');
+            if (f.Length < 8 || string.IsNullOrWhiteSpace(f[0])) continue;
+
+            var annotated = f[5].Trim() == "tag";
+            var commit = annotated && f[2].Trim().Length > 0 ? f[2].Trim() : f[1].Trim();
+            var date = DateTime.TryParse(f[3].Trim(), out var d) ? d : DateTime.UtcNow;
+
+            tags.Add(new TagInfo(
+                f[0].Trim(), commit, commit.Length >= 7 ? commit[..7] : commit,
+                date, f[4].Trim(), f[7].Trim('\n', '\r'), f[6].Trim(), annotated));
+        }
+        return tags;
+    }
+
+    /// <summary>Tag names per commit sha, for showing tag badges in a commit list.</summary>
+    public async Task<Dictionary<string, List<string>>> GetTagsByCommit(string repoPath)
+    {
+        var tags = await GetTagInfos(repoPath);
+        return tags
+            .GroupBy(t => t.Sha)
+            .ToDictionary(g => g.Key, g => g.Select(t => t.Name).ToList());
+    }
+
+    // The commit body is free-form multi-line text, so fields are separated by ASCII unit/record
+    // separators (%x1f / %x1e) instead of newlines — those bytes can never appear in a commit.
+    private const string CommitFormat = "--format=%H%x1f%h%x1f%s%x1f%an%x1f%ae%x1f%aI%x1f%T%x1f%P%x1f%b%x1e";
+
+    private static CommitInfo ParseCommit(string block, string fallbackSha)
+    {
+        var f = block.Split('\x1f');
+        string Field(int i) => f.ElementAtOrDefault(i) ?? "";
+        var date = DateTime.TryParse(Field(5).Trim(), out var d) ? d : DateTime.UtcNow;
+        return new CommitInfo(
+            Field(0).Trim() is { Length: > 0 } sha ? sha : fallbackSha,
+            Field(1).Trim(),
+            Field(2).Trim(),
+            Field(3).Trim(),
+            Field(4).Trim(),
+            date,
+            Field(6).Trim(),
+            Field(7).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(),
+            Field(8).Trim('\n', '\r'));
     }
 
     public async Task<List<CommitInfo>> GetCommitLog(string repoPath, string branch, int skip, int take)
     {
-        var format = "--format=%H%n%h%n%s%n%an%n%ae%n%aI%n%T%n%P%n---COMMIT---";
-        var result = await RunGitAsync(repoPath, $"log {format} --skip={skip} --max-count={take} {branch} --");
+        var result = await RunGitAsync(repoPath, $"log {CommitFormat} --skip={skip} --max-count={take} {branch} --");
 
-        var commits = new List<CommitInfo>();
-        var blocks = result.Split("---COMMIT---\n", StringSplitOptions.RemoveEmptyEntries);
-
-        foreach (var block in blocks)
-        {
-            var lines = block.Split('\n');
-            if (lines.Length < 6) continue;
-            var date = DateTime.TryParse(lines[5].Trim(), out var d) ? d : DateTime.UtcNow;
-            var tree = lines.ElementAtOrDefault(6)?.Trim() ?? "";
-            var parents = lines.ElementAtOrDefault(7)?.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList() ?? [];
-            commits.Add(new CommitInfo(lines[0].Trim(), lines[1].Trim(), lines[2].Trim(), lines[3].Trim(), lines[4].Trim(), date, tree, parents));
-        }
-
-        return commits;
+        return result
+            .Split('\x1e', StringSplitOptions.RemoveEmptyEntries)
+            .Select(b => b.TrimStart('\n', '\r'))
+            .Where(b => b.Length > 0)
+            .Select(b => ParseCommit(b, ""))
+            .ToList();
     }
 
     public async Task<CommitDetail> GetCommitDetail(string repoPath, string sha)
     {
-        var infoResult = await RunGitAsync(repoPath, $"log -1 --format=%H%n%h%n%s%n%an%n%ae%n%aI%n%T%n%P {sha}");
-        var lines = infoResult.Split('\n');
-        var date = DateTime.TryParse(lines.ElementAtOrDefault(5)?.Trim(), out var d) ? d : DateTime.UtcNow;
-        var info = new CommitInfo(
-            lines.ElementAtOrDefault(0)?.Trim() ?? sha,
-            lines.ElementAtOrDefault(1)?.Trim() ?? sha[..7],
-            lines.ElementAtOrDefault(2)?.Trim() ?? "",
-            lines.ElementAtOrDefault(3)?.Trim() ?? "",
-            lines.ElementAtOrDefault(4)?.Trim() ?? "",
-            date,
-            lines.ElementAtOrDefault(6)?.Trim() ?? "",
-            lines.ElementAtOrDefault(7)?.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList() ?? []);
+        var infoResult = await RunGitAsync(repoPath, $"log -1 {CommitFormat} {sha}");
+        var info = ParseCommit(infoResult.Split('\x1e')[0], sha);
 
         var diff = await RunGitAsync(repoPath, $"show --stat --patch {sha}");
         var changedFiles = await RunGitAsync(repoPath, $"diff-tree --no-commit-id -r --name-only {sha}");

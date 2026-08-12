@@ -149,6 +149,7 @@
   "branches_empty": "Ветки не найдены.",
   "branches_view": "Просмотр",
   "tags_title": "Теги",
+  "tags_empty": "Теги не найдены.",
 
   "profile_repos": "Репозитории",
   "profile_no_repos": "Нет публичных репозиториев.",

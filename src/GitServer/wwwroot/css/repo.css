@@ -378,6 +378,32 @@
 .commit-message a { color: var(--text); }
 .commit-message a:hover { color: var(--accent); }
 
+.commit-body {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.badge-tag {
+  background: rgba(47,129,247,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(47,129,247,0.3);
+  margin-left: 0.375rem;
+  font-family: var(--font-mono);
+}
+
+.commit-tags { display: flex; gap: 0.375rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+
+.tag-info { display: flex; flex-direction: column; gap: 0.375rem; min-width: 0; }
+.tag-subject { font-size: 0.875rem; }
+
 .commit-meta {
   display: flex;
   gap: 0.75rem;
