@@ -14,6 +14,10 @@
 	<link rel="stylesheet" href="~/css/repo.css" asp-append-version="true" />
 </head>
 <body>
+	@{
+		var layoutCurrentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+		var layoutIsAdmin = layoutCurrentUser?.IsAdmin ?? false;
+	}
 	<nav class="navbar">
 		<div class="navbar-inner">
 			<a class="navbar-brand" href="/">
@@ -30,15 +34,22 @@
 				</svg>
 				GitServer
 				<span class="version-badge">v@(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(2))</span>
-				<span class="version-badge">git @(await GitProcess.GetVersion())</span>
 			</a>
+			@if (layoutIsAdmin)
+			{
+				<a class="version-badge" href="/Admin/GitVersion">git @(await GitProcess.GetVersion())</a>
+			}
+			else
+			{
+				<span class="version-badge">git @(await GitProcess.GetVersion())</span>
+			}
 			<button class="navbar-toggle" id="navToggle" aria-label="Menu">
 				<span></span><span></span><span></span>
 			</button>
 			<div class="navbar-menu" id="navMenu">
 				@if (SignInManager.IsSignedIn(User))
 				{
-					var currentUser = await UserManager.GetUserAsync(User);
+					var currentUser = layoutCurrentUser;
 					<a class="nav-link" href="/User/@currentUser!.UserName">@currentUser!.UserName</a>
 					@if (currentUser!.IsAdmin)
 					{
