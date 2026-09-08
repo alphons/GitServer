@@ -8,6 +8,7 @@
   "nav_register": "注册",
   "nav_admin": "管理",
   "nav_admin_blocked_emails": "已屏蔽邮箱",
+  "nav_admin_git_version": "Git 版本",
   "footer_tagline": "自托管 Git",
 
   "search_placeholder": "搜索...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "新模式",
   "admin_add_pattern_button": "添加模式",
   "error_pattern_required": "请输入模式。",
-  "success_pattern_added": "模式 {0} 已添加。"
+  "success_pattern_added": "模式 {0} 已添加。",
+
+  "admin_gitversion_title": "Git 版本",
+  "admin_gitversion_hint": "管理此服务器使用的 MinGit 版本。安装新版本无需重启应用。",
+  "admin_gitversion_current": "当前版本",
+  "admin_gitversion_check_update": "检查更新",
+  "admin_gitversion_check_failed": "无法连接 GitHub 检查更新。",
+  "admin_gitversion_latest_available": "最新可用版本",
+  "admin_gitversion_install": "下载并安装",
+  "admin_gitversion_already_installed": "已安装",
+  "admin_gitversion_installed_title": "已安装版本",
+  "admin_col_version": "版本",
+  "admin_col_installed": "安装时间",
+  "admin_gitversion_active": "使用中",
+  "admin_gitversion_missing": "磁盘上文件缺失",
+  "admin_gitversion_browse": "查看许可证",
+  "admin_gitversion_back": "返回",
+  "admin_gitversion_file_too_large": "文件过大，无法预览。",
+  "admin_gitversion_file_binary": "二进制文件，无法以文本形式预览。",
+  "admin_gitversion_activate": "启用",
+  "admin_gitversion_activated": "Git 版本已启用。",
+  "admin_gitversion_installed": "版本 {0} 已安装。",
+  "admin_gitversion_deleted": "安装已删除。",
+  "admin_gitversion_no_installations": "尚未安装任何 MinGit 版本。",
+  "admin_gitversion_missing_removed": "已移除 {0} 个磁盘上文件已不存在的安装记录。"
 }

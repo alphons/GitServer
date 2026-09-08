@@ -10,6 +10,7 @@
   "nav_register": "Registreren",
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Geblokkeerde e-mails",
+  "nav_admin_git_version": "Git-versie",
   "footer_tagline": "zelfgehoste git",
 
   "search_placeholder": "Zoeken...",
@@ -240,5 +241,29 @@
   "admin_add_pattern_label": "Nieuw patroon",
   "admin_add_pattern_button": "Patroon toevoegen",
   "error_pattern_required": "Vul een patroon in.",
-  "success_pattern_added": "Patroon {0} toegevoegd."
+  "success_pattern_added": "Patroon {0} toegevoegd.",
+
+  "admin_gitversion_title": "Git-versie",
+  "admin_gitversion_hint": "Beheer de MinGit-versie die deze server gebruikt. Een nieuwe versie installeren vereist geen herstart van de app.",
+  "admin_gitversion_current": "Huidige versie",
+  "admin_gitversion_check_update": "Controleren op updates",
+  "admin_gitversion_check_failed": "Kon GitHub niet bereiken om op updates te controleren.",
+  "admin_gitversion_latest_available": "Laatst beschikbare versie",
+  "admin_gitversion_install": "Downloaden & installeren",
+  "admin_gitversion_already_installed": "al geïnstalleerd",
+  "admin_gitversion_installed_title": "Geïnstalleerde versies",
+  "admin_col_version": "Versie",
+  "admin_col_installed": "Geïnstalleerd",
+  "admin_gitversion_active": "Actief",
+  "admin_gitversion_missing": "Bestanden ontbreken op schijf",
+  "admin_gitversion_browse": "Licenties bekijken",
+  "admin_gitversion_back": "Terug",
+  "admin_gitversion_file_too_large": "Bestand is te groot om te bekijken.",
+  "admin_gitversion_file_binary": "Binair bestand, kan niet als tekst worden bekeken.",
+  "admin_gitversion_activate": "Activeren",
+  "admin_gitversion_activated": "Git-versie geactiveerd.",
+  "admin_gitversion_installed": "Versie {0} geïnstalleerd.",
+  "admin_gitversion_deleted": "Installatie verwijderd.",
+  "admin_gitversion_no_installations": "Nog geen MinGit-versies geïnstalleerd.",
+  "admin_gitversion_missing_removed": "{0} installatie(s) verwijderd waarvan de bestanden niet meer op schijf stonden."
 }

@@ -8,6 +8,7 @@
   "nav_register": "登録",
   "nav_admin": "管理",
   "nav_admin_blocked_emails": "ブロック済みメール",
+  "nav_admin_git_version": "Gitバージョン",
   "footer_tagline": "セルフホステッド Git",
 
   "search_placeholder": "検索...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "新しいパターン",
   "admin_add_pattern_button": "パターンを追加",
   "error_pattern_required": "パターンを入力してください。",
-  "success_pattern_added": "パターン {0} を追加しました。"
+  "success_pattern_added": "パターン {0} を追加しました。",
+
+  "admin_gitversion_title": "Gitバージョン",
+  "admin_gitversion_hint": "このサーバーが使用するMinGitのバージョンを管理します。新しいバージョンのインストールにアプリの再起動は不要です。",
+  "admin_gitversion_current": "現在のバージョン",
+  "admin_gitversion_check_update": "更新を確認",
+  "admin_gitversion_check_failed": "更新の確認のためGitHubに接続できませんでした。",
+  "admin_gitversion_latest_available": "利用可能な最新バージョン",
+  "admin_gitversion_install": "ダウンロードしてインストール",
+  "admin_gitversion_already_installed": "インストール済み",
+  "admin_gitversion_installed_title": "インストール済みバージョン",
+  "admin_col_version": "バージョン",
+  "admin_col_installed": "インストール日時",
+  "admin_gitversion_active": "有効",
+  "admin_gitversion_missing": "ディスク上にファイルがありません",
+  "admin_gitversion_browse": "ライセンスを表示",
+  "admin_gitversion_back": "戻る",
+  "admin_gitversion_file_too_large": "ファイルが大きすぎてプレビューできません。",
+  "admin_gitversion_file_binary": "バイナリファイルのためテキストとしてプレビューできません。",
+  "admin_gitversion_activate": "有効化",
+  "admin_gitversion_activated": "Gitバージョンを有効化しました。",
+  "admin_gitversion_installed": "バージョン {0} をインストールしました。",
+  "admin_gitversion_deleted": "インストールを削除しました。",
+  "admin_gitversion_no_installations": "インストール済みのMinGitバージョンはまだありません。",
+  "admin_gitversion_missing_removed": "ディスク上に見つからなくなったインストール {0} 件を削除しました。"
 }

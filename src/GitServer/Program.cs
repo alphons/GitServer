@@ -35,11 +35,20 @@ builder.Services.AddEmailService(builder.Configuration);
 
 // Services
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IGitExecutablePathProvider, GitExecutablePathProvider>();
+builder.Services.AddSingleton<GitInstallProgressTracker>();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<MarkdownService>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
+builder.Services.AddScoped<GitReleaseService>();
+builder.Services.AddScoped<GitInstallerService>();
+builder.Services.AddHttpClient("GitHubReleases", c =>
+{
+	c.DefaultRequestHeaders.UserAgent.ParseAdd("GitServer-Updater");
+	c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+});
 
 // MVC + Razor Pages
 builder.Services.AddControllersWithViews();

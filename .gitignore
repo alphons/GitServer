@@ -364,3 +364,7 @@ FodyWeavers.xsd
 
 # Claude Code local settings
 .claude/
+
+# GitServer runtime data (SQLite database and downloaded MinGit installations)
+gitserver.db*
+App_Data/

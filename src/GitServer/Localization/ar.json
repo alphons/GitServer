@@ -8,6 +8,7 @@
   "nav_register": "إنشاء حساب",
   "nav_admin": "إدارة",
   "nav_admin_blocked_emails": "البريد المحظور",
+  "nav_admin_git_version": "إصدار Git",
   "footer_tagline": "Git مستضاف ذاتياً",
 
   "search_placeholder": "بحث...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "نمط جديد",
   "admin_add_pattern_button": "إضافة نمط",
   "error_pattern_required": "الرجاء إدخال نمط.",
-  "success_pattern_added": "تمت إضافة النمط {0}."
+  "success_pattern_added": "تمت إضافة النمط {0}.",
+
+  "admin_gitversion_title": "إصدار Git",
+  "admin_gitversion_hint": "إدارة توزيعة MinGit التي يستخدمها هذا الخادم. تثبيت إصدار جديد لا يتطلب إعادة تشغيل التطبيق.",
+  "admin_gitversion_current": "الإصدار الحالي",
+  "admin_gitversion_check_update": "التحقق من التحديثات",
+  "admin_gitversion_check_failed": "تعذر الاتصال بـ GitHub للتحقق من التحديثات.",
+  "admin_gitversion_latest_available": "أحدث إصدار متاح",
+  "admin_gitversion_install": "تنزيل وتثبيت",
+  "admin_gitversion_already_installed": "مثبّت بالفعل",
+  "admin_gitversion_installed_title": "الإصدارات المثبتة",
+  "admin_col_version": "الإصدار",
+  "admin_col_installed": "تاريخ التثبيت",
+  "admin_gitversion_active": "نشط",
+  "admin_gitversion_missing": "الملفات مفقودة من القرص",
+  "admin_gitversion_browse": "عرض التراخيص",
+  "admin_gitversion_back": "رجوع",
+  "admin_gitversion_file_too_large": "الملف كبير جدًا لعرض المعاينة.",
+  "admin_gitversion_file_binary": "ملف ثنائي، لا يمكن معاينته كنص.",
+  "admin_gitversion_activate": "تفعيل",
+  "admin_gitversion_activated": "تم تفعيل إصدار Git.",
+  "admin_gitversion_installed": "تم تثبيت الإصدار {0}.",
+  "admin_gitversion_deleted": "تم حذف التثبيت.",
+  "admin_gitversion_no_installations": "لا توجد إصدارات MinGit مثبّتة بعد.",
+  "admin_gitversion_missing_removed": "تمت إزالة {0} من التثبيتات التي لم تعد ملفاتها موجودة على القرص."
 }

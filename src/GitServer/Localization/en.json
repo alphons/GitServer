@@ -10,6 +10,7 @@
   "nav_register": "Register",
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Blocked emails",
+  "nav_admin_git_version": "Git version",
   "footer_tagline": "self-hosted git",
 
   "search_placeholder": "Search...",
@@ -240,5 +241,29 @@
   "admin_add_pattern_label": "New pattern",
   "admin_add_pattern_button": "Add pattern",
   "error_pattern_required": "Please enter a pattern.",
-  "success_pattern_added": "Pattern {0} added."
+  "success_pattern_added": "Pattern {0} added.",
+
+  "admin_gitversion_title": "Git version",
+  "admin_gitversion_hint": "Manage the MinGit distribution used by this server. Installing a new version does not require an app restart.",
+  "admin_gitversion_current": "Current version",
+  "admin_gitversion_check_update": "Check for updates",
+  "admin_gitversion_check_failed": "Could not reach GitHub to check for updates.",
+  "admin_gitversion_latest_available": "Latest available",
+  "admin_gitversion_install": "Download & install",
+  "admin_gitversion_already_installed": "already installed",
+  "admin_gitversion_installed_title": "Installed versions",
+  "admin_col_version": "Version",
+  "admin_col_installed": "Installed",
+  "admin_gitversion_active": "Active",
+  "admin_gitversion_missing": "Files missing on disk",
+  "admin_gitversion_browse": "View licenses",
+  "admin_gitversion_back": "Back",
+  "admin_gitversion_file_too_large": "File is too large to preview.",
+  "admin_gitversion_file_binary": "Binary file, cannot preview as text.",
+  "admin_gitversion_activate": "Activate",
+  "admin_gitversion_activated": "Git version activated.",
+  "admin_gitversion_installed": "Version {0} installed.",
+  "admin_gitversion_deleted": "Installation deleted.",
+  "admin_gitversion_no_installations": "No MinGit versions installed yet.",
+  "admin_gitversion_missing_removed": "Removed {0} installation(s) whose files were no longer found on disk."
 }

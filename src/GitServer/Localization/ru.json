@@ -8,6 +8,7 @@
   "nav_register": "Регистрация",
   "nav_admin": "Админ",
   "nav_admin_blocked_emails": "Заблокированные email",
+  "nav_admin_git_version": "Версия Git",
   "footer_tagline": "самостоятельно размещённый git",
 
   "search_placeholder": "Поиск...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "Новый шаблон",
   "admin_add_pattern_button": "Добавить шаблон",
   "error_pattern_required": "Введите шаблон.",
-  "success_pattern_added": "Шаблон {0} добавлен."
+  "success_pattern_added": "Шаблон {0} добавлен.",
+
+  "admin_gitversion_title": "Версия Git",
+  "admin_gitversion_hint": "Управление дистрибутивом MinGit, используемым этим сервером. Установка новой версии не требует перезапуска приложения.",
+  "admin_gitversion_current": "Текущая версия",
+  "admin_gitversion_check_update": "Проверить обновления",
+  "admin_gitversion_check_failed": "Не удалось связаться с GitHub для проверки обновлений.",
+  "admin_gitversion_latest_available": "Последняя доступная версия",
+  "admin_gitversion_install": "Скачать и установить",
+  "admin_gitversion_already_installed": "уже установлена",
+  "admin_gitversion_installed_title": "Установленные версии",
+  "admin_col_version": "Версия",
+  "admin_col_installed": "Установлена",
+  "admin_gitversion_active": "Активна",
+  "admin_gitversion_missing": "Файлы отсутствуют на диске",
+  "admin_gitversion_browse": "Просмотреть лицензии",
+  "admin_gitversion_back": "Назад",
+  "admin_gitversion_file_too_large": "Файл слишком большой для предпросмотра.",
+  "admin_gitversion_file_binary": "Двоичный файл, предпросмотр как текста невозможен.",
+  "admin_gitversion_activate": "Активировать",
+  "admin_gitversion_activated": "Версия Git активирована.",
+  "admin_gitversion_installed": "Версия {0} установлена.",
+  "admin_gitversion_deleted": "Установка удалена.",
+  "admin_gitversion_no_installations": "Версии MinGit ещё не установлены.",
+  "admin_gitversion_missing_removed": "Удалено установок: {0} — их файлы больше не найдены на диске."
 }

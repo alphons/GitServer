@@ -8,6 +8,7 @@
   "nav_register": "Registrar",
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "E-mails bloqueados",
+  "nav_admin_git_version": "Versão do Git",
   "footer_tagline": "git auto-hospedado",
 
   "search_placeholder": "Pesquisar...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "Novo padrão",
   "admin_add_pattern_button": "Adicionar padrão",
   "error_pattern_required": "Informe um padrão.",
-  "success_pattern_added": "Padrão {0} adicionado."
+  "success_pattern_added": "Padrão {0} adicionado.",
+
+  "admin_gitversion_title": "Versão do Git",
+  "admin_gitversion_hint": "Gerencie a distribuição do MinGit usada por este servidor. Instalar uma nova versão não requer reiniciar o aplicativo.",
+  "admin_gitversion_current": "Versão atual",
+  "admin_gitversion_check_update": "Verificar atualizações",
+  "admin_gitversion_check_failed": "Não foi possível contatar o GitHub para verificar atualizações.",
+  "admin_gitversion_latest_available": "Última versão disponível",
+  "admin_gitversion_install": "Baixar e instalar",
+  "admin_gitversion_already_installed": "já instalada",
+  "admin_gitversion_installed_title": "Versões instaladas",
+  "admin_col_version": "Versão",
+  "admin_col_installed": "Instalada",
+  "admin_gitversion_active": "Ativa",
+  "admin_gitversion_missing": "Arquivos ausentes no disco",
+  "admin_gitversion_browse": "Ver licenças",
+  "admin_gitversion_back": "Voltar",
+  "admin_gitversion_file_too_large": "Arquivo muito grande para pré-visualizar.",
+  "admin_gitversion_file_binary": "Arquivo binário, não é possível pré-visualizar como texto.",
+  "admin_gitversion_activate": "Ativar",
+  "admin_gitversion_activated": "Versão do Git ativada.",
+  "admin_gitversion_installed": "Versão {0} instalada.",
+  "admin_gitversion_deleted": "Instalação excluída.",
+  "admin_gitversion_no_installations": "Ainda não há versões do MinGit instaladas.",
+  "admin_gitversion_missing_removed": "{0} instalação(ões) removida(s) porque os arquivos não foram mais encontrados no disco."
 }

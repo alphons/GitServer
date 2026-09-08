@@ -8,6 +8,7 @@
   "nav_register": "S'inscrire",
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "E-mails bloqués",
+  "nav_admin_git_version": "Version Git",
   "footer_tagline": "git auto-hébergé",
 
   "search_placeholder": "Rechercher...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "Nouveau modèle",
   "admin_add_pattern_button": "Ajouter le modèle",
   "error_pattern_required": "Veuillez saisir un modèle.",
-  "success_pattern_added": "Modèle {0} ajouté."
+  "success_pattern_added": "Modèle {0} ajouté.",
+
+  "admin_gitversion_title": "Version Git",
+  "admin_gitversion_hint": "Gérez la distribution MinGit utilisée par ce serveur. Installer une nouvelle version ne nécessite pas de redémarrage de l'application.",
+  "admin_gitversion_current": "Version actuelle",
+  "admin_gitversion_check_update": "Vérifier les mises à jour",
+  "admin_gitversion_check_failed": "Impossible de contacter GitHub pour vérifier les mises à jour.",
+  "admin_gitversion_latest_available": "Dernière version disponible",
+  "admin_gitversion_install": "Télécharger et installer",
+  "admin_gitversion_already_installed": "déjà installée",
+  "admin_gitversion_installed_title": "Versions installées",
+  "admin_col_version": "Version",
+  "admin_col_installed": "Installée",
+  "admin_gitversion_active": "Active",
+  "admin_gitversion_missing": "Fichiers manquants sur le disque",
+  "admin_gitversion_browse": "Voir les licences",
+  "admin_gitversion_back": "Retour",
+  "admin_gitversion_file_too_large": "Le fichier est trop volumineux pour l'aperçu.",
+  "admin_gitversion_file_binary": "Fichier binaire, aperçu texte impossible.",
+  "admin_gitversion_activate": "Activer",
+  "admin_gitversion_activated": "Version Git activée.",
+  "admin_gitversion_installed": "Version {0} installée.",
+  "admin_gitversion_deleted": "Installation supprimée.",
+  "admin_gitversion_no_installations": "Aucune version de MinGit installée pour le moment.",
+  "admin_gitversion_missing_removed": "{0} installation(s) supprimée(s) car leurs fichiers n'ont plus été trouvés sur le disque."
 }

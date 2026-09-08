@@ -8,6 +8,7 @@
   "nav_register": "Registrarse",
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Correos bloqueados",
+  "nav_admin_git_version": "Versión de Git",
   "footer_tagline": "git auto-alojado",
 
   "search_placeholder": "Buscar...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "Nuevo patrón",
   "admin_add_pattern_button": "Añadir patrón",
   "error_pattern_required": "Introduce un patrón.",
-  "success_pattern_added": "Patrón {0} añadido."
+  "success_pattern_added": "Patrón {0} añadido.",
+
+  "admin_gitversion_title": "Versión de Git",
+  "admin_gitversion_hint": "Gestiona la distribución de MinGit que usa este servidor. Instalar una nueva versión no requiere reiniciar la aplicación.",
+  "admin_gitversion_current": "Versión actual",
+  "admin_gitversion_check_update": "Buscar actualizaciones",
+  "admin_gitversion_check_failed": "No se pudo contactar con GitHub para buscar actualizaciones.",
+  "admin_gitversion_latest_available": "Última versión disponible",
+  "admin_gitversion_install": "Descargar e instalar",
+  "admin_gitversion_already_installed": "ya instalada",
+  "admin_gitversion_installed_title": "Versiones instaladas",
+  "admin_col_version": "Versión",
+  "admin_col_installed": "Instalada",
+  "admin_gitversion_active": "Activa",
+  "admin_gitversion_missing": "Faltan archivos en el disco",
+  "admin_gitversion_browse": "Ver licencias",
+  "admin_gitversion_back": "Atrás",
+  "admin_gitversion_file_too_large": "El archivo es demasiado grande para previsualizar.",
+  "admin_gitversion_file_binary": "Archivo binario, no se puede previsualizar como texto.",
+  "admin_gitversion_activate": "Activar",
+  "admin_gitversion_activated": "Versión de Git activada.",
+  "admin_gitversion_installed": "Versión {0} instalada.",
+  "admin_gitversion_deleted": "Instalación eliminada.",
+  "admin_gitversion_no_installations": "Aún no hay versiones de MinGit instaladas.",
+  "admin_gitversion_missing_removed": "Se eliminaron {0} instalación(es) cuyos archivos ya no se encontraron en el disco."
 }

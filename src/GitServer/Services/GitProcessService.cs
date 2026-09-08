@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace GitServer.Services;
@@ -16,9 +16,9 @@ public class RepositoryDataMissingException(string repoPath)
     public string RepoPath { get; } = repoPath;
 }
 
-public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitProcessService> logger)
+public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<GitProcessService> logger)
 {
-    private readonly string _gitExe = options.Value.GitExecutable;
+    private string _gitExe => pathProvider.CurrentPath;
     private readonly ILogger<GitProcessService> _logger = logger;
 
 	// Repos may be owned by a different account than the one running the app pool
@@ -154,15 +154,22 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
         await proc.WaitForExitAsync();
     }
 
-    private static Lazy<Task<string>>? _versionCache;
+    // Keyed by executable path so a runtime git.exe switch (admin git-updater) picks up the
+    // new version immediately instead of serving the previously active version's cached value.
+    private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> _versionCache = new();
 
     public Task<string> GetVersion()
     {
-        // git.exe's version never changes while the app is running, so query it once and reuse it.
-        _versionCache ??= new Lazy<Task<string>>(FetchVersion);
-        return _versionCache.Value;
+        var lazy = _versionCache.GetOrAdd(_gitExe, _ => new Lazy<Task<string>>(FetchVersion));
+        return lazy.Value;
     }
 
+    public const string NotInstalledVersion = "not installed";
+
+    // The configured/active git.exe may be missing on disk (e.g. an admin deleted the install
+    // folder, or a switched-to installation was removed outside the app). Process.Start throws
+    // in that case rather than returning null, so this must not let that exception escape —
+    // callers (e.g. the layout's version badge) treat this as a normal, non-fatal state.
     private async Task<string> FetchVersion()
     {
         var psi = new ProcessStartInfo(_gitExe)
@@ -174,17 +181,30 @@ public class GitProcessService(IOptions<GitServerOptions> options, ILogger<GitPr
             CreateNoWindow = true,
         };
 
-        using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
-        var stdout = await proc.StandardOutput.ReadToEndAsync();
-        await proc.WaitForExitAsync();
+        Process proc;
+        try
+        {
+            proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not start git executable at {path}", _gitExe);
+            return NotInstalledVersion;
+        }
 
-        // "git version 2.45.1.windows.1" -> "2.45.1"
-        var prefix = "git version ";
-        var text = stdout.Trim();
-        var version = text.StartsWith(prefix) ? text[prefix.Length..] : text;
+        using (proc)
+        {
+            var stdout = await proc.StandardOutput.ReadToEndAsync();
+            await proc.WaitForExitAsync();
 
-        var windowsSuffixIndex = version.IndexOf(".windows.", StringComparison.OrdinalIgnoreCase);
-        return windowsSuffixIndex >= 0 ? version[..windowsSuffixIndex] : version;
+            // "git version 2.45.1.windows.1" -> "2.45.1"
+            var prefix = "git version ";
+            var text = stdout.Trim();
+            var version = text.StartsWith(prefix) ? text[prefix.Length..] : text;
+
+            var windowsSuffixIndex = version.IndexOf(".windows.", StringComparison.OrdinalIgnoreCase);
+            return windowsSuffixIndex >= 0 ? version[..windowsSuffixIndex] : version;
+        }
     }
 
     public async Task<bool> IsEmpty(string repoPath)

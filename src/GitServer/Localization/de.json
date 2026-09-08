@@ -8,6 +8,7 @@
   "nav_register": "Registrieren",
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Gesperrte E-Mails",
+  "nav_admin_git_version": "Git-Version",
   "footer_tagline": "selbstgehostetes Git",
 
   "search_placeholder": "Suchen...",
@@ -217,5 +218,29 @@
   "admin_add_pattern_label": "Neues Muster",
   "admin_add_pattern_button": "Muster hinzufügen",
   "error_pattern_required": "Bitte gib ein Muster ein.",
-  "success_pattern_added": "Muster {0} hinzugefügt."
+  "success_pattern_added": "Muster {0} hinzugefügt.",
+
+  "admin_gitversion_title": "Git-Version",
+  "admin_gitversion_hint": "Verwalte die von diesem Server verwendete MinGit-Distribution. Das Installieren einer neuen Version erfordert keinen Neustart der App.",
+  "admin_gitversion_current": "Aktuelle Version",
+  "admin_gitversion_check_update": "Auf Updates prüfen",
+  "admin_gitversion_check_failed": "GitHub konnte nicht erreicht werden, um auf Updates zu prüfen.",
+  "admin_gitversion_latest_available": "Neueste verfügbare Version",
+  "admin_gitversion_install": "Herunterladen & installieren",
+  "admin_gitversion_already_installed": "bereits installiert",
+  "admin_gitversion_installed_title": "Installierte Versionen",
+  "admin_col_version": "Version",
+  "admin_col_installed": "Installiert",
+  "admin_gitversion_active": "Aktiv",
+  "admin_gitversion_missing": "Dateien auf der Festplatte fehlen",
+  "admin_gitversion_browse": "Lizenzen anzeigen",
+  "admin_gitversion_back": "Zurück",
+  "admin_gitversion_file_too_large": "Datei ist zu groß für die Vorschau.",
+  "admin_gitversion_file_binary": "Binärdatei, kann nicht als Text angezeigt werden.",
+  "admin_gitversion_activate": "Aktivieren",
+  "admin_gitversion_activated": "Git-Version aktiviert.",
+  "admin_gitversion_installed": "Version {0} installiert.",
+  "admin_gitversion_deleted": "Installation gelöscht.",
+  "admin_gitversion_no_installations": "Noch keine MinGit-Versionen installiert.",
+  "admin_gitversion_missing_removed": "{0} Installation(en) entfernt, deren Dateien nicht mehr auf der Festplatte gefunden wurden."
 }
