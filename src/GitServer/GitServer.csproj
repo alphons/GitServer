@@ -31,4 +31,13 @@
 	  <Folder Include="App_Data\" />
 	</ItemGroup>
 
+	<!-- Local dev runtime data (SQLite database, downloaded MinGit installs) must never travel
+	     from a developer's laptop to the server on publish — the server has its own. -->
+	<ItemGroup>
+		<Content Remove="gitserver.db*" />
+		<Content Remove="App_Data\**" />
+		<None Remove="gitserver.db*" />
+		<None Remove="App_Data\**" />
+	</ItemGroup>
+
 </Project>
