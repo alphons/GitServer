@@ -3,7 +3,6 @@ namespace GitServer.Services;
 public class GitServerOptions
 {
     public string RepositoriesPath { get; set; } = "C:\\GitRepos";
-    public string GitExecutable { get; set; } = "git";
     public bool AllowRegistration { get; set; } = true;
 
     /// <summary>Visibility for repositories auto-created on first push (e.g. via "existing remote" in an IDE).</summary>
@@ -45,4 +44,9 @@ public class GitServerOptions
     /// <summary>Regex matched against each release asset's file name to pick the one to download
     /// (e.g. the 64-bit MinGit zip, skipping the 32-bit/ARM64/busybox/full-installer variants).</summary>
     public string GitReleaseAssetPattern { get; set; } = @"^MinGit-[\d.]+-64-bit\.zip$";
+
+    /// <summary>Where the admin git-updater extracts downloaded MinGit versions, one subfolder per
+    /// release tag. Relative paths are resolved against the app's content root; use an absolute
+    /// path (e.g. on another drive) to keep installs alongside RepositoriesPath instead.</summary>
+    public string GitExecutableInstallRoot { get; set; } = "App_Data\\git";
 }

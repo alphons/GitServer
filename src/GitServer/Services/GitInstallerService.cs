@@ -3,6 +3,7 @@ using System.IO.Compression;
 using GitServer.Data;
 using GitServer.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GitServer.Services;
 
@@ -15,9 +16,17 @@ public class GitInstallerService(
     AppDbContext db,
     IGitExecutablePathProvider pathProvider,
     IWebHostEnvironment env,
+    IOptions<GitServerOptions> options,
     ILogger<GitInstallerService> logger)
 {
-    private string InstallRootPath => Path.Combine(env.ContentRootPath, "App_Data", "git");
+    private string InstallRootPath
+    {
+        get
+        {
+            var configured = options.Value.GitExecutableInstallRoot;
+            return Path.IsPathRooted(configured) ? configured : Path.Combine(env.ContentRootPath, configured);
+        }
+    }
 
     /// <summary>The real git.exe lives at mingw64\bin\git.exe (4+ MB); cmd\git.exe is a tiny stub
     /// that just re-execs it. Our server-side, stateless-rpc/plumbing-only usage needs nothing else
