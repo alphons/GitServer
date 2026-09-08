@@ -1,6 +1,10 @@
 # GitServer
 
+[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/alphons/GitServer/releases)
+[![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 [![CI](https://github.com/alphons/GitServer/actions/workflows/ci.yml/badge.svg)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/alphons/348dbf4f9472d6069955373db1ef6670/raw/gitserver-tests.json)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/alphons/348dbf4f9472d6069955373db1ef6670/raw/gitserver-coverage.json)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
 
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.

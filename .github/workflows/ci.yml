@@ -24,7 +24,7 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
 
       - name: Publish test results
         if: always()
@@ -32,3 +32,44 @@ jobs:
         with:
           name: test-results
           path: tests/GitServer.Tests/TestResults/*.trx
+
+      - name: Extract test and coverage stats
+        if: always()
+        id: stats
+        shell: pwsh
+        run: |
+          $trx = Get-ChildItem -Path tests/GitServer.Tests/TestResults -Filter *.trx -Recurse | Select-Object -First 1
+          [xml]$trxXml = Get-Content $trx.FullName
+          $counters = $trxXml.TestRun.ResultSummary.Counters
+          $passed = [int]$counters.passed
+          $total = [int]$counters.total
+          "tests_passed=$passed" >> $env:GITHUB_OUTPUT
+          "tests_total=$total" >> $env:GITHUB_OUTPUT
+
+          $cobertura = Get-ChildItem -Path tests/GitServer.Tests/TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -First 1
+          [xml]$covXml = Get-Content $cobertura.FullName
+          $lineRate = [double]$covXml.coverage.'line-rate'
+          $coverage = [math]::Round($lineRate * 100)
+          "coverage=$coverage" >> $env:GITHUB_OUTPUT
+
+      - name: Update tests badge
+        if: always() && github.ref == 'refs/heads/master'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ secrets.GIST_ID }}
+          filename: gitserver-tests.json
+          label: tests
+          message: ${{ steps.stats.outputs.tests_passed }} passed
+          color: brightgreen
+
+      - name: Update coverage badge
+        if: always() && github.ref == 'refs/heads/master'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ secrets.GIST_ID }}
+          filename: gitserver-coverage.json
+          label: coverage
+          message: ${{ steps.stats.outputs.coverage }}%
+          color: brightgreen
