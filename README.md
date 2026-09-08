@@ -5,7 +5,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Raspberry Pi, a VPS, or your own hardware in minutes.
+GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows VPS or your own hardware in minutes.
 
 ---
 
@@ -15,7 +15,7 @@ Because your code doesn't belong to anyone else.
 
 - **100% free** — no plans, no tiers, no credit card required. Ever.
 - **Open source** — read every line, modify anything, contribute back.
-- **Self-hosted** — runs anywhere .NET runs. Linux, Windows, macOS, ARM.
+- **Self-hosted** — a single Windows machine or VPS, nothing else.
 - **Lightweight** — a single binary, a single SQLite database, zero external dependencies.
 - **No telemetry** — your repositories never leave your machine.
 
@@ -45,7 +45,7 @@ Because your code doesn't belong to anyone else.
 - User registration and authentication via ASP.NET Core Identity (email confirmation, password reset)
 - Groups with members, usable as a unit when granting repository access
 - Per-repository access control — grant individual users or whole groups **Read** or **Write** access to private repos
-- Admin panel for user management and blocked email-pattern configuration for sign-ups
+- Admin panel for user management, blocked email-pattern configuration for sign-ups, and the built-in Git engine updater (see [Git engine](#git-engine))
 - Per-user profile pages with bio and avatar (via Gravatar)
 
 ### Internationalization
@@ -72,10 +72,9 @@ Because your code doesn't belong to anyone else.
 | Requirement | Version |
 |-------------|---------|
 | .NET SDK | 10.0 or later |
-| Git | Any recent version |
-| OS | Windows, Linux, macOS |
+| OS | Windows (win-x64) |
 
-That's it. No Docker required. No Postgres. No Redis. No message queue.
+No system-wide Git install needed — see [Git engine](#git-engine) below. No Docker required. No Postgres. No Redis. No message queue.
 
 ---
 
@@ -95,15 +94,21 @@ Edit `src/GitServer/appsettings.json`:
 ```json
 {
   "GitServer": {
-    "RepositoriesPath": "/var/git/repos",
-    "GitExecutable": "/usr/bin/git",
+    "RepositoriesPath": "D:\\GitRepos",
     "AllowRegistration": true,
     "GitPathPrefix": "",
     "DefaultPrivateOnAutoCreate": true,
-    "MaxPushSizeMb": 2048
+    "MaxPushSizeMb": 2048,
+    "ExploreRepoPageSize": 20,
+    "ExploreUserPageSize": 20,
+    "ProfileRepoPageSize": 20,
+    "IndexRecentReposCount": 5,
+    "GitReleasesApiUrl": "https://api.github.com/repos/git-for-windows/git/releases",
+    "GitReleaseAssetPattern": "^MinGit-[\\d.]+-64-bit\\.zip$",
+    "GitExecutableInstallRoot": "App_Data\\git"
   },
   "Authentication": {
-    "KeysPath": "/var/gitserver/dataprotection-keys",
+    "KeysPath": "C:\\Data\\DataProtection\\Keys",
     "ApplicationName": "GitServer",
     "ProtectKeysWithDpapi": false
   },
@@ -116,16 +121,19 @@ Edit `src/GitServer/appsettings.json`:
 | Setting | Description |
 |---------|-------------|
 | `GitServer:RepositoriesPath` | Where bare Git repositories are stored on disk |
-| `GitServer:GitExecutable` | Path to the `git` binary |
 | `GitServer:AllowRegistration` | Set to `false` to lock down new sign-ups |
 | `GitServer:GitPathPrefix` | URL path segment in front of Git Smart HTTP endpoints (e.g. `/git`); empty serves at the root |
 | `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
 | `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
+| `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/explore` listings |
+| `GitServer:ProfileRepoPageSize` | Items per page on a user's profile repository list |
+| `GitServer:IndexRecentReposCount` | Repos shown in the home page's "recent repositories" list |
+| `GitServer:GitReleasesApiUrl` | GitHub Releases API endpoint the admin Git updater checks (see [Git engine](#git-engine)) |
+| `GitServer:GitReleaseAssetPattern` | Regex used to pick the right release asset (64-bit MinGit) from that endpoint |
+| `GitServer:GitExecutableInstallRoot` | Where downloaded MinGit versions are extracted; relative paths resolve against the app's content root |
 | `Authentication:KeysPath` | Folder where Data Protection keys are persisted (antiforgery tokens, auth cookies) |
-| `Authentication:ProtectKeysWithDpapi` | Encrypt the keys at rest using Windows DPAPI (Windows only) |
+| `Authentication:ProtectKeysWithDpapi` | Encrypt the keys at rest using Windows DPAPI |
 | `ConnectionStrings:Default` | SQLite connection string |
-
-> **Note:** `ProtectKeysWithDpapi` only applies on Windows. On Linux/macOS, leave it `false` and make sure `KeysPath` is on a volume only the app can read.
 
 ### 3. Run
 
@@ -136,7 +144,7 @@ dotnet run
 
 The database is created and migrated automatically on first start. Open your browser at `http://localhost:5000`.
 
-The **first user to register becomes admin** automatically.
+The **first user to register becomes admin** automatically. Sign in and visit **Admin → Git version** to install a Git engine — see [Git engine](#git-engine) below.
 
 ### 4. Production deployment
 
@@ -168,6 +176,31 @@ server {
 
 ---
 
+## Git engine
+
+GitServer doesn't require a system-wide Git install. Under **Admin → Git version** an admin can:
+
+- Check GitHub for the latest [Git for Windows](https://github.com/git-for-windows/git) release and download the portable **MinGit** distribution with a live progress bar
+- Activate it immediately — no app restart needed, the running server switches to it right away
+- The very first version installed activates itself automatically
+- Each install is trimmed down to just `mingw64\bin` (git.exe, its runtime DLLs and the actual subcommand binaries) plus `mingw64\share\licenses` for attribution — everything else (docs, the interactive GUI credential manager, submodule/mergetool scripts never used by a server) is stripped to save space
+- Browse the kept license files for the current install right from the same page
+- Old or manually-deleted installs are detected and cleaned up automatically
+
+Until an admin installs a version, Git operations simply report "not installed" instead of failing — the rest of the app keeps working.
+
+---
+
+## Testing
+
+```bash
+dotnet test
+```
+
+`tests/GitServer.Tests` covers the Git process wrapper (init, log, tree, upload-pack/receive-pack) against a real temporary repository, and the repository read/write access-control logic (owner, direct user access, group access) against a real SQLite database. CI runs the full suite on every push and pull request — see the badge at the top of this file.
+
+---
+
 ## Adding a Language
 
 GitServer uses plain JSON files for translations. To add a new language:
@@ -193,11 +226,13 @@ src/GitServer/
 ├── Middleware/         # Git Basic Auth middleware
 ├── Models/             # Domain models (User, Repository, Issue, Comment)
 ├── Services/           # Business logic (Git, Repository, Markdown, Localization)
-└── wwwroot/            # Razor Pages + static assets
-    ├── Auth/           # Login, Register
-    ├── Repo/           # Repository browser, commits, branches, issues
-    ├── User/           # Profile, settings
-    └── Admin/          # User management
+├── Pages/              # Razor Pages
+│   ├── Auth/           # Login, Register
+│   ├── Repo/           # Repository browser, commits, branches, issues
+│   ├── User/           # Profile, settings
+│   └── Admin/          # User management, Git version updater
+└── wwwroot/            # Static assets only (css, js, favicon)
+tests/GitServer.Tests/   # Integration tests (xUnit)
 ```
 
 **Stack:**
