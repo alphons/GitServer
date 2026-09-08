@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 
 namespace GitServer.Services;
 
@@ -7,10 +8,10 @@ public record GitRelease(string TagName, string Version, bool Prerelease, DateTi
 
 /// <summary>Queries the git-for-windows/git GitHub releases for the portable MinGit distribution,
 /// used by the admin git-updater feature to check for and download new versions.</summary>
-public class GitReleaseService(IHttpClientFactory httpClientFactory, ILogger<GitReleaseService> logger)
+public class GitReleaseService(IHttpClientFactory httpClientFactory, IOptions<GitServerOptions> options, ILogger<GitReleaseService> logger)
 {
-    private const string ReleasesUrl = "https://api.github.com/repos/git-for-windows/git/releases";
-    private static readonly Regex MinGit64ZipPattern = new(@"^MinGit-[\d.]+-64-bit\.zip$", RegexOptions.Compiled);
+    private string ReleasesUrl => options.Value.GitReleasesApiUrl.TrimEnd('/');
+    private Regex AssetPattern => new(options.Value.GitReleaseAssetPattern, RegexOptions.Compiled);
 
     private HttpClient CreateClient() => httpClientFactory.CreateClient("GitHubReleases");
 
@@ -26,7 +27,7 @@ public class GitReleaseService(IHttpClientFactory httpClientFactory, ILogger<Git
 
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
-        return ParseRelease(doc.RootElement);
+        return ParseRelease(doc.RootElement, AssetPattern);
     }
 
     public async Task<List<GitRelease>> ListReleasesAsync(int count, CancellationToken ct = default)
@@ -42,16 +43,17 @@ public class GitReleaseService(IHttpClientFactory httpClientFactory, ILogger<Git
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
+        var pattern = AssetPattern;
         var releases = new List<GitRelease>();
         foreach (var element in doc.RootElement.EnumerateArray())
         {
-            var release = ParseRelease(element);
+            var release = ParseRelease(element, pattern);
             if (release != null) releases.Add(release);
         }
         return releases;
     }
 
-    private static GitRelease? ParseRelease(JsonElement element)
+    private static GitRelease? ParseRelease(JsonElement element, Regex assetPattern)
     {
         var tagName = element.GetProperty("tag_name").GetString() ?? "";
         var prerelease = element.TryGetProperty("prerelease", out var p) && p.GetBoolean();
@@ -64,7 +66,7 @@ public class GitReleaseService(IHttpClientFactory httpClientFactory, ILogger<Git
             foreach (var asset in assets.EnumerateArray())
             {
                 var name = asset.GetProperty("name").GetString() ?? "";
-                if (!MinGit64ZipPattern.IsMatch(name)) continue;
+                if (!assetPattern.IsMatch(name)) continue;
 
                 assetUrl = asset.GetProperty("browser_download_url").GetString();
                 assetSize = asset.TryGetProperty("size", out var s) ? s.GetInt64() : 0;
