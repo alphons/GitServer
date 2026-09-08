@@ -1,5 +1,7 @@
 # GitServer
 
+[![CI](https://github.com/alphons/GitServer/actions/workflows/ci.yml/badge.svg)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
+
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
