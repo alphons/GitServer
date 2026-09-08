@@ -1,0 +1,44 @@
+@page "/Auth/CompleteRegistration"
+@model GitServer.Pages.Auth.CompleteRegistrationModel
+@{
+    ViewData["Title"] = L["complete_registration_page_title"];
+}
+<div class="auth-container">
+    <div class="auth-card">
+        <h1 class="auth-title">@L["complete_registration_title"]</h1>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+            <div class="auth-links">
+                <a href="/Auth/Register">@L["register_login_link"]</a>
+            </div>
+        }
+        else
+        {
+            <form method="post">
+                <input type="hidden" asp-for="Email" />
+                <input type="hidden" asp-for="Token" />
+                <div class="form-group">
+                    <label for="username">@L["username_label"]</label>
+                    <input id="username" name="Username" type="text" class="form-control"
+                           value="@Model.Username" required autofocus
+                           pattern="[a-zA-Z0-9\-_]+" title="@L["username_hint"]" />
+                </div>
+                <div class="form-group">
+                    <label for="displayName">@L["display_name_label"]</label>
+                    <input id="displayName" name="DisplayName" type="text" class="form-control"
+                           value="@Model.DisplayName" />
+                </div>
+                <div class="form-group">
+                    <label for="password">@L["password_label"]</label>
+                    <input id="password" name="Password" type="password" class="form-control" required minlength="6" />
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">@L["confirm_password_label"]</label>
+                    <input id="confirmPassword" name="ConfirmPassword" type="password" class="form-control" required minlength="6" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">@L["complete_registration_submit"]</button>
+            </form>
+        }
+    </div>
+</div>

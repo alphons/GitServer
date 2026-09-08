@@ -52,7 +52,7 @@ builder.Services.AddHttpClient("GitHubReleases", c =>
 
 // MVC + Razor Pages
 builder.Services.AddControllersWithViews();
-builder.Services.AddWwwRootRazor();
+builder.Services.AddGitServerRazorPages();
 
 // Disable response buffering globally — git endpoints need streaming
 builder.Services.AddResponseCompression(opt => opt.EnableForHttps = false);

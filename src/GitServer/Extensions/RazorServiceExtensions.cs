@@ -1,22 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Razor;
 
 namespace GitServer.Extensions;
 
 public static class RazorServiceExtensions
 {
-	public static IServiceCollection AddWwwRootRazor(this IServiceCollection services)
+	public static IServiceCollection AddGitServerRazorPages(this IServiceCollection services)
 	{
-		services.AddRazorPages(o => o.RootDirectory = "/wwwroot");
+		// RootDirectory defaults to "/Pages", which is exactly where our Razor Pages live —
+		// no custom RootDirectory/ViewLocationFormats wiring needed.
+		services.AddRazorPages();
 
 		services.Configure<MvcOptions>(o => o.Filters.Add<RepositoryDataMissingFilter>());
-
-		services.Configure<RazorViewEngineOptions>(options =>
-		{
-			options.ViewLocationFormats.Add("/wwwroot/{0}.cshtml");
-
-			options.PageViewLocationFormats.Add("/wwwroot/{0}.cshtml");
-		});
 
 		return services;
 	}

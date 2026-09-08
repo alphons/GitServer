@@ -1,0 +1,315 @@
+@page "/Admin/GitVersion"
+@model GitServer.Pages.Admin.GitVersionModel
+@{
+    ViewData["Title"] = L["admin_gitversion_title"];
+}
+<div class="container">
+    <h1>@L["nav_admin"]</h1>
+
+    @await Html.PartialAsync("_AdminNav", "git-version")
+
+    <h2>@L["admin_gitversion_title"]</h2>
+    <p class="text-muted">@L["admin_gitversion_hint"]</p>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+    }
+
+    <p>@L["admin_gitversion_current"]: <strong>@Model.CurrentVersion</strong></p>
+
+    <form method="post" asp-page-handler="CheckUpdate" style="display:inline">
+        <button type="submit" class="btn btn-primary">@L["admin_gitversion_check_update"]</button>
+    </form>
+
+    @if (Model.LatestRelease != null)
+    {
+        var alreadyInstalled = Model.Installations.Any(i => i.TagName == Model.LatestRelease.TagName);
+        <p id="latest-release-row">
+            @L["admin_gitversion_latest_available"]: <strong>@Model.LatestRelease.Version</strong> (@Model.LatestRelease.TagName)
+            @if (!alreadyInstalled)
+            {
+                <button type="button" id="install-btn" class="btn btn-primary"
+                        data-tag-name="@Model.LatestRelease.TagName">@L["admin_gitversion_install"]</button>
+            }
+            else
+            {
+                <span class="text-muted">(@L["admin_gitversion_already_installed"])</span>
+            }
+        </p>
+    }
+
+    <div id="install-progress" hidden>
+        <progress id="install-progress-bar" max="100" value="0" style="width: 300px"></progress>
+        <span id="install-progress-text"></span>
+    </div>
+    <div id="install-progress-error" class="alert alert-danger" hidden></div>
+    <form id="antiforgery-form">@Html.AntiForgeryToken()</form>
+
+    <h3>@L["admin_gitversion_installed_title"]</h3>
+    @if (Model.Installations.Count > 0)
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>@L["admin_col_version"]</th>
+                    <th>@L["admin_col_installed"]</th>
+                    <th>@L["admin_col_status"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var installation in Model.Installations)
+                {
+                    var filesPresent = Model.FilesPresent.GetValueOrDefault(installation.Id);
+                    <tr>
+                        <td><code>@installation.Version</code></td>
+                        <td>@installation.InstalledAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>
+                            @if (!filesPresent)
+                            {
+                                <span class="badge badge-private">@L["admin_gitversion_missing"]</span>
+                            }
+                            else if (installation.IsActive)
+                            {
+                                <span class="badge badge-public">@L["admin_gitversion_active"]</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!installation.IsActive && filesPresent)
+                            {
+                                <form method="post" asp-page-handler="Activate" style="display:inline">
+                                    <input type="hidden" name="id" value="@installation.Id" />
+                                    <button type="submit" class="btn btn-sm btn-primary">@L["admin_gitversion_activate"]</button>
+                                </form>
+                            }
+                            @if (filesPresent)
+                            {
+                                <button type="button" class="btn btn-sm btn-ghost browse-btn"
+                                        data-installation-id="@installation.Id">@L["admin_gitversion_browse"]</button>
+                            }
+                            @if (!installation.IsActive || !filesPresent)
+                            {
+                                <form method="post" asp-page-handler="Delete" style="display:inline">
+                                    <input type="hidden" name="id" value="@installation.Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger">@L["delete_button"]</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted">@L["admin_gitversion_no_installations"]</p>
+    }
+</div>
+
+<div id="browse-modal" class="browse-modal-backdrop" hidden>
+    <div class="browse-modal">
+        <div class="browse-modal-header">
+            <span id="browse-breadcrumb" class="browse-breadcrumb"></span>
+            <button type="button" id="browse-modal-close" class="btn btn-ghost btn-sm" aria-label="Close">&times;</button>
+        </div>
+        <div class="browse-modal-body">
+            <ul id="browse-list" class="browse-list"></ul>
+            <button type="button" id="browse-back-btn" class="btn btn-ghost btn-sm" hidden>&larr; @L["admin_gitversion_back"]</button>
+            <pre id="browse-file-content" class="browse-file-content" hidden></pre>
+        </div>
+    </div>
+</div>
+
+<style>
+    .browse-modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        align-items: center; justify-content: center; z-index: 1000;
+    }
+    .browse-modal-backdrop:not([hidden]) { display: flex; }
+    .browse-modal {
+        background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+        width: min(720px, 90vw); height: min(560px, 80vh);
+        display: flex; flex-direction: column; overflow: hidden;
+    }
+    .browse-modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface2);
+    }
+    .browse-breadcrumb { font-family: monospace; font-size: 0.85rem; color: var(--text-muted); word-break: break-all; }
+    .browse-modal-body { flex: 1; overflow: auto; padding: 0.5rem 1rem; }
+    .browse-list { list-style: none; margin: 0; padding: 0; }
+    .browse-list li {
+        padding: 0.35rem 0.4rem; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.9rem;
+    }
+    .browse-list li:hover { background: var(--surface2); }
+    .browse-list li.is-dir::before { content: "\1F4C1  "; }
+    .browse-list li.is-file::before { content: "\1F4C4  "; }
+    .browse-file-content {
+        font-family: "Cascadia Code", Consolas, monospace; font-size: 0.85rem; white-space: pre-wrap;
+        word-break: break-all; color: var(--text); margin: 0;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            var installBtn = document.getElementById('install-btn');
+            if (!installBtn) return;
+
+            var progressBox = document.getElementById('install-progress');
+            var progressBar = document.getElementById('install-progress-bar');
+            var progressText = document.getElementById('install-progress-text');
+            var errorBox = document.getElementById('install-progress-error');
+            var token = document.querySelector('#antiforgery-form input[name="__RequestVerificationToken"]').value;
+
+            function formatBytes(bytes) {
+                if (!bytes) return '0 MB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            function poll(jobId) {
+                fetch('?handler=InstallProgress&jobId=' + encodeURIComponent(jobId))
+                    .then(function (r) { return r.json(); })
+                    .then(function (p) {
+                        if (p.totalBytes > 0) {
+                            var pct = Math.round((p.bytesDownloaded / p.totalBytes) * 100);
+                            progressBar.value = pct;
+                            progressText.textContent = pct + '% (' + formatBytes(p.bytesDownloaded) + ' / ' + formatBytes(p.totalBytes) + ')';
+                        } else {
+                            progressText.textContent = formatBytes(p.bytesDownloaded);
+                        }
+
+                        if (p.completed) {
+                            if (p.failed) {
+                                progressBox.hidden = true;
+                                errorBox.hidden = false;
+                                errorBox.textContent = p.error || 'Install failed.';
+                                installBtn.disabled = false;
+                            } else {
+                                progressText.textContent = '100%';
+                                window.location.reload();
+                            }
+                            return;
+                        }
+
+                        setTimeout(function () { poll(jobId); }, 500);
+                    })
+                    .catch(function () {
+                        setTimeout(function () { poll(jobId); }, 1000);
+                    });
+            }
+
+            installBtn.addEventListener('click', function () {
+                installBtn.disabled = true;
+                errorBox.hidden = true;
+                progressBox.hidden = false;
+                progressBar.value = 0;
+                progressText.textContent = '';
+
+                fetch('?handler=StartInstall', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'tagName=' + encodeURIComponent(installBtn.dataset.tagName) +
+                        '&__RequestVerificationToken=' + encodeURIComponent(token),
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) { poll(data.jobId); })
+                    .catch(function () {
+                        progressBox.hidden = true;
+                        errorBox.hidden = false;
+                        errorBox.textContent = 'Could not start the install.';
+                        installBtn.disabled = false;
+                    });
+            });
+        })();
+
+        (function () {
+            var browseBtns = document.querySelectorAll('.browse-btn');
+            if (!browseBtns.length) return;
+
+            var modal = document.getElementById('browse-modal');
+            var closeBtn = document.getElementById('browse-modal-close');
+            var breadcrumb = document.getElementById('browse-breadcrumb');
+            var listEl = document.getElementById('browse-list');
+            var fileContentEl = document.getElementById('browse-file-content');
+            var backBtn = document.getElementById('browse-back-btn');
+            var currentInstallationId = null;
+
+            function formatSize(bytes) {
+                if (bytes == null) return '';
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            function showList(path) {
+                fileContentEl.hidden = true;
+                backBtn.hidden = true;
+                listEl.hidden = false;
+                breadcrumb.textContent = '/' + path;
+
+                fetch('?handler=Browse&id=' + currentInstallationId + '&path=' + encodeURIComponent(path))
+                    .then(function (r) { return r.json(); })
+                    .then(function (entries) {
+                        listEl.innerHTML = '';
+
+                        if (path) {
+                            var up = document.createElement('li');
+                            up.className = 'is-dir';
+                            up.textContent = '..';
+                            up.addEventListener('click', function () {
+                                var parent = path.split('/').slice(0, -1).join('/');
+                                showList(parent);
+                            });
+                            listEl.appendChild(up);
+                        }
+
+                        entries.forEach(function (entry) {
+                            var li = document.createElement('li');
+                            var entryPath = path ? path + '/' + entry.name : entry.name;
+                            if (entry.isDirectory) {
+                                li.className = 'is-dir';
+                                li.textContent = entry.name;
+                                li.addEventListener('click', function () { showList(entryPath); });
+                            } else {
+                                li.className = 'is-file';
+                                li.textContent = entry.name + (entry.size != null ? ' (' + formatSize(entry.size) + ')' : '');
+                                li.addEventListener('click', function () { showFile(entryPath); });
+                            }
+                            listEl.appendChild(li);
+                        });
+                    });
+            }
+
+            function showFile(path) {
+                breadcrumb.textContent = '/' + path;
+                fetch('?handler=FileContent&id=' + currentInstallationId + '&path=' + encodeURIComponent(path))
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        listEl.hidden = true;
+                        fileContentEl.hidden = false;
+                        fileContentEl.textContent = data.error || data.content;
+
+                        backBtn.hidden = false;
+                        backBtn.onclick = function () {
+                            showList(path.split('/').slice(0, -1).join('/'));
+                        };
+                    });
+            }
+
+            browseBtns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    currentInstallationId = btn.dataset.installationId;
+                    modal.hidden = false;
+                    showList('');
+                });
+            });
+
+            closeBtn.addEventListener('click', function () { modal.hidden = true; });
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) modal.hidden = true;
+            });
+        })();
+    </script>
+}

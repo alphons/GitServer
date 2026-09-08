@@ -1,0 +1,78 @@
+@page "/{user}/{repo}/commits"
+@model GitServer.Pages.Repo.CommitsModel
+@{
+    ViewData["Title"] = $"Commits — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+    <div class="repo-header">
+        <div class="repo-title">
+            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "commits"))
+
+    <div class="commits-header">
+        <h2>@Model.TotalCount @L["commits_on"] <code>@Model.Branch</code></h2>
+    </div>
+
+    <div class="commit-list">
+        @foreach (var commit in Model.Commits)
+        {
+            var committer = Model.AuthorsByEmail.GetValueOrDefault(commit.Email);
+            <div class="commit-item">
+                <div class="commit-main">
+                    <div class="commit-message">
+                        <a href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.Message</a>
+                        @foreach (var tag in Model.TagsByCommit.GetValueOrDefault(commit.Sha) ?? [])
+                        {
+                            <a class="badge badge-tag" href="/@Model.UserName/@Model.RepoName/tags">@tag</a>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(commit.Body))
+                    {
+                        <pre class="commit-body">@commit.Body</pre>
+                    }
+                    <div class="commit-meta">
+                        <span class="commit-author">@commit.Author</span>
+                        <span class="commit-date text-muted">@TZ.ToLocal(commit.Date).ToString("d MMM yyyy, HH:mm")</span>
+                        <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.ShortSha</a>
+                    </div>
+                </div>
+                <div class="commit-side">
+                    <div class="commit-committer">
+                        <img class="commit-committer-avatar" src="@(committer?.EffectiveAvatarUrl ?? GravatarService.GetUrl(commit.Email))" alt="@(committer?.DisplayName ?? commit.Author)" />
+                        @if (committer != null)
+                        {
+                            <a href="/User/@committer.UserName">@committer.DisplayName</a>
+                        }
+                        else
+                        {
+                            <span>@commit.Author</span>
+                        }
+                    </div>
+                    <div class="commit-tree text-muted"><span class="commit-side-label">Tree</span> <code>@commit.Tree[..7]</code></div>
+                    <div class="commit-parents text-muted">
+                        <span class="commit-side-label">Parents</span>
+                        @foreach (var parent in commit.Parents)
+                        {
+                            <a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@parent">@parent[..7]</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="pagination">
+        @if (Model.Page > 0)
+        {
+            <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/commits?branch=@Model.Branch&page=@(Model.Page - 1)">@L["commits_newer"]</a>
+        }
+        @if (Model.Commits.Count == 25)
+        {
+            <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/commits?branch=@Model.Branch&page=@(Model.Page + 1)">@L["commits_older"]</a>
+        }
+    </div>
+</div>
