@@ -43,7 +43,7 @@ code, pre {
   font-size: 0.875rem;
 }
 
-img { max-width: 100%; display: block; }
+img:not(.pane-output img) { max-width: 100%; display: block; }
 
 ul, ol { padding-left: 1.5rem; }
 
