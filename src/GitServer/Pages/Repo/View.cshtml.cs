@@ -25,7 +25,7 @@ public class ViewModel(
 	public List<string> Branches { get; set; } = new();
 	public string CloneUrl { get; set; } = "";
 	public string DefaultBranch { get; set; } = "main";
-	public string ReadmeMarkdown { get; set; } = "";
+	public string ReadmePath { get; set; } = "";
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, string? path)
 	{
@@ -53,9 +53,10 @@ public class ViewModel(
 
 		if (string.IsNullOrEmpty(CurrentPath))
 		{
-			var readmeContent = await git.GetReadme(repoPath, CurrentBranch);
-			if (!string.IsNullOrEmpty(readmeContent))
-				ReadmeMarkdown = readmeContent;
+			var readme = Tree.FirstOrDefault(e => e.Type == "blob" &&
+				e.Name.StartsWith("README", StringComparison.OrdinalIgnoreCase));
+			if (readme != null)
+				ReadmePath = readme.Name;
 		}
 
 		return Page();

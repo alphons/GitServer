@@ -106,12 +106,12 @@ git push -u origin @Model.DefaultBranch</pre>
             }
         </div>
 
-        @if (!string.IsNullOrEmpty(Model.ReadmeMarkdown))
+        @if (!string.IsNullOrEmpty(Model.ReadmePath))
         {
             <div class="readme-container">
                 <div class="readme-header">README</div>
-                <script type="application/json" class="markdown-source">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ReadmeMarkdown))</script>
-                <div class="readme-body markdown-body pane-output"></div>
+                <div class="readme-body markdown-body pane-output"
+                     data-markdown-src="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/@Model.ReadmePath"></div>
             </div>
         }
     }
