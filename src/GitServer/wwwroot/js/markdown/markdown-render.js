@@ -21,6 +21,10 @@
 		// parser's pending buffer and never get flushed to the DOM. Feeding a couple of trailing
 		// newlines guarantees something follows the last block so it flushes.
 		streamer.markdown('\n\n');
+
+		if (window.hljs) {
+			el.querySelectorAll('pre code').forEach(function (block) { hljs.highlightElement(block); });
+		}
 	}
 
 	function renderAll() {
