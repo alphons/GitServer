@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <!--
+            The test suite (tests/GitServer.Tests) only exercises GitProcessService and
+            RepositoryService's access-control logic — it never touches Razor Pages, MVC
+            controllers, EF Core migrations, or app startup wiring. Measuring line-rate
+            across the whole assembly (including all of that untested UI/wiring code)
+            makes the coverage number meaningless; scope it to the layer that actually
+            has tests instead.
+          -->
+          <Exclude>[GitServer]GitServer.Pages.*,[GitServer]GitServer.Controllers.*,[GitServer]GitServer.Data.Migrations.*,[GitServer]GitServer.Program,[GitServer]GitServer.Middleware.*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
