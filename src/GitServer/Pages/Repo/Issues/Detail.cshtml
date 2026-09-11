@@ -34,7 +34,8 @@
                         <strong>@issue.Author.UserName</strong>
                         <span class="text-muted">@TZ.ToLocal(issue.CreatedAt).ToString("d MMM yyyy, HH:mm")</span>
                     </div>
-                    <div class="markdown-body pane-output" data-markdown-source="@issue.Body"></div>
+                    <script type="application/json" class="markdown-source">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(issue.Body))</script>
+                    <div class="markdown-body pane-output"></div>
                 </div>
             </div>
 
@@ -47,7 +48,8 @@
                             <strong>@comment.Author.UserName</strong>
                             <span class="text-muted">@TZ.ToLocal(comment.CreatedAt).ToString("d MMM yyyy, HH:mm")</span>
                         </div>
-                        <div class="markdown-body pane-output" data-markdown-source="@comment.Body"></div>
+                        <script type="application/json" class="markdown-source">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(comment.Body))</script>
+                        <div class="markdown-body pane-output"></div>
                     </div>
                 </div>
             }
