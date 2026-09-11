@@ -39,7 +39,6 @@ builder.Services.AddSingleton<IGitExecutablePathProvider, GitExecutablePathProvi
 builder.Services.AddSingleton<GitInstallProgressTracker>();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
-builder.Services.AddScoped<MarkdownService>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
 builder.Services.AddScoped<GitReleaseService>();

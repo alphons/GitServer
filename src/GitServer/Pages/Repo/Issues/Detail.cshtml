@@ -1,7 +1,5 @@
 @page "/{user}/{repo}/issues/{id:int}"
 @model GitServer.Pages.Repo.Issues.DetailModel
-@using GitServer.Services
-@inject MarkdownService Markdown
 @{
     ViewData["Title"] = $"#{Model.Issue?.Id} {Model.Issue?.Title} — {Model.UserName}/{Model.RepoName}";
 }
@@ -36,7 +34,7 @@
                         <strong>@issue.Author.UserName</strong>
                         <span class="text-muted">@TZ.ToLocal(issue.CreatedAt).ToString("d MMM yyyy, HH:mm")</span>
                     </div>
-                    <div class="markdown-body">@Html.Raw(Markdown.Render(issue.Body))</div>
+                    <div class="markdown-body" data-markdown-source="@issue.Body"></div>
                 </div>
             </div>
 
@@ -49,7 +47,7 @@
                             <strong>@comment.Author.UserName</strong>
                             <span class="text-muted">@TZ.ToLocal(comment.CreatedAt).ToString("d MMM yyyy, HH:mm")</span>
                         </div>
-                        <div class="markdown-body">@Html.Raw(Markdown.Render(comment.Body))</div>
+                        <div class="markdown-body" data-markdown-source="@comment.Body"></div>
                     </div>
                 </div>
             }
@@ -92,4 +90,7 @@
 </div>
 @section Scripts {
     <script src="~/js/editor.js" asp-append-version="true"></script>
+    <script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
+    <script src="~/js/markdown/md4.js" asp-append-version="true"></script>
+    <script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
 }

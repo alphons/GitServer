@@ -10,7 +10,6 @@ namespace GitServer.Pages.Repo;
 public class ViewModel(
 	RepositoryService repos,
 	GitProcessService git,
-	MarkdownService markdown,
 	UserManager<AppUser> userManager,
 	IOptions<GitServerOptions> options) : PageModel
 {
@@ -26,7 +25,7 @@ public class ViewModel(
 	public List<string> Branches { get; set; } = new();
 	public string CloneUrl { get; set; } = "";
 	public string DefaultBranch { get; set; } = "main";
-	public string ReadmeHtml { get; set; } = "";
+	public string ReadmeMarkdown { get; set; } = "";
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, string? path)
 	{
@@ -56,7 +55,7 @@ public class ViewModel(
 		{
 			var readmeContent = await git.GetReadme(repoPath, CurrentBranch);
 			if (!string.IsNullOrEmpty(readmeContent))
-				ReadmeHtml = markdown.Render(readmeContent);
+				ReadmeMarkdown = readmeContent;
 		}
 
 		return Page();

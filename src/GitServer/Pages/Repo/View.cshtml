@@ -106,15 +106,18 @@ git push -u origin @Model.DefaultBranch</pre>
             }
         </div>
 
-        @if (!string.IsNullOrEmpty(Model.ReadmeHtml))
+        @if (!string.IsNullOrEmpty(Model.ReadmeMarkdown))
         {
             <div class="readme-container">
                 <div class="readme-header">README</div>
-                <div class="readme-body markdown-body">@Html.Raw(Model.ReadmeHtml)</div>
+                <div class="readme-body markdown-body" data-markdown-source="@Model.ReadmeMarkdown"></div>
             </div>
         }
     }
 </div>
 @section Scripts {
     <script src="~/js/copy.js" asp-append-version="true"></script>
+    <script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
+    <script src="~/js/markdown/md4.js" asp-append-version="true"></script>
+    <script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
 }
