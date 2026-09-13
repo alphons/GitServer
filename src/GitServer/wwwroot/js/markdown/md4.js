@@ -14,6 +14,15 @@ const HTML_BLOCK6_TAGS = new Set(['address','article','aside','base','basefont',
 // Type 1: ends on a line containing the matching closing tag, not a blank line.
 const HTML_BLOCK1_TAGS = new Set(['script','pre','style','textarea']);
 const VOID_TAGS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+// Every block-level container tag name this streamer ever pushes onto the
+// DOM stack (the type-1/6 HTML-block tag lists already enumerate almost
+// all of them, including 'p'/'li'/'dd'/'blockquote' themselves) — used by
+// _nearestParaAncestorTag() below to know where to stop bridging upward
+// through plain inline elements (e.g. an unclosed "<a href=\"bar\">" raw
+// HTML tag recognized mid-paragraph, CommonMark 6.9) when deciding whether
+// dom.current is still logically inside an open paragraph/list-item/
+// definition's content.
+const BLOCK_LEVEL_TAGNAMES = new Set([...HTML_BLOCK6_TAGS, ...HTML_BLOCK1_TAGS].map(t => t.toUpperCase()));
 
 // ─── DomStack ─────────────────────────────────────────────────────────────────
 class DomStack {
@@ -71,13 +80,17 @@ class MarkdownStreamer {
 
     this.linePos = 0; this.lineIndent = 0; this.leadingWsChars = 0; this.blockDecided = false;
     this.pending = ''; this.lastBlockEl = null; this.lineStart = true;
+    this.codeSpanSetextWatch = null;
+    this._codeSpanLineHadChar = false;
     this.listStack = [];
     this.inlinePending = ''; this.textNode = null;
     this.lastChar = undefined; this.pendingDelimBefore = undefined;
     this.escapeNext = false; this.entityBuf = null;
     this.autolinkBuf = null; this.autolinkQuote = null;
+    this._autolinkNLPending = false; this.autolinkSetextWatch = null;
     this.bareUrlBuf = null; this.bareUrlOpen = false; this.prevCharWs = true;
     this.linkState = null; this.linkBuf = ''; this.urlBuf = ''; this.linkIsImage = false;
+    this._urlNLPending = false; this._urlCrossedNewline = false;
     this.refDefs = {};
     this.inCodeFence = false; this.inIndentCode = false; this.pendingIndentNL = 0; this.indentCodeListCol = null; this.indentCodeInBlockquote = false;
     this.fenceChar = '`'; this.fencePrefix = ''; this.closingFenceBuf = null; this.fenceLineHasContent = false;
@@ -92,6 +105,8 @@ class MarkdownStreamer {
     this.defPending = null;
     this.inRawHtml = false; this.rawHtmlBuf = ''; this.rawHtmlLineBuf = '';
     this.rawHtmlEndMode = null; this.rawHtmlCloseTag = null;
+    this.rawHtmlInBlockquote = false; this.rawHtmlBqFirstLinePending = false;
+    this.rawHtmlInListItem = false; this.rawHtmlListContentCol = 0;
     this._rawHtmlChain = null;
     this._openRawHtmlEls = new Set();
     this.mathInlineBuf = null; // "$...$" — not CommonMark, a common AI-output extension
@@ -112,6 +127,33 @@ class MarkdownStreamer {
     // it's this (tight) item's content or something else entirely.
     this._blankBeforeNewItem = false;
     this._forceNextListLoose = false;
+    // The absolute column (this.linePos-based, like an ordinary list's own
+    // contentCol) right where a blockquote's content begins on THIS line,
+    // right after its ">" marker(s) — set by decideBlock()'s "case '>'"
+    // handler while it's replaying that content, so a list item opened
+    // during the replay (pushNewList()) can record its own contentCol as
+    // relative to the blockquote instead of the current line's raw prefix
+    // width (see _effContentCol()); a later, differently-indented quoted
+    // line can then still be compared correctly. Reset every line.
+    this._bqReplayBaseCol = null;
+    // Set right before a list-item-opening restart (liAbsorb resolving,
+    // openUlDecided()'s non-space branch, _openTabbedListItem(), or
+    // _resolveListBlankContinuation()'s own replay) feeds that item's own
+    // first content through a FRESH decideBlock() call — one that starts
+    // this.pending over from '' with no memory of any blockquote(s) the
+    // list itself is already sitting inside. If that fresh content turns
+    // out to itself be a NEW blockquote marker (decideBlock()'s "case
+    // '>'"), the level _bqLevel() computes from that isolated string is
+    // relative to THIS restart alone, not the document root — case '>'
+    // adds the ambient depth already open at that point (found the same
+    // way it already computes curDepth) before calling ensureBlockquote(),
+    // rather than mistaking an unrelated OUTER blockquote for this new
+    // one already being open (CommonMark example #292/#293's "> 1. >
+    // Blockquote\n..." dropped the inner blockquote entirely this way).
+    // Cleared by resetLine() and (once actually consulted) by case '>'
+    // itself, so it can only ever affect the very next blockquote marker
+    // resolved right after one of these restarts.
+    this._bqFreshRestart = false;
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
@@ -130,6 +172,7 @@ class MarkdownStreamer {
     this.urlPhase = 'dest'; this.urlAngle = undefined;
     this.urlDest = ''; this.urlTitle = null; this.urlTitleQuote = null;
     this.urlParenDepth = 0; this.urlEscapeNext = false; this.urlRawBuf = ''; this.urlFailed = false;
+    this._urlNLPending = false; this._urlCrossedNewline = false;
   }
   _resetSetext()     { this.setextWatch = false; this.setextBuf = ''; this.setextChar = ''; this.setextFailed = false; this.setextTrailing = false; }
   _resetHr()         { this.hrWatch = false; this.hrChar = ''; this.hrCount = 0; this.hrFailed = false; this.hrBuf = ''; }
@@ -142,16 +185,230 @@ class MarkdownStreamer {
 
   // ── Public processChar ─────────────────────────────────────────────────────
   processChar(ch) {
+    // An in-progress "<...>" raw-HTML/autolink scan survives a line ending
+    // — CommonMark 6.9 lets a comment, processing instruction,
+    // declaration, CDATA section, or an ordinary tag's own attributes
+    // span multiple lines (examples #615, #616, #625) — so every
+    // character of a later line, including its own "\n", is still fully
+    // literal content of the SAME scan, not something to run back through
+    // ordinary per-line block-transition logic (onNewline()'s general
+    // end-of-line cleanup assumes a normal line boundary: it closes
+    // blank-line-ended blocks, resets blockDecided so the NEXT line gets
+    // its own fresh block decision, etc. — none of which applies here,
+    // matching the identical early bypass already used for an open code
+    // span or an in-progress raw-HTML BLOCK, just below).
+    //
+    // BUT block structure — including whether the line right after this
+    // scan's own line ending is a setext-heading underline — is decided
+    // by CommonMark per LINE, before any inline content (including this
+    // very scan) is even considered (example #91: "<a title=\"a lot\n---\n"
+    // must NOT let the tag scan swallow the "---" as more quoted-attribute
+    // text; that line has to be free to close the paragraph as a heading
+    // instead, same as it would with no open tag scan at all). So a "\n"
+    // arriving here doesn't commit into the scan right away — the very
+    // next character decides: if it's a "-"/"=" that could start a setext
+    // underline for the paragraph/line this scan's "<...>" opened in,
+    // speculatively watch the rest of that line (autolinkSetextWatch,
+    // mirroring codeSpanSetextWatch's identical buffer-then-decide
+    // pattern for an open code span) instead of feeding it into the scan;
+    // only once the line ends do we know whether it really was one.
+    if (this.autolinkBuf !== null) {
+      if (this.autolinkSetextWatch) {
+        const w = this.autolinkSetextWatch;
+        if (ch === '\n') {
+          this.autolinkSetextWatch = null;
+          if (!w.failed && this._setextEligible() && this._setextAllowed()) {
+            // A genuine underline: abort the tag scan back to literal
+            // text (flushing exactly what had accumulated before the
+            // line ending that started this watch — the watched line's
+            // own text is the underline itself, never part of the
+            // paragraph) and let it become the heading, exactly like an
+            // ordinary setext resolution.
+            this._flushAutolinkAsLiteral();
+            this.resolveSetext(w.char === '=' ? 'h1' : 'h2');
+            this.needsJoinSpace = ['P', 'LI', 'DD'].includes(this.dom.currentTag());
+            this.resetLine();
+            return;
+          }
+          // Not a clean underline after all — the deferred line ending
+          // and the whole watched line were always just more scan
+          // content; replay them (plus this new line ending) through the
+          // scan in their original order, same as if they'd never been
+          // diverted into the watch buffer to begin with.
+          this._feedAutolinkReplay('\n' + w.buf + '\n');
+          return;
+        }
+        if (!w.failed && ch === w.char) w.buf += ch;
+        else if (ch === ' ' || ch === '\t') { w.trailing = true; w.buf += ch; }
+        else { w.failed = true; w.buf += ch; }
+        return;
+      }
+      if (this._autolinkNLPending) {
+        this._autolinkNLPending = false;
+        if (ch === '\n') {
+          // A blank line can never be a setext underline — feed the
+          // deferred line ending now (this line contributed nothing else)
+          // and keep deferring this new one the same way.
+          this._feedAutolinkChar('\n');
+          this._autolinkNLPending = true;
+          return;
+        }
+        // Only a plain tag's own (possibly multi-line) attributes are
+        // watched — a comment/PI/CDATA/declaration's content is already
+        // fully literal with no block-structure interaction of its own.
+        const plainTag = this.autolinkBuf[0] !== '!' && this.autolinkBuf[0] !== '?' && !this.autolinkDecl;
+        if (plainTag && (ch === '-' || ch === '=') && this._setextEligible() && this._setextAllowed()) {
+          this.autolinkSetextWatch = { char: ch, buf: ch, failed: false, trailing: false };
+          return;
+        }
+        this._feedAutolinkChar('\n');
+        this._feedAutolinkChar(ch);
+        return;
+      }
+      if (ch === '\n') { this._autolinkNLPending = true; return; }
+      this._feedAutolinkChar(ch);
+      return;
+    }
+    // A link/image destination or title, once inside its own "(...)" (see
+    // case 'url'/'img_url' in onLinkChar), may itself span more than one
+    // physical line — CommonMark 6.3's grammar allows optional whitespace
+    // around the destination and around the title, including AT MOST ONE
+    // line ending in each such gap, same as a reference definition's own
+    // destination/title already spans lines via _feedDefChar()'s onNewline()
+    // hooks. The ordinary per-line machinery below (onNewline(), via
+    // resetLine()) unconditionally clears linkState/urlBuf on every line
+    // ending, which would silently discard an in-progress multi-line
+    // attempt — so, same as the open "<...>" raw-HTML/autolink scan bypass
+    // just above, every character here (including this line's own "\n") is
+    // fed directly into the destination/title scan instead of running
+    // through ordinary block-transition logic. A line ending is deferred
+    // one character so a FOLLOWING blank line (two line endings in a row)
+    // — which per CommonMark always ends the enclosing paragraph, and with
+    // it any dangling destination/title attempt, same as an ordinary
+    // unterminated one — can be told apart from an OK one with real content
+    // after it: only once we see what follows do we know which. On that
+    // blank-line abort, both deferred line endings are replayed through the
+    // ordinary per-character pipeline exactly as if this bypass had never
+    // intercepted them (same "abort, then reprocess normally" shape used
+    // just above for a failed autolink-scan setext watch).
+    if (this.linkState === 'url' || this.linkState === 'img_url') {
+      if (ch === '\n') {
+        // An angle-bracketed "<...>" destination can NEVER validly contain
+        // a line ending, full stop (CommonMark 6.3) — unlike the optional
+        // whitespace AROUND the destination/title (handled by the
+        // tolerate-and-see logic below), this is an outright grammar
+        // violation the instant it happens, not something a later closing
+        // ")" could still redeem by finding a valid resolution — so it
+        // aborts the whole attempt right here rather than joining the
+        // general "wait and see what follows" handling, which would
+        // otherwise keep this dangling attempt open indefinitely, silently
+        // swallowing however many further lines it takes to stumble onto
+        // some ")" character completely unrelated to it (example #494:
+        // three separate, independently-failing lines must each get their
+        // own fresh attempt, not all three folded into just the first).
+        if (this.urlPhase === 'dest' && this.urlAngle === true) {
+          this._urlNLPending = false;
+          // A link (not image) destination gets the same "replay the raw
+          // source through the ordinary inline pipeline" treatment as an
+          // ordinary in-line destination failure (see
+          // _abortUrlToLiteralReplay()) rather than a plain escaped-text
+          // dump — needed so e.g. example #491's "<foo\nbar>" still gets
+          // its own fresh, independent chance to be recognized by the
+          // ordinary inline raw-HTML-tag scanner (which, unlike the link-
+          // destination grammar just abandoned here, already tolerates a
+          // tag's own attributes spanning multiple lines). Images keep the
+          // old direct-literal fallback (_flushDanglingLinkState) — no
+          // known CommonMark case exercises the equivalent replay there,
+          // so it's left alone rather than risk an unverified change.
+          if (this.linkState === 'url') this._abortUrlToLiteralReplay();
+          else this._flushDanglingLinkState();
+          this.processChar('\n');
+          return;
+        }
+        if (this._urlNLPending) {
+          // Second line ending in a row with nothing real in between — a
+          // genuinely blank line, which per CommonMark always ends the
+          // enclosing paragraph and, with it, any dangling destination/
+          // title attempt, same as an ordinary unterminated one — abort,
+          // then replay both deferred line endings through the ordinary
+          // per-character pipeline exactly as if this bypass had never
+          // intercepted them (same "abort, then reprocess normally" shape
+          // used just above for a failed autolink-scan setext watch).
+          this._urlNLPending = false;
+          this._flushDanglingLinkState();
+          this.processChar('\n');
+          this.processChar('\n');
+          return;
+        }
+        // A single line ending elsewhere in the grammar (leading
+        // whitespace before the destination, the gap between destination
+        // and title, inside a multi-line title, or the trailing gap
+        // before the closing ")") IS tolerated (CommonMark 6.3 allows one
+        // around each) — but only once we see whether a SECOND one
+        // immediately follows (the blank-line case just above), so it's
+        // deferred one character rather than fed to the scan right away.
+        this._urlNLPending = true;
+        return;
+      }
+      if (this._urlNLPending) { this._urlNLPending = false; this._feedUrlChar('\n'); this._urlCrossedNewline = true; }
+      // Once this attempt has ALREADY tolerated crossing into a later
+      // line, a gap/trail-phase character that doesn't fit the grammar
+      // there (not whitespace, not a title-opening quote/paren, not the
+      // closing ")") must fail the WHOLE attempt right here rather than
+      // joining the SAME-LINE leniency further down (_feedUrlChar simply
+      // marking urlFailed and continuing to hunt for some eventual ")",
+      // however far off — needed so e.g. "[link](/url \"title \"and\"
+      // title\")" still falls back to fully literal text, matching what it
+      // was typed as) — that leniency is safe to bound to a single line
+      // (a malformed destination/title can only wander so far before
+      // hitting the line's own closing paren or running out of line), but
+      // once it's already spanned a line boundary once, letting it keep
+      // wandering through MORE lines risks swallowing entirely unrelated,
+      // independently-valid content later in the paragraph (example #494:
+      // a second failed attempt's dangling gap phase must not absorb a
+      // THIRD, unrelated line's own "[...](...)" merely because that
+      // line happens to contain a ")" somewhere in it). Aborting instead
+      // reverts this attempt to literal text and gives `ch` (and
+      // everything after it) a fully fresh, independent parse — same
+      // "abort, then let it try again from scratch" shape used for the
+      // angle-bracket and blank-line cases above.
+      if (this._urlCrossedNewline && (this.urlPhase === 'gap' || this.urlPhase === 'trail')
+          && !this._urlPhaseAcceptsChar(ch)) {
+        this._flushDanglingLinkState();
+        this.processChar(ch);
+        return;
+      }
+      this.onLinkChar(ch);
+      return;
+    }
     if (ch === '\n') { this.onNewline(); return; }
     // A fence opened while replaying a blockquote's content can only
     // ever be continued by a line that itself starts with ">" — see
     // the matching flag set where the fence opens (case '`'/'~':).
     // Checked before the unconditional inCodeFence swallow just below,
     // which would otherwise happily feed ANY line into it regardless.
-    if (this.inCodeFence && this.fenceInBlockquote && this.linePos === 0 && ch !== '>') {
-      this.inCodeFence = false; this.fencePrefix = ''; this.closingFenceBuf = null;
-      this.fenceInBlockquote = false;
-      this.closeBlock();
+    if (this.inCodeFence && this.fenceInBlockquote) {
+      // NOTE: this.linePos is never incremented while inCodeFence (the
+      // unconditional swallow just below returns before reaching that
+      // counter), so tracking "is this the line's first character" needs
+      // its own dedicated flag instead — a stale linePos===0 would
+      // otherwise stay true for every character of the line, not just the
+      // first, and wrongly re-run this check (and its "> " stripping) on
+      // ordinary content characters too.
+      if (!this._fenceBqLineStarted) {
+        this._fenceBqLineStarted = true;
+        if (ch !== '>') {
+          this.inCodeFence = false; this.fencePrefix = ''; this.closingFenceBuf = null;
+          this.fenceInBlockquote = false;
+          this.closeBlock();
+        } else {
+          this._fenceBqAteMarker = true;
+          return; // consume the blockquote's own ">" marker, not fence content
+        }
+      } else if (this._fenceBqAteMarker) {
+        this._fenceBqAteMarker = false;
+        if (ch === ' ') return; // consume the single optional space after ">"
+      }
     }
     if (this.inCodeFence) {
       if (this.fencePrefix === null) { this.feedCodeFenceLine(ch); return; }
@@ -175,11 +432,78 @@ class MarkdownStreamer {
     // (which would otherwise misread it as e.g. an indented-code trigger).
     // onNewline() handles converting the line ending itself to a space.
     if (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`') {
+      // linePos itself is never incremented for any character on this
+      // bypass path (see processChar()'s own linePos++ below, which this
+      // whole branch returns before reaching) — so it stays frozen at
+      // whatever it was when the code span opened, and can't tell
+      // onNewline() whether THIS line had any real content on it (needed
+      // to detect a genuinely blank line — see there). Track that
+      // separately instead; resetLine() clears it per line the normal way.
+      this._codeSpanLineHadChar = true;
+      // Same reasoning for this.lineStart: the normal per-character path
+      // clears it right after its own first use (processChar(), just
+      // below this whole bypassed branch) — this path must do the same
+      // itself, or every character of a bypassed line would wrongly look
+      // like the line's first one to the check just below.
+      const wasLineStart = this.lineStart;
+      this.lineStart = false;
+      // A line that's ENTIRELY "-"s or "="s still closes the enclosing
+      // paragraph as a setext heading even with a code span left open
+      // across it (CommonMark: block structure — here, "does the next
+      // line look like a setext underline" — is decided before inline
+      // content, so an unclosed backtick can't suppress it; see example
+      // #91, where "`Foo\n----\n`" is a heading "`Foo`", not code
+      // containing a literal "----"). Speculatively buffer such a line's
+      // characters instead of committing them as code-span content right
+      // away, since it isn't clear until the line ends (and no more of
+      // that char could still be its own line) whether it truly qualifies
+      // — onNewline() resolves the buffer either way: as a setext heading
+      // (aborting the code span back to literal text first — see
+      // _flushCodeSpans()) or, if it turns out not a clean underline
+      // after all, replayed as the ordinary code-span content it always
+      // was.
+      if (this.codeSpanSetextWatch) {
+        const w = this.codeSpanSetextWatch;
+        if (!w.trailing && ch === w.char) w.buf += ch;
+        else if (ch === ' ' || ch === '\t') { w.trailing = true; w.buf += ch; }
+        else { w.failed = true; w.buf += ch; }
+        return;
+      }
+      if (wasLineStart && (ch === '-' || ch === '=')) {
+        this.codeSpanSetextWatch = { char: ch, buf: ch, failed: false, trailing: false };
+        return;
+      }
+      if (this._codeSpanJoinSpacePending) { this._codeSpanJoinSpacePending = false; this.appendToTextNode(' '); }
       this.onInlineChar(ch); this.lastChar = ch; return;
     }
 
     this.linePos++;
     if (this.lineStart) this.lineStart = false;
+
+    // A reference definition's destination/title may continue on a LATER
+    // line with arbitrary leading whitespace (CommonMark 4.7 — e.g. a
+    // destination indented well past 4 columns on its own continuation
+    // line, example #193) — that whitespace belongs to _feedDefChar()'s
+    // own dest/gap-phase whitespace-skipping, not to the generic
+    // indentation prologue just below, which would otherwise misread 4+
+    // columns of it as starting an indented code block. Route straight to
+    // decideBlock() (which itself claims every character for a pending
+    // definition first) the same way the blockquote-relative-code and
+    // code-span/autolink-scan bypasses just below and above already skip
+    // this same prologue for their own still-open, cross-line constructs.
+    if (!this.blockDecided && this.defPending && this.defPending.type === 'ref' && !this.defPending.failed) {
+      this.decideBlock(ch); return;
+    }
+    // A reference definition's own "[label]:" label still watching for its
+    // closing "]" across a line ending (see onNewline()'s "[" branch of
+    // the undecided-pending fallback) — same reasoning as the defPending
+    // bypass just above: this line's own leading whitespace belongs to
+    // the label's raw text, not to the generic indentation prologue just
+    // below, which would otherwise misread 4+ columns of it as starting
+    // an indented code block.
+    if (!this.blockDecided && this._labelWatchActive) {
+      this.decideBlock(ch); return;
+    }
 
     // A blockquote-relative indented code block (see case '>':) can only
     // ever be CONTINUED by a line that itself starts with ">" — that's
@@ -289,15 +613,34 @@ class MarkdownStreamer {
         if (top) this._markListLoose(top);
         if (!/^[`~|>0-9*+-]$/.test(ch)) this.openParagraph();
       }
-      if (this.pendingListBlank) {
-        this.pendingListBlank = false;
-        this._resolveListBlankContinuation(ch, true);
-        return;
-      }
-      if (this.pendingEmptyItem) {
-        this.pendingEmptyItem = false;
-        this._resolveListBlankContinuation(ch, false);
-        return;
+      // A line beginning (or, mid-marker, already partway through) a
+      // blockquote marker sequence defers this resolution instead of
+      // doing it here — this.lineIndent only ever reflects raw leading
+      // whitespace BEFORE any ">" marker(s), not the indentation of the
+      // line's actual (post-marker) content, so comparing it against a
+      // list item's contentCol here would be comparing the wrong thing
+      // whenever that item lives inside an already-open blockquote (e.g.
+      // CommonMark example #259: "   > > 1.  one\n>>\n>>     two\n" — the
+      // second ">>" line has NO leading whitespace of its own at all,
+      // despite genuinely continuing the item). decideBlock()'s own "case
+      // '>'" handler picks this back up once it's actually computed that
+      // real indentation (see its matching comment), once the marker
+      // sequence is fully known one way or the other — which requires
+      // deferring even a CONTINUING marker character (not just the
+      // first), hence checking `this.pending`, not just `ch`, for an
+      // already-in-progress one.
+      const bqPending = (ch === '>' || this.pending.includes('>')) && /^[ \t>]*$/.test(this.pending);
+      if (!(bqPending && this.dom.find('BLOCKQUOTE'))) {
+        if (this.pendingListBlank) {
+          this.pendingListBlank = false;
+          this._resolveListBlankContinuation(ch, true);
+          return;
+        }
+        if (this.pendingEmptyItem) {
+          this.pendingEmptyItem = false;
+          this._resolveListBlankContinuation(ch, false);
+          return;
+        }
       }
       // A list marker character (unlike most other block-starting
       // constructs) commits to opening a new item IMMEDIATELY, mid-line,
@@ -370,6 +713,7 @@ class MarkdownStreamer {
       this.lineIndent = a.top.contentCol; // see openUlDecided()'s matching comment
       this.needsJoinSpace = false; // same reasoning: nothing to join yet
       this._inListContinuation = true; // see openUlDecided()'s matching comment
+      this._bqFreshRestart = true; // see its own comment
       this.decideBlock(ch);
       return;
     }
@@ -380,6 +724,61 @@ class MarkdownStreamer {
   }
 
   // ── Newline ────────────────────────────────────────────────────────────────
+  // Resolves whatever link/image attempt is still dangling (this.linkState
+  // !== null) at a point where no more characters are coming for it right
+  // now — an ordinary line ending mid-paragraph (called from onNewline()
+  // below), or the end of a raw-text replay fed through the normal inline
+  // pipeline in an isolated scratch container (see _replayRawInline()) —
+  // both need the exact same "what happens if this attempt just stops
+  // here" resolution.
+  _flushDanglingLinkState() {
+    if (this.linkState === 'expect_paren') {
+      const a = this.dom.find('A');
+      if (a && !a.href) { a.dataset.implicitRef = this._normalizeRefKey(this.linkBuf); this._pop(a); }
+      this._resetLinkUrl();
+    } else if (this.linkState === 'img_expect_paren' || this.linkState === 'img_ref_id') {
+      // A shortcut ![alt] or collapsed/explicit ![alt][ref] ending exactly
+      // at end-of-line never reaches onLinkChar's own handling for it
+      // (newlines bypass onLinkChar entirely) — resolve it here the same way.
+      const isShortcut = this.linkState === 'img_expect_paren';
+      const refKey = this._normalizeRefKey(isShortcut ? this.linkBuf : (this.urlBuf.trim() || this.linkBuf));
+      this._pushRefImage(refKey, isShortcut);
+      this._resetLinkUrl();
+    } else if (this.linkState === 'url') {
+      // A link destination/title that never reaches its closing ")" at
+      // all (this is genuinely the end of input — processChar()'s own
+      // bypass, see there, already gives an in-progress multi-line
+      // attempt every reasonable chance to still resolve normally via a
+      // REAL closing ")" first) falls back to literal text, same shape as
+      // an in-line failure (_feedUrlChar returning {failed:true}). Any
+      // line ending this attempt tolerated along the way (urlRawBuf may
+      // now legitimately contain one or more, unlike before that bypass
+      // existed) is rendered the same way an ordinary paragraph-internal
+      // one already is elsewhere: a single space, not a preserved literal
+      // "\n" — this text is appended directly (appendToTextNode, not
+      // replayed through onInlineChar), so that conversion doesn't happen
+      // on its own the way it does for the replay-based failure paths.
+      const a = this.dom.find('A');
+      if (a) { a.insertBefore(document.createTextNode('['), a.firstChild); a.appendChild(document.createTextNode(']')); }
+      this.abortLinkElement('(' + this._unescapeRaw(this.urlRawBuf).replace(/\n/g, ' '));
+    } else if (this.linkState === 'img_url') {
+      this.appendToTextNode('![');
+      for (const c of this.linkBuf) { this.onInlineChar(c); this.lastChar = c; }
+      this.appendToTextNode('](' + this._unescapeRaw(this.urlRawBuf).replace(/\n/g, ' '));
+      this.linkBuf = ''; this.urlBuf = ''; this.linkIsImage = false; this.linkState = null;
+      this._resetUrlParse();
+    } else if (this.linkState !== null) {
+      // Most commonly 'label_open' reaching end-of-input/line with no
+      // closing "]" ever found — the "[" that opened it was never
+      // written as a literal character (it commits straight to a real
+      // <a> for the live-streaming case), so it must be restored before
+      // unwrapping, same as every other link-abort path already does.
+      const a = this.dom.find('A');
+      if (a) a.insertBefore(document.createTextNode('['), a.firstChild);
+      this.abortLinkElement(null);
+    }
+  }
+
   onNewline() {
     // Captured before resetting: reflects whether the PREVIOUS line left an
     // open paragraph/list-item/definition wanting a soft-break join space —
@@ -418,6 +817,68 @@ class MarkdownStreamer {
     // many further lines it takes to find a matching-length closer, or
     // until the enclosing block itself closes — see _flushCodeSpans(),
     // which reverts it to literal text if no closer is ever found.
+    if (this.codeSpanSetextWatch && this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`') {
+      const w = this.codeSpanSetextWatch;
+      this.codeSpanSetextWatch = null;
+      if (!w.failed) {
+        // A genuine setext underline: abort the still-open code span back
+        // to literal text (marker + whatever content it had accumulated so
+        // far — none of which ever crosses into THIS line, since that line
+        // was fully diverted into `w.buf` instead) and turn the enclosing
+        // paragraph into the heading, exactly like an ordinary setext
+        // resolution.
+        this._codeSpanJoinSpacePending = false;
+        this._flushCodeSpans(this.lastBlockEl);
+        this.resolveSetext(w.char === '=' ? 'h1' : 'h2');
+        this.needsJoinSpace = ['P', 'LI', 'DD'].includes(this.dom.currentTag());
+        this.resetLine(); return;
+      }
+      // Not a clean underline — but a lone "-" immediately followed by a
+      // space/tab (then real content, which is exactly what just ruled out
+      // the underline reading above) is ALSO a valid list-item marker, and
+      // CommonMark decides block structure — including whether a marker
+      // like this INTERRUPTS the paragraph a still-open code span happens
+      // to be sitting in — before any inline content (including that code
+      // span's own search for a matching closer) is considered at all. So
+      // this line isn't really code-span content either: abort the span
+      // back to literal text and replay the whole line through the
+      // ordinary per-character block-decision pipeline (processChar()),
+      // exactly as if the code span had never bypassed it to begin with.
+      // Gated on an already-open list (this.listStack) to keep this narrow
+      // and low-risk: the one CommonMark case this targets (Precedence
+      // example #42: "- `one\n- two`\n") always has one.
+      if (w.char === '-' && /^-[ \t]/.test(w.buf) && this.listStack.length > 0) {
+        this._codeSpanJoinSpacePending = false;
+        this._flushCodeSpans(this.lastBlockEl);
+        this.resetLine();
+        for (const c of w.buf) this.processChar(c);
+        this.onNewline();
+        return;
+      }
+      // Not a clean underline after all — this line was always just more
+      // code-span content, so the space this same line's own opening
+      // deferred (see the lineStart check above) is due now, before it —
+      // same as the ordinary per-character path just below would apply it.
+      if (this._codeSpanJoinSpacePending) { this._codeSpanJoinSpacePending = false; this.appendToTextNode(' '); }
+      for (const c of w.buf) { this.onInlineChar(c); this.lastChar = c; }
+    }
+    if (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`'
+        && !(this.linePos > 0 || this._codeSpanLineHadChar) && this.lastBlockEl && this.lastBlockEl.tagName === 'P') {
+      // A genuinely blank line always ends the enclosing paragraph
+      // (CommonMark 4.8) — even one still holding a still-open, unmatched
+      // code span, which never gets a chance to find its closer now and
+      // must revert to literal text, same as it would at any other point
+      // the enclosing block closes (_flushCodeSpans()). Without this, an
+      // unmatched backtick kept the paragraph (and the code span) open
+      // indefinitely across blank lines, silently swallowing everything
+      // after it until a matching backtick run eventually turned up
+      // somewhere later in the document, or never did.
+      this._codeSpanJoinSpacePending = false;
+      this._flushCodeSpans(this.lastBlockEl);
+      this._flushEmphasis(this.dom.current);
+      this.dom.pop(); this.textNode = null; this.lastBlockEl = null;
+      this.resetLine(); return;
+    }
     if (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`') {
       // A run of closing backticks sitting right at end-of-line, not yet
       // confirmed to be the full matching length (it could still continue
@@ -442,7 +903,13 @@ class MarkdownStreamer {
         }
         this.appendToTextNode('`'.repeat(this.codeCloseRun)); this.codeCloseRun = 0;
       }
-      this.appendToTextNode(' ');
+      // Deferred rather than appended right away: if the NEXT line turns
+      // out to be a setext underline (see codeSpanSetextWatch above), this
+      // whole code span gets aborted back to literal text and this space
+      // must never have existed at all — appending it now and hoping to
+      // strip it back out later would be much harder to get exactly right
+      // than simply not committing it until we know it's actually needed.
+      this._codeSpanJoinSpacePending = true;
       this.resetLine(); return;
     }
 
@@ -462,7 +929,15 @@ class MarkdownStreamer {
       // meantime (the actual bug this guard exists to prevent).
       if (d.failed) { this.flushDefPending(); this.resetLine(); return; }
       if (d.phase === 'dest' && !d.angle && d.dest !== '') { d.phase = 'gap'; d.gapSawSpace = true; } // bare dest ends at whitespace, incl. a line ending
-      if (d.phase === 'title') { d.title += '\n'; this.resetLine(); return; }
+      if (d.phase === 'title') {
+        // A title MAY span a line ending (CommonMark 4.7), but not a truly
+        // BLANK one — a blank line always ends the reference definition
+        // attempt outright, invalidating it (the title's closing quote
+        // never arrived), same as it does for the destination/gap phases
+        // just below.
+        if (this.linePos === 0) { d.failed = true; this.flushDefPending(); this.resetLine(); return; }
+        d.title += '\n'; this.resetLine(); return;
+      }
       // NOT this.pending — that's already been cleared (by _bd(), when the
       // definition itself first started) and stays empty the whole time
       // regardless of how many characters _feedDefChar() has consumed.
@@ -474,7 +949,19 @@ class MarkdownStreamer {
       if (d.phase === 'gap' || (d.phase === 'dest' && d.dest === '')) {
         if (d.phase === 'gap') d.gapSawSpace = true; // the line ending itself counts as whitespace here too (e.g. an angle-bracketed destination's ">" reaching EOL with nothing else on that line yet)
         if (lineBlank) { this.flushDefPending(); this.resetLine(); return; } // nothing more can follow a blank line
-        this.resetLine(); return; // still might get a destination/title on the next line
+        // Only a bare destination that's ALREADY committed (non-empty) can
+        // ever fall back to a still-valid dest-only definition later if a
+        // title on a following line turns out malformed (see the 'trail'
+        // phase below and d.titleAfterLineBreak) — that's the only case
+        // needing an accurate '\n' in d.raw here. The dest==='' case has no
+        // destination yet at all, so it can only ever end up going through
+        // flushDefPending()'s generic invalid-definition literal-text
+        // fallback if this never pans out — which already turns its OWN
+        // "blank line" trigger into the paragraph break correctly without
+        // this line ending also being folded into d.raw as a redundant
+        // extra space.
+        if (d.dest !== '') d.raw += '\n';
+        d.destLineEnded = true; this.resetLine(); return; // still might get a destination/title on the next line
       }
       // phase 'trail', or an unterminated "<...>" destination — done either way.
       if (d.phase === 'dest' && d.angle) d.failed = true;
@@ -499,7 +986,7 @@ class MarkdownStreamer {
       this.sepRowEl = null;
     }
 
-    if (this.inCodeFence) { this.onCodeFenceNewline(); return; }
+    if (this.inCodeFence) { this._fenceBqLineStarted = false; this.onCodeFenceNewline(); return; }
     if (this.inIndentCode) {
       // A blockquote-relative indented code block (case '>':) can only
       // ever be continued by a LATER quoted line (see processChar()'s
@@ -529,7 +1016,91 @@ class MarkdownStreamer {
       this.resetLine(); return;
     }
     if (this.inRawHtml) {
-      const line = this.rawHtmlLineBuf;
+      let line = this.rawHtmlLineBuf;
+      if ((this.rawHtmlInBlockquote || this.rawHtmlInListItem) && this.rawHtmlBqFirstLinePending) {
+        // This first line's own ">" marker (or list marker + required
+        // space) was already consumed by the ordinary blockquote/list
+        // replay mechanism before the block even opened (see
+        // _startHtmlBlock()) — `line` is already just the content after
+        // it, nothing left to strip here.
+        this.rawHtmlBqFirstLinePending = false;
+      } else if (this.rawHtmlInBlockquote) {
+        // An HTML block opened while replaying a blockquote's own ">"-led
+        // content (see _startHtmlBlock()) is scoped to that blockquote's
+        // content the same way an ordinary paragraph inside one is: each
+        // further line must itself carry the blockquote's own ">" marker
+        // (plus the single optional space after it) to continue — that
+        // marker was blindly appended character-by-character as part of
+        // this line like any other raw content (processChar()'s inRawHtml
+        // bypass has no idea it's structural), so strip it back out of
+        // both the just-finished line and the tail of the accumulated
+        // buffer before treating the rest as real block content.
+        const m = line.match(/^>[ \t]?/);
+        if (m) {
+          const stripped = line.slice(m[0].length);
+          this.rawHtmlBuf = this.rawHtmlBuf.slice(0, this.rawHtmlBuf.length - line.length) + stripped;
+          line = stripped;
+        } else {
+          // No ">" at all (most commonly a genuinely blank line) — this
+          // line doesn't continue the blockquote, which means it doesn't
+          // continue the HTML block either: CommonMark needs no blank
+          // line or matching closing tag of its own to end one nested
+          // this way — it simply ends, implicitly, the instant the
+          // enclosing blockquote does. Flush using only what was
+          // accumulated BEFORE this line (which never belonged to the
+          // block at all), close the blockquote the same way it always
+          // closes on a line like this, then replay this line's own text
+          // — including the line ending that got us here — through the
+          // ordinary per-character pipeline exactly as if it had arrived
+          // fresh at whatever level closing the blockquote now leaves.
+          this.rawHtmlBuf = this.rawHtmlBuf.slice(0, this.rawHtmlBuf.length - line.length);
+          this.flushRawHtml();
+          const bq = this.dom.find('BLOCKQUOTE');
+          if (bq) this._pop(bq);
+          this.rawHtmlInBlockquote = false;
+          for (const c of line) this.processChar(c);
+          this.processChar('\n');
+          return;
+        }
+      } else if (this.rawHtmlInListItem) {
+        // An HTML block opened as a list item's own first content (see
+        // _startHtmlBlock()) is scoped to that item's content the same
+        // way indented code or a second paragraph inside one is: each
+        // further line must itself be indented at least to the item's
+        // own content column to continue. CommonMark's type 1-7 HTML
+        // blocks get no lazy continuation the way an ordinary paragraph
+        // does, so anything less indented (most commonly a fresh sibling
+        // marker back at the outer indent) ends the item's content
+        // outright — same tab-aware column count already used by the
+        // generic per-character indentation prologue.
+        let col = 0, i = 0;
+        while (i < line.length && (line[i] === ' ' || line[i] === '\t')) {
+          col = line[i] === '\t' ? (Math.floor(col / 4) + 1) * 4 : col + 1;
+          i++;
+        }
+        if (col >= this.rawHtmlListContentCol) {
+          const stripped = line.slice(i);
+          this.rawHtmlBuf = this.rawHtmlBuf.slice(0, this.rawHtmlBuf.length - line.length) + stripped;
+          line = stripped;
+        } else {
+          // Not indented far enough to belong to this item any longer —
+          // end the HTML block using only what was accumulated BEFORE
+          // this line, close the item (same as any other block reaching
+          // its end), then replay this line's own text — including the
+          // line ending that got us here — through the ordinary per-
+          // character pipeline exactly as if it had arrived fresh right
+          // after the (now-closed) item, e.g. as this same list's next
+          // sibling marker.
+          this.rawHtmlBuf = this.rawHtmlBuf.slice(0, this.rawHtmlBuf.length - line.length);
+          this.flushRawHtml();
+          const li = this.dom.find('LI');
+          if (li) this._pop(li);
+          this.rawHtmlInListItem = false;
+          for (const c of line) this.processChar(c);
+          this.processChar('\n');
+          return;
+        }
+      }
       this.rawHtmlBuf += '\n';
       this.rawHtmlLineBuf = '';
       if (this.rawHtmlEndMode === 'blank') {
@@ -590,7 +1161,7 @@ class MarkdownStreamer {
         this.closeBlock(); this.inCodeFence = true; this.fenceChar = p[0];
         this.fenceCount = p.length; this.fencePrefix = null; this.closingFenceBuf = null;
         this.fenceOpenIndent = this.lineIndent;
-        this.fenceInBlockquote = this._inBlockquoteContent;
+        this.fenceInBlockquote = this._inBlockquoteContent; this._fenceBqLineStarted = true;
         this.onCodeFenceNewline();
       } else if (p[0] === '*' && /^\*([ \t]*\*)*[ \t]*$/.test(p) && (p.match(/\*/g)||[]).length >= 3) {
         this.makeHr();
@@ -601,7 +1172,12 @@ class MarkdownStreamer {
         else this.makeHr();
       } else if (/^[_ ]+$/.test(p) && (p.match(/_/g)||[]).length >= 3) {
         this.makeHr();
-      } else if (/^- (- ?)+$/.test(p.trimEnd()) && (p.match(/-/g)||[]).length >= 3) {
+      } else if (p[0] === '-' && /^-([ \t]*-)*[ \t]*$/.test(p) && (p.match(/-/g)||[]).length >= 3) {
+        // Any run of "-", each optionally followed by spaces/tabs (not
+        // just a single optional space per dash, which the older, narrower
+        // pattern this replaced required) — CommonMark's thematic-break
+        // rule allows an arbitrarily wide gap between markers, e.g.
+        // "-     -      -      -" (example #53).
         this.makeHr();
       } else if (p[0] === '-' && /^- /.test(p)) {
         this.openUlDecided(p.slice(2), '-');
@@ -627,7 +1203,9 @@ class MarkdownStreamer {
         // decideBlock() entirely. Resolve it here the same way once the
         // whole line — just the tag name, nothing else — is known.
         const name = p.slice(p[1] === '/' ? 2 : 1).toLowerCase();
-        if (HTML_BLOCK1_TAGS.has(name)) this._startHtmlBlock('tag', name);
+        // See the matching guard in decideBlock()'s own "<" case: type 1
+        // requires a literal opening tag, not a closing "</pre" etc.
+        if (p[1] !== '/' && HTML_BLOCK1_TAGS.has(name)) this._startHtmlBlock('tag', name);
         else if (HTML_BLOCK6_TAGS.has(name)) this._startHtmlBlock('blank', null);
         else this._continueOrFallback();
         if (this.inRawHtml) { this.rawHtmlBuf += '\n'; this.rawHtmlLineBuf = ''; }
@@ -655,6 +1233,33 @@ class MarkdownStreamer {
         this.closeBlock(); this.listStack = [];
         const h = this.dom.push('h' + Math.min(p.length, 6)); this.lastBlockEl = h;
         this._bd(); this.atxLevel = p.length;
+      } else if (p[0] === '[' && p[1] !== '^' && !p.includes(']') && p.length <= 999
+                 && this.linePos > 0
+                 && !(contTag === 'LI' || contTag === 'DD' || (contTag === 'P' && this.dom.current.childNodes.length > 0))) {
+        // A reference definition's own "[label]:" may have its label span
+        // multiple physical lines — CommonMark 6.1's link-label grammar
+        // has no single-line restriction, and 4.7 defines a definition
+        // purely in terms of that label (examples: "[Foo\n  bar]: /url"
+        // and "[\nfoo\n]: /url"). Nothing definitive is known yet (no
+        // closing "]" anywhere so far) — keep waiting across this line
+        // ending instead of falling back to literal paragraph text the
+        // way an ordinary unresolved "[" does (the generic fallback just
+        // below) — decideBlock()'s own "[" case already re-evaluates the
+        // WHOLE accumulated `pending` (embedded line endings and all) for
+        // a "]:" on every new character regardless of how many raw lines
+        // it spans, so simply not losing it here is enough.
+        // Bails back to that same generic fallback instead (via
+        // linePos > 0, false on a genuinely blank continuation line) —
+        // CommonMark: a link label cannot contain a blank line — and via
+        // the 999-char cap already known from CommonMark's own link-
+        // label length limit, so a "[" that will clearly never close
+        // doesn't swallow unbounded input while the user is still typing.
+        const savedPending = p + '\n';
+        this.needsJoinSpace = false;
+        this.resetLine();
+        this.pending = savedPending;
+        this._labelWatchActive = true;
+        return;
       } else {
         // No block construct matched (this covers "[" left unresolved, a
         // "**"/"__" run too short to be a thematic break, or anything else
@@ -664,11 +1269,39 @@ class MarkdownStreamer {
         this._continueOrFallback();
       }
       this.pending = '';
+      // A marker opened just now, from WITHIN this same block (most
+      // commonly openUlDecided(), reached via one of the branches just
+      // above) can itself set this.liAbsorb (see openUlDecided()'s own
+      // isAllSpaces case) — but the EARLY liAbsorb check near the top of
+      // this function (the one that normally converts it to
+      // pendingEmptyItem, per CommonMark 5.2's "marker with only trailing
+      // whitespace" rule) already ran and found nothing, since the marker
+      // didn't exist yet at that point. Same conversion, done again here
+      // for whatever a call in THIS block may have only just set.
+      if (this.liAbsorb) {
+        this.liAbsorb.top.contentCol = this.liAbsorb.base;
+        this.liAbsorb = null;
+        this.pendingEmptyItem = true;
+      }
     }
 
     if (!this.blockDecided) {
-      const tag = this.dom.currentTag();
+      let tag = this.dom.currentTag();
       const li = this.dom.find('LI');
+      // dom.current may be sitting inside an unclosed inline raw HTML
+      // element opened earlier in this same top-level (not list-item-
+      // owned) paragraph, e.g. an "<a href=\"bar\">" recognized mid-line
+      // per CommonMark 6.9 (see _resolveAutolinkBuf()'s "dom.current =
+      // el") — rather than the paragraph itself. A genuinely blank line
+      // always ends that paragraph outright (CommonMark 4.8) regardless
+      // of what raw HTML is still open inside it, so pop back out to the
+      // paragraph before running the ordinary tag-based blank-line
+      // handling just below, which otherwise assumes dom.current already
+      // IS one of the tags it switches on.
+      if (!li && tag !== 'P' && tag !== 'DD' && this._nearestParaAncestorTag() === 'P') {
+        while (this.dom.currentTag() !== 'P') this.dom.pop();
+        tag = 'P';
+      }
       if (li && tag === 'LI' && this.pendingEmptyItem) {
         // The list marker's own line had NO content at all, and this
         // line is ALSO blank — CommonMark: such an item stays empty
@@ -723,6 +1356,30 @@ class MarkdownStreamer {
       this.resetLine(); return;
     }
 
+    // An in-progress "<...>" tag/comment/PI/declaration/CDATA scan that got
+    // opened partway through THIS line (most commonly decideBlock()'s
+    // undecided-line paragraph fallback replaying pending text like "<b2"
+    // through inline handling right before this line ending is reached —
+    // an already-open scan carried in FROM a previous line instead takes
+    // processChar()'s own early bypass and never reaches onNewline() at
+    // all) gets the exact same multi-line survival CommonMark 6.9 grants a
+    // comment/PI/declaration/CDATA/tag's attributes: feed the newline as
+    // literal scan content and stop here, before any of this function's
+    // ordinary per-line cleanup — most importantly the hard-break check
+    // just below, which must never fire on trailing spaces/backslash that
+    // are still inside a buffered tag/attribute rather than real paragraph
+    // text (examples #615/#616/#642/#643).
+    //
+    // Not fed in right away, though: this exact newline is the same kind
+    // processChar()'s own bypass defers via _autolinkNLPending for every
+    // LATER line of an already-open scan (see there) — whether it's truly
+    // just more scan content, or instead the start of a setext-heading
+    // underline that has to win over the scan (example #91), can only be
+    // told once the next character arrives, and this is the one place a
+    // freshly-opened scan's very FIRST line ending reaches that same
+    // decision point for the first time.
+    if (this.autolinkBuf !== null) { this._autolinkNLPending = true; return; }
+
     // A hard break (trailing "  " or "\") only applies mid-paragraph/list-item
     // /definition — not inside a single-line construct like a heading, where
     // trailing spaces/backslash are just trimmed with no <br>.
@@ -750,10 +1407,13 @@ class MarkdownStreamer {
     // An unresolved "<...tag attempt" left open at end-of-line (e.g. an
     // unmatched quote inside it) would otherwise be silently discarded by
     // resetLine() below — fall back to literal text instead of losing it.
-    if (this.autolinkBuf !== null) {
-      this.appendToTextNode('<' + this.autolinkBuf);
-      this.autolinkBuf = null; this.autolinkQuote = null;
-    }
+    // (A span that's meant to survive the line ending instead — CommonMark
+    // 6.9 lets a comment/PI/declaration/CDATA/tag's attributes span
+    // multiple lines — never reaches here at all: processChar()'s own
+    // early bypass, mirroring the one for an open code span, intercepts
+    // every character of a later line, including its "\n", before this
+    // whole function's ordinary per-line machinery even runs.)
+    if (this.autolinkBuf !== null) this._flushAutolinkAsLiteral();
 
     // Same for inline math: it doesn't span a line ending, so an
     // unresolved "$..." at end-of-line was never valid math after all.
@@ -776,48 +1436,23 @@ class MarkdownStreamer {
     // the undecided-line fallback above has already run. Same preserve-
     // across-the-newline treatment as the early check at the top of this
     // function, which only catches an ALREADY-open span from a prior line.
-    if (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`') {
-      this.appendToTextNode(' ');
+    if (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`'
+        && !(this.linePos > 0 || this._codeSpanLineHadChar) && this.lastBlockEl && this.lastBlockEl.tagName === 'P') {
+      this._flushCodeSpans(this.lastBlockEl);
+      this._flushEmphasis(this.dom.current);
+      this.dom.pop(); this.textNode = null; this.lastBlockEl = null;
       this.resetLine(); return;
     }
-    if (this.linkState === 'expect_paren') {
-      const a = this.dom.find('A');
-      if (a && !a.href) { a.dataset.implicitRef = this.linkBuf.toLowerCase(); this._pop(a); }
-      this._resetLinkUrl();
-    } else if (this.linkState === 'img_expect_paren' || this.linkState === 'img_ref_id') {
-      // A shortcut ![alt] or collapsed/explicit ![alt][ref] ending exactly
-      // at end-of-line never reaches onLinkChar's own handling for it
-      // (newlines bypass onLinkChar entirely) — resolve it here the same way.
-      const isShortcut = this.linkState === 'img_expect_paren';
-      const refKey = (isShortcut ? this.linkBuf : (this.urlBuf.trim() || this.linkBuf.trim())).trim().toLowerCase();
-      this._pushRefImage(refKey, isShortcut);
-      this._resetLinkUrl();
-    } else if (this.linkState === 'url') {
-      // A link destination/title never reaching its closing ")" before the
-      // line ends — CommonMark's inline-link destination cannot itself
-      // contain a raw line ending (a title spanning lines is a separate,
-      // not-yet-supported case) — the whole "[label](..." attempt, as
-      // typed so far, falls back to literal text, same shape as an
-      // in-line failure (_feedUrlChar returning {failed:true}).
-      const a = this.dom.find('A');
-      if (a) { a.insertBefore(document.createTextNode('['), a.firstChild); a.appendChild(document.createTextNode(']')); }
-      this.abortLinkElement('(' + this._unescapeRaw(this.urlRawBuf));
-    } else if (this.linkState === 'img_url') {
-      this.appendToTextNode('![');
-      for (const c of this.linkBuf) { this.onInlineChar(c); this.lastChar = c; }
-      this.appendToTextNode('](' + this._unescapeRaw(this.urlRawBuf));
-      this.linkBuf = ''; this.urlBuf = ''; this.linkIsImage = false; this.linkState = null;
-      this._resetUrlParse();
-    } else if (this.linkState !== null) {
-      // Most commonly 'label_open' reaching end-of-input/line with no
-      // closing "]" ever found — the "[" that opened it was never
-      // written as a literal character (it commits straight to a real
-      // <a> for the live-streaming case), so it must be restored before
-      // unwrapping, same as every other link-abort path already does.
-      const a = this.dom.find('A');
-      if (a) a.insertBefore(document.createTextNode('['), a.firstChild);
-      this.abortLinkElement(null);
+    if (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`') {
+      // Deferred rather than appended right away — same reasoning as the
+      // earlier check near the top of this function: if the line that's
+      // ABOUT to start next turns out to be blank, this space must never
+      // have existed (the whole code span reverts to literal text right
+      // then instead), and if it turns out a setext underline, likewise.
+      this._codeSpanJoinSpacePending = true;
+      this.resetLine(); return;
     }
+    this._flushDanglingLinkState();
 
     if (this.atxLevel && this.textNode)
       this.textNode.data = this.textNode.data.replace(/^#+\s*$/, '').replace(/\s+#+\s*$/, '').replace(/\s+#+$/, '').replace(/ +$/, '').replace(/\x00/g, '#');
@@ -826,29 +1461,60 @@ class MarkdownStreamer {
 
     this._popMarkers();
     if (this.inFootnoteDef) { this.dom.toRoot(); this.inFootnoteDef = false; this.footnoteDefId = ''; }
-    const tag = this.dom.currentTag();
-    this.needsJoinSpace = tag === 'P' || tag === 'LI' || tag === 'DD';
+    this.needsJoinSpace = !!this._nearestParaAncestorTag();
     this.resetLine();
   }
 
   resetLine() {
     this.linePos = 0; this.lineIndent = 0; this.leadingWsChars = 0; this.blockDecided = false;
     this.pending = ''; this.inlinePending = ''; this.atxLevel = 0;
+    this._labelWatchActive = false;
     this.linkState = null; this.linkBuf = ''; this.urlBuf = ''; this.linkIsImage = false;
     this.inCell = false; this.tablePipePending = false; this.trailingSpaces = 0;
     this.lineStart = true; this.prevCharWs = true; this.bareUrlBuf = null;
     this.lastChar = undefined;
+    this._codeSpanLineHadChar = false;
     this.escapeNext = false; this.entityBuf = null; this.autolinkBuf = null; this.autolinkQuote = null;
+    this._autolinkNLPending = false; this.autolinkSetextWatch = null;
     this.taskCheckBuf = null; this.taskCheckDone = false;
     this.codeCloseRun = 0;
     this._inBlockquoteContent = false;
     this._inListContinuation = false;
     this._blankBeforeNewItem = false;
     this.liAbsorb = null;
+    this._fenceBqLineStarted = false; this._fenceBqAteMarker = false;
     this.atxSkipLeadingSpace = false;
+    this._bqReplayBaseCol = null;
+    this._bqFreshRestart = false;
   }
 
   // ── Block decision ─────────────────────────────────────────────────────────
+  // Whether dom.current is (or is nested inside, via an unclosed inline raw
+  // HTML element like "<a href=\"bar\">" recognized mid-paragraph per
+  // CommonMark 6.9 — see _resolveAutolinkBuf()'s "this.dom.current = el")
+  // an open paragraph/list-item/definition's content — i.e. whether a
+  // plain content character or line ending should continue that block
+  // rather than being treated as having left it entirely. Walking the
+  // ancestor chain (not just checking dom.currentTag() directly) matters
+  // because dom.current can sit several inline elements deep inside the P
+  // while that inline raw HTML tag's matching close (if any) hasn't
+  // arrived yet.
+  _nearestParaAncestorTag() {
+    let el = this.dom.current;
+    // Bridge upward only through plain INLINE elements — stop at the
+    // first genuine block-level container, whatever it is, rather than
+    // continuing past it (which would wrongly credit e.g. a <blockquote>
+    // freshly pushed inside a list item as "still inside that item's own
+    // paragraph content").
+    while (el && !BLOCK_LEVEL_TAGNAMES.has(el.nodeName)) {
+      if (el === this.dom.bottomStack) return null;
+      el = el.parentNode;
+    }
+    if (!el) return null;
+    const t = el.nodeName;
+    return (t === 'P' || t === 'LI' || t === 'DD') ? t : null;
+  }
+
   _blockDefault(ch) {
     if (this.defPending) {
       if (this.defPending.type === 'ref') { if (this._feedDefChar(ch) === 'reprocess') this._reprocessAfterDef(ch); }
@@ -856,7 +1522,7 @@ class MarkdownStreamer {
       return;
     }
     const tag = this.dom.currentTag();
-    if (tag === 'P' || tag === 'LI' || tag === 'DD') {
+    if (this._nearestParaAncestorTag()) {
       if (this.needsJoinSpace) { this.needsJoinSpace = false; this.appendToTextNode(' '); this.lastChar = ' '; }
       this.feedPendingAsInline(); this.blockDecided = true; return;
     }
@@ -887,7 +1553,14 @@ class MarkdownStreamer {
     // once this line's block type is already decided.
     if (this.defPending && this.defPending.type === 'ref') {
       if (this._feedDefChar(ch) !== 'reprocess') return;
-      this.flushDefPending();
+      // Delegates to the same helper the other two _feedDefChar() call
+      // sites use (rather than just flushing and falling through to the
+      // switch below directly) so a failed speculative title's stashed
+      // replay text (_defReplayPrefix) actually gets replayed — this path
+      // used to flush and fall through inline, silently dropping that
+      // text since only _reprocessAfterDef() knows to replay it.
+      this._reprocessAfterDef(ch);
+      return;
     }
     this.pending += ch;
     const p = this.pending;
@@ -929,15 +1602,59 @@ class MarkdownStreamer {
         const { level, i } = this._bqLevel(p);
         if (i === p.length) return;
         // Wait while everything after the ">" marker(s) so far is still
-        // just whitespace — could still turn into real content, or the
-        // line could end up entirely blank (">  \n"), which must NOT open
-        // a paragraph at all (handled by onNewline's undecided-line
-        // fallback once blockDecided never became true for this line).
-        if (/^ *$/.test(p.slice(i))) return;
-        this.ensureBlockquote(level);
+        // just whitespace (spaces OR tabs — a tab here, e.g. ">\t\tfoo",
+        // is still just more leading whitespace to keep waiting on, not
+        // real content yet; only counting literal spaces here made this
+        // fire prematurely on the FIRST tab, with "foo" not even typed
+        // yet — CommonMark tabs example #6) — could still turn into real
+        // content, or the line could end up entirely blank (">  \n"),
+        // which must NOT open a paragraph at all (handled by onNewline's
+        // undecided-line fallback once blockDecided never became true for
+        // this line).
+        if (/^[ \t]*$/.test(p.slice(i))) return;
+        // Lazy continuation (CommonMark 5.1): fewer ">" markers than the
+        // depth currently open still belongs to the SAME still-open
+        // paragraph, as long as one is actually open right now — the
+        // missing markers are implied, not a signal to shallow the
+        // blockquote nesting down to match. Leave dom.current (and the
+        // blockquote depth) alone entirely in that case, same as an
+        // ordinary lazy-continuation line with NO ">" at all (which never
+        // reaches this case in the first place, p[0] not being ">") —
+        // _blockDefault()'s own tag==='P' branch, reached via the replay
+        // just below, keeps it open exactly the same way.
+        let curDepth = 0, _e = this.dom.current;
+        while (_e) { if (_e.tagName === 'BLOCKQUOTE') curDepth++; if (_e === this.dom.bottomStack) break; _e = _e.parentNode; }
+        const lazy = level < curDepth && this.dom.currentTag() === 'P';
+        // A fresh list-item-opening restart (see this._bqFreshRestart's own
+        // comment) computed `level` in total isolation, with no idea
+        // curDepth's blockquote(s) — an OUTER container the list itself
+        // already sits inside — even exist; ensureBlockquote() needs the
+        // TOTAL target depth from the document root, so this new marker
+        // sequence nests INSIDE that outer blockquote instead of being
+        // mistaken for having already reached it (example #292/#293).
+        // Consumed once: only this, the very next resolution after the
+        // restart, could possibly mean it — a later, ordinary continuation
+        // line legitimately wants curDepth left OUT (it's the same
+        // blockquote being continued, not an unrelated outer one).
+        const bqLevel = this._bqFreshRestart ? curDepth + level : level;
+        this._bqFreshRestart = false;
+        if (!lazy) this.ensureBlockquote(bqLevel);
         this.pending = ''; this.blockDecided = false;
         this._inBlockquoteContent = true;
         const rest = p.slice(i);
+        // The absolute column (this.linePos-based) right where `rest`
+        // itself begins — this.linePos already counts every real
+        // character since true line start, INCLUDING this line's own
+        // leading spaces and its ">" marker(s), and rest.length is
+        // exactly how many of those already-counted characters came
+        // AFTER that point — so subtracting it back out gives a stable
+        // per-line baseline (same value on every one of this line's own
+        // re-invocations of this case, since linePos and rest.length grow
+        // together). A list item opened while replaying this content
+        // (pushNewList()) uses it to record its own contentCol relative to
+        // the blockquote instead of this one line's raw prefix width —
+        // see _effContentCol().
+        this._bqReplayBaseCol = this.linePos - rest.length;
         // Indented code (CommonMark 4.4) applies to blockquote content
         // relative to right after the ">" marker(s), same 4-space rule
         // as at the top level — but the generic per-character replay
@@ -949,13 +1666,34 @@ class MarkdownStreamer {
         // way this whole replay only ever fires once per line (see the
         // comment below): can't interrupt an open P/LI/DD, same as the
         // top-level rule.
-        const leadWs = rest.match(/^ */)[0].length;
-        if (leadWs >= 4 && !/^ *$/.test(rest) && !['LI', 'P', 'DD'].includes(this.dom.currentTag())) {
+        // A TAB in this leading run expands to the next tab stop measured
+        // from the column right AFTER the ">" marker(s) were consumed —
+        // not from column 0 of the raw line — same column-based math the
+        // top-level indent prologue applies, just anchored to a different
+        // starting column (CommonMark tab example #6/#7). p[i - 1] tells
+        // us whether _bqLevel() already consumed a literal space as the
+        // marker's own optional separator; when it didn't (nothing but
+        // "> " with the very next char being a tab, not a space), that
+        // tab's own first expanded column stands in for the never-typed
+        // separator, and only the REMAINDER of its expansion counts as
+        // leading indentation.
+        let col = i, j = 0, leadSpaces = 0;
+        if (p[i - 1] !== ' ' && rest[0] === '\t') {
+          const stop = (Math.floor(col / 4) + 1) * 4;
+          leadSpaces += stop - col - 1;
+          col = stop; j = 1;
+        }
+        while (j < rest.length && (rest[j] === ' ' || rest[j] === '\t')) {
+          if (rest[j] === ' ') { leadSpaces++; col++; }
+          else { const stop = (Math.floor(col / 4) + 1) * 4; leadSpaces += stop - col; col = stop; }
+          j++;
+        }
+        if (leadSpaces >= 4 && j < rest.length && !['LI', 'P', 'DD'].includes(this.dom.currentTag())) {
           this.closeBlock();
           const pre = this.dom.push('pre');
           const code = document.createElement('code');
           pre.appendChild(code);
-          this.textNode = document.createTextNode(rest.slice(4));
+          this.textNode = document.createTextNode(' '.repeat(leadSpaces - 4) + rest.slice(j));
           code.appendChild(this.textNode);
           this.inIndentCode = true; this.lastBlockEl = pre;
           this.indentCodeInBlockquote = true;
@@ -963,14 +1701,47 @@ class MarkdownStreamer {
           this.lastChar = rest[rest.length - 1];
           return;
         }
-        // Up to 3 leading spaces of a quoted line's own content are
-        // ordinary ignorable block-start indentation, exactly like at
-        // the top level (CommonMark) — e.g. ">    not code" (3 spaces,
-        // one short of the code trigger above) must read as the plain
-        // paragraph "not code", not literal leading spaces. Only
-        // reached with leadWs < 4 (the >= 4 case already returned above
-        // as code), so stripping all of it is always correct here.
-        const contentAfterIndent = rest.slice(leadWs);
+        // Up to 3 columns of leading indentation on a quoted line's own
+        // content are ordinary ignorable block-start whitespace, exactly
+        // like at the top level (CommonMark) — e.g. ">    not code" (3
+        // spaces, one short of the code trigger above) must read as the
+        // plain paragraph "not code", not literal leading spaces. Only
+        // reached with leadSpaces < 4 (the >= 4 case already returned
+        // above as code), so stripping all counted whitespace chars is
+        // always correct here.
+        const contentAfterIndent = rest.slice(j);
+        // A blank (marker-only) or empty-marker line earlier left a list
+        // item's continuation pending (pendingListBlank/pendingEmptyItem —
+        // see onNewline()'s blank-line handling and openUlDecided()) —
+        // normally processChar()'s own fast path resolves that the moment
+        // the next line's first character arrives, comparing this.lineIndent
+        // (raw leading whitespace) against the item's own contentCol. But
+        // when that list is nested INSIDE this blockquote, "how far indented
+        // is this line's own content" isn't knowable until the blockquote's
+        // own marker(s) — and any indentation right after them — have
+        // actually been stripped, which is exactly the leadSpaces/
+        // contentAfterIndent computation just above; processChar() defers
+        // to here instead whenever a blockquote is already open (see its
+        // own matching comment). Resolve it now, comparing this line's own
+        // blockquote-relative indentation (`j`) against the item's own
+        // (_effContentCol(), using the bqBaseCol recorded when it was
+        // opened during a replay just like this one).
+        if ((this.pendingListBlank || this.pendingEmptyItem) && contentAfterIndent.length > 0) {
+          const fromBlank = this.pendingListBlank;
+          this.pendingListBlank = false; this.pendingEmptyItem = false;
+          this._resolveListBlankContinuation(contentAfterIndent[0], fromBlank, j);
+          for (const c of contentAfterIndent.slice(1)) {
+            if (this.blockDecided) {
+              if (c === ' ') this.trailingSpaces++; else this.trailingSpaces = 0;
+              this.onContentChar(c);
+            } else {
+              this.decideBlock(c);
+            }
+            this.lastChar = c;
+          }
+          if (contentAfterIndent.length) this.lastChar = contentAfterIndent[contentAfterIndent.length - 1];
+          return;
+        }
         // Replay the content after the ">" markers through decideBlock
         // itself (not straight to inline text) so a heading, list, fence,
         // etc. inside a blockquote is recognized as one, not forced into a
@@ -1014,6 +1785,7 @@ class MarkdownStreamer {
           // ANY line's content into an open fence regardless of
           // whether this one ever continues the quote it opened in.
           this.fenceInBlockquote = this._inBlockquoteContent;
+          this._fenceBqLineStarted = true;
           this._bd(); return;
         }
         this._blockDefault(ch); return;
@@ -1025,6 +1797,7 @@ class MarkdownStreamer {
         this._bd(); this.openTableCell(); return;
 
       case '*': {
+        if (this._listMarkerTooIndented()) { this._blockDefault(ch); return; }
         // Abbreviation definition *[Abbr]:
         if (p[1] === '[') {
           const ci = p.indexOf(']:');
@@ -1059,8 +1832,17 @@ class MarkdownStreamer {
 
       case '-':
         if (p.length === 1) return;
+        if (this._listMarkerTooIndented()) { this._blockDefault(ch); return; }
         if (p.length === 2) {
-          if (p[1] === ' ') return;
+          // A single TAB right after the marker (e.g. "-\t\tfoo") must
+          // defer exactly like a single space does just below — it could
+          // still be more list-marker indentation, or a wider-than-one-
+          // column gap before a thematic break's next "-" — rather than
+          // immediately falling back to literal text just because it
+          // isn't literally a space character (CommonMark tabs example
+          // #7: this used to give up on "-\t", two characters in, well
+          // before "foo" — or a second marker — ever arrived).
+          if (p[1] === ' ' || p[1] === '\t') return;
           if (this._setextEligible() && this._setextAllowed()) {
             return this.lineIndent < 4 ? this.startSetextWatch('-', p, p[1] !== '-') : this._blockDefault(ch);
           }
@@ -1077,6 +1859,15 @@ class MarkdownStreamer {
           if (p === '- -' || p === '- *') return;
           if (p[1] === ' ' && p[2] !== '-' && p[2] !== ' ') return this.openUlDecided(p[2], '-');
           if (p[1] === ' ' && p[2] === ' ') return;
+          // Tab equivalents of the two space-only checks just above: a
+          // lone leading tab followed immediately by real content commits
+          // to a list item via tab-stop column math (same formula as the
+          // blockquote fix above) instead of plain character-counting;
+          // a tab followed by more whitespace (of either kind) still
+          // needs to keep deferring, same reasoning as "- -" more chars
+          // may follow (another marker, more indentation, ...).
+          if (p[1] === '\t' && p[2] !== '-' && p[2] !== ' ' && p[2] !== '\t') return this._openTabbedListItem('\t', p[2]);
+          if ((p[1] === ' ' || p[1] === '\t') && (p[2] === ' ' || p[2] === '\t')) return;
           if (this._setextEligible() && this._setextAllowed()) {
             return this.lineIndent < 4 ? this.startSetextWatch('-', p, false) : this._blockDefault(ch);
           }
@@ -1086,15 +1877,21 @@ class MarkdownStreamer {
           if (p === '- - ') return;
           if (p.startsWith('- -')) return this.startHrWatch('-', 2, false, p);
           // Only ONE dash seen so far, with a run of 2+ trailing spaces
-          // and no second dash yet (e.g. "-   "): unlike the 2+-dash case
-          // just above, this can't still become a multi-dash thematic
-          // break candidate ("- - -" needs the SECOND dash by column 3),
-          // but it's also not necessarily committing to real content —
-          // openUlDecided() below already handles an all-spaces `s` as an
-          // empty-item-so-far (see its isAllSpaces branch), so committing
-          // here immediately (matching the pre-existing length<4 cases)
-          // is correct and must NOT be deferred like the length>=5
-          // catch-all's genuinely-still-ambiguous check does.
+          // and no second dash yet (e.g. "-   "): could still become a
+          // multi-dash thematic break with a WIDER-than-one-space gap
+          // before that second dash (e.g. "-     -      -      -", the gap
+          // being any run of spaces/tabs per CommonMark, not just one) —
+          // keep deferring exactly like the length>=5 catch-all's own
+          // still-ambiguous check just below already does for this same
+          // pure-dashes-and-whitespace shape, rather than assuming a
+          // single-space gap was the only possibility and committing to a
+          // list item right away.
+          if (/^-[ \t]*$/.test(p)) return;
+          // Real content just arrived right after a 2-character
+          // whitespace run (p[1], p[2]) that included at least one TAB —
+          // needs tab-stop column math instead of openUlDecided()'s plain
+          // character-counting (CommonMark tabs example #7).
+          if (p[1] === '\t' || p[2] === '\t') return this._openTabbedListItem(p.slice(1, 3), p[3]);
           return this.openUlDecided(p.slice(2), '-');
         }
         // Still nothing but "-" and spaces (in any amount, including a
@@ -1113,6 +1910,7 @@ class MarkdownStreamer {
 
       case '+':
         if (p.length === 1) return;
+        if (this._listMarkerTooIndented()) { this._blockDefault(ch); return; }
         if (p[1] === ' ') { this.openUlDecided(p.slice(2), '+'); return; }
         this._blockDefault(ch); return;
 
@@ -1160,6 +1958,19 @@ class MarkdownStreamer {
           if (cannotInterrupt) { this._blockDefault(ch); return; }
         }
         const ci = p.indexOf(']:');
+        // A reference label may not contain an unescaped "[" or "]"
+        // (CommonMark 6.1's link-label grammar) — "[ref[bar]]: /uri" and
+        // "[[[foo]]]: /url" are NOT valid definitions at all (examples
+        // #547, #548), just ordinary paragraph text, even though the
+        // FIRST "]:" substring scan above still finds a plausible-looking
+        // split point.
+        if (ci > 1 && this._hasUnescapedBracket(p.slice(1, ci))) { this._blockDefault(ch); return; }
+        // A label that's nothing but whitespace (e.g. "[\n ]: /uri") isn't
+        // a valid reference label at all (CommonMark 6.1 requires at
+        // least one non-whitespace character) — same literal-text
+        // fallback as the unescaped-bracket case just above, not a
+        // "successful" definition with an empty/blank key.
+        if (ci > 1 && !p.slice(1, ci).trim()) { this._blockDefault(ch); return; }
         if (ci > 1) {
           // A definition produces no visible content of its own — if it's
           // starting inside a still-empty <p> (see the childNodes check
@@ -1172,9 +1983,10 @@ class MarkdownStreamer {
             emptyP.remove();
           }
           this.defPending = {
-            type: 'ref', key: p.slice(1, ci).toLowerCase(),
+            type: 'ref', key: this._normalizeRefKey(p.slice(1, ci)),
             phase: 'dest', dest: '', title: null, titleQuote: null,
             angle: undefined, parenDepth: 0, escapeNext: false, failed: false,
+            destLineEnded: false,
             raw: p, // exact original "[label]:" text, for a literal-text fallback if this never gets a destination (see flushDefPending())
           };
           this._bd(); return;
@@ -1219,7 +2031,11 @@ class MarkdownStreamer {
           // separately check for a following space/">"/"/".
           if (p.length === m[0].length) return; // still building the name, wait
           const name = m[1].toLowerCase();
-          if (HTML_BLOCK1_TAGS.has(name)) { this._startHtmlBlock('tag', name); return; } // type 1
+          // CommonMark 4.6's type-1 start condition requires a literal
+          // OPENING "<script"/"<pre"/"<style"/"<textarea" — a closing
+          // "</pre" etc. does not qualify (only type 6 allows either
+          // "<" or "</" before its tag name).
+          if (p[1] !== '/' && HTML_BLOCK1_TAGS.has(name)) { this._startHtmlBlock('tag', name); return; } // type 1
           if (HTML_BLOCK6_TAGS.has(name)) { this._startHtmlBlock('blank', null); return; } // type 6
         }
         // Type 7: not a recognized block-level tag name, but this line
@@ -1254,6 +2070,7 @@ class MarkdownStreamer {
         // Ordered list — CommonMark allows any digit 0-9 to start the
         // number (start values 0 through 999999999), not just 1-9.
         if (p[0] >= '0' && p[0] <= '9') {
+          if (this._listMarkerTooIndented()) { this._blockDefault(ch); return; }
           let i = 1;
           while (i < p.length && p[i] >= '0' && p[i] <= '9') i++;
           if (i === p.length) return;
@@ -1482,7 +2299,7 @@ class MarkdownStreamer {
     }
     if (ch === '&') { this.entityBuf = '&'; return; }
 
-    if (ch === '<') { this.autolinkBuf = ''; this.autolinkQuote = null; this.autolinkDecl = false; return; }
+    if (ch === '<') { this.autolinkBuf = ''; this.autolinkQuote = null; this.autolinkDecl = false; this._autolinkNLPending = false; this.autolinkSetextWatch = null; return; }
 
     // Bare URL
     if (this.bareUrlOpen) {
@@ -1510,7 +2327,12 @@ class MarkdownStreamer {
       }
       return;
     }
-    if (this.prevCharWs && ch === 'h') { this.bareUrlBuf = 'h'; this.prevCharWs = false; return; }
+    // Bare (auto-linked, non-angle-bracketed) URL detection is a common
+    // GFM/AI-output extension, not part of core CommonMark (6.9's autolinks
+    // require the enclosing "<...>") — skipped entirely in strict mode so
+    // e.g. a plain "https://example.com" stays literal text, matching the
+    // spec's own conformance suite (example #611).
+    if (!this.commonMarkStrict && this.prevCharWs && ch === 'h') { this.bareUrlBuf = 'h'; this.prevCharWs = false; return; }
 
     // ==highlight==
     if (ch === '=') {
@@ -1536,7 +2358,20 @@ class MarkdownStreamer {
       // siblings of dom.current, so this bug only bit exactly because
       // both ended up, wrongly, in the same container) — CommonMark:
       // "*[foo*]" must NOT let the trailing "*" close the leading one.
-      this.flushInlinePending();
+      // Resolved with `ch` itself ('!' or '[', both ASCII punctuation) as
+      // the flanking character — NOT flushInlinePending()'s own "abrupt
+      // end of scope" treatment (which flanks against a boundary, as if
+      // nothing followed at all) — since something very much DOES follow
+      // right here, right now, and a "*"/"_" immediately before an
+      // upcoming "[" or "!" needs the exact same flanking treatment it
+      // would get before any other ordinary punctuation character (e.g.
+      // CommonMark #519's "*[bar [baz](/uri)](/uri)*", whose leading "*"
+      // must be able to OPEN even though it's immediately followed by
+      // "["). `null` as the first argument only stops resolveInlinePending
+      // from writing `ch` as literal text itself — it's about to be
+      // handled properly (as the start of a link/image attempt) by the
+      // rest of this same function, not written as plain content.
+      this.resolveInlinePending(null, ch);
     }
     if (ch === '!') { this.linkState = 'bang'; this.linkIsImage = true; this.prevCharWs = false; return; }
     if (ch === '[') {
@@ -1570,6 +2405,14 @@ class MarkdownStreamer {
       // eventual key needs it (a nested link inside its label already
       // makes it ineligible to become a reference at all regardless).
       if (!nested) this.linkLabelRaw = '';
+      // One shared buffer, many nesting levels: this label's own raw text
+      // starts wherever the buffer currently ends (already includes this
+      // very "[" for a nested open, via label_open's catch-all forwarding
+      // — see there — and is freshly empty for a top-level one, via the
+      // reset just above) — recorded here so the matching "]" can slice
+      // out just THIS label's own portion instead of the whole buffer
+      // (see the 'label_open' case's own "]" handling).
+      (this._labelRawStack || (this._labelRawStack = [])).push((this.linkLabelRaw || '').length);
       this.prevCharWs = false; return;
     }
 
@@ -1592,6 +2435,19 @@ class MarkdownStreamer {
       this.prevCharWs = false; return;
     }
 
+    // A literal line ending reaching all the way down here — possible only
+    // via a raw-text replay (_replayRawInline() and its callers): the
+    // ordinary streaming path never feeds "\n" to onInlineChar() at all,
+    // processChar() diverts it to onNewline() before it would ever arrive
+    // — is just an ordinary soft line break in ordinary text, same as any
+    // other paragraph-internal line ending, and renders the same way
+    // onNewline() already renders one for the normal streaming path: a
+    // single space, not a preserved literal "\n" (a state that DOES need a
+    // replayed "\n" of its own — most notably an open "<...>" raw-HTML/
+    // autolink scan, since CommonMark 6.9 lets a tag's attributes span
+    // lines — has its own dedicated check earlier in this function that
+    // already returned before reaching here).
+    if (ch === '\n') ch = ' ';
     if (this.inlinePending) { this.resolveInlinePending(ch); this.prevCharWs = (ch === ' '); return; }
     this.appendToTextNode(ch);
     this.prevCharWs = (ch === ' ');
@@ -1652,6 +2508,21 @@ class MarkdownStreamer {
     return !!m && this._isValidOpenTagBody(m[1]);
   }
 
+  // Replays a string of characters that were speculatively diverted into
+  // an autolinkSetextWatch (see processChar()) once it's turned out NOT
+  // to be a setext underline after all — normally that's just more
+  // _feedAutolinkChar() content, but one of those characters (e.g. an
+  // unquoted "-"-run's trailing ">" ) could itself resolve or abandon the
+  // scan partway through (autolinkBuf becoming null mid-string), at which
+  // point whatever's left is no longer scan content at all and must go
+  // back through the ordinary per-character pipeline instead.
+  _feedAutolinkReplay(str) {
+    for (const c of str) {
+      if (this.autolinkBuf !== null) this._feedAutolinkChar(c);
+      else this.processChar(c);
+    }
+  }
+
   // Feeds one character of a buffered "<...>" span (autolinkBuf !== null),
   // called from onInlineChar for ordinary characters and from onNewline()
   // for a raw "\n" that arrives mid-span — CommonMark allows a comment,
@@ -1705,9 +2576,67 @@ class MarkdownStreamer {
     }
     if (ch === '"' || ch === "'") { this.autolinkQuote = ch; this.autolinkBuf += ch; return; }
     if (ch === '>') { this._resolveAutolinkBuf(); return; }
-    if (ch === '<') { this.appendToTextNode('<' + this.autolinkBuf); this.autolinkBuf = ''; return; }
+    if (ch === '<') {
+      this._flushAutolinkAsLiteral();
+      // The flush's own replay (see _flushAutolinkAsLiteral()) can itself
+      // have opened a fresh, still-pending link/image destination attempt
+      // — e.g. the abandoned text contained a "[...](" sequence, which
+      // "[" always tries live regardless of context. When that happens,
+      // THIS "<" genuinely belongs to THAT attempt's own destination
+      // parsing (most commonly the start of its own angle-bracketed
+      // "(<...)" destination, exactly the shape case 'url' already knows
+      // how to feed a "<" into) — not an unrelated, brand new autolink/tag
+      // scan of its own. Re-dispatching it through the ordinary
+      // per-character pipeline (which checks linkState first) routes it
+      // to onLinkChar instead; only start a fresh scan here when nothing
+      // is pending. Example: "[a](<b)c\n[a](<b)c>\n[a](<b>c)" (CommonMark
+      // #494) — line 1's failed attempt reverts to literal "<b)c" text
+      // that itself contains a fresh "[a](" attempt for line 2; without
+      // this check, line 2's own "<" would wrongly start ANOTHER autolink
+      // scan instead of feeding line 2's "(...)" destination parser,
+      // swallowing everything after it (including line 3) as that scan's
+      // buffered content instead of letting each line fail independently.
+      if (this.linkState !== null) { this.onInlineChar(ch); return; }
+      this.autolinkBuf = ''; this.autolinkQuote = null; return;
+    }
     this.autolinkBuf += ch;
-    if (this.autolinkBuf.length > 2000) { this.appendToTextNode('<' + this.autolinkBuf); this.autolinkBuf = null; }
+    if (this.autolinkBuf.length > 2000) this._flushAutolinkAsLiteral();
+  }
+
+  // A "<...>" span that never resolved into anything valid (no matching
+  // "]]>"/"?>"/"-->"/">" arrived, or a length safety cutoff was hit) falls
+  // back to ordinary text — but CommonMark still applies ALL its normal
+  // rules to that text (most notably backslash escapes: "<a href=\"\\\"\">"
+  // isn't valid HTML, so its own "\\\"" is a plain escaped quote, the
+  // backslash itself never surviving into the output — example #632), so
+  // replaying the raw source through onInlineChar() one character at a
+  // time (same pattern used by this codebase's other literal-text
+  // fallbacks, e.g. flushDefPending()) is correct here, not a plain
+  // literal append of the untouched source text.
+  _flushAutolinkAsLiteral() {
+    const buf = this.autolinkBuf;
+    this.autolinkBuf = null; this.autolinkQuote = null;
+    this._autolinkNLPending = false; this.autolinkSetextWatch = null;
+    // The opening "<" itself is written directly as literal text, NOT
+    // replayed through onInlineChar() — replaying it would immediately
+    // re-trigger the exact same "does this open a tag/autolink?" check
+    // that got us here in the first place, re-entering an equally
+    // unresolved autolinkBuf scan instead of ever actually falling back
+    // to text (silently producing nothing at all, since a still-open scan
+    // writes no output of its own). Only the content AFTER it is replayed,
+    // since it may itself contain real markdown that was wrongly
+    // suppressed while mistaken for tag content (backslash escapes,
+    // emphasis, entities, or even a genuinely different nested "<...>").
+    this.appendToTextNode('<');
+    for (const c of buf) { this.onInlineChar(c); this.lastChar = c; }
+    // The replay just above can itself open a brand new (and, if we've
+    // reached end of input with nothing left to feed it, equally
+    // unresolved) autolinkBuf scan — most commonly a SECOND stray "<...>"
+    // elsewhere in this same literal text (example #620's two separate
+    // unmatched tags on one line). Resolve that one too, the same way,
+    // rather than leaving it open and silently dropping everything from
+    // there on (this function's caller only ever checks once).
+    if (this.autolinkBuf !== null) this._flushAutolinkAsLiteral();
   }
 
   // Inserts a complete, self-contained literal raw-HTML construct (a
@@ -1730,6 +2659,7 @@ class MarkdownStreamer {
   _resolveAutolinkBuf() {
     const buf = this.autolinkBuf;
     this.autolinkBuf = null; this.autolinkQuote = null;
+    this._autolinkNLPending = false; this.autolinkSetextWatch = null;
 
     const closeMatch = buf.match(/^\/([a-zA-Z][a-zA-Z0-9-]*)\s*$/);
     if (closeMatch) {
@@ -1787,7 +2717,16 @@ class MarkdownStreamer {
     // buffered waiting for the closing ">", so replaying it through that
     // pipeline now, out of its original streaming context, doesn't
     // reproduce what char-by-char parsing would actually have done.
-    this.appendToTextNode('<' + buf.replace(/\\([!-/:-@[-`{-~])/g, '$1') + '>');
+    // The escape scan runs over `buf + '>'` together, not `buf` alone —
+    // the closing ">" itself is exactly the character a trailing lone
+    // backslash in `buf` may be escaping (e.g. "<bar\>": buf is "bar\",
+    // whose backslash has nothing to pair with INSIDE buf, but pairs with
+    // the ">" that follows it once both are considered together — the
+    // whole point of "\>" is to keep that ">" from ending anything,
+    // exactly what happened here (it ended the tag/autolink scan instead,
+    // but that failed, so this fallback is precisely where the escape
+    // finally gets to do its ordinary job of yielding a literal ">").
+    this.appendToTextNode('<' + (buf + '>').replace(/\\([!-/:-@[-`{-~])/g, '$1'));
     this.prevCharWs = false;
   }
 
@@ -1813,13 +2752,31 @@ class MarkdownStreamer {
   onLinkChar(ch) {
     switch (this.linkState) {
       case 'bang':
-        if (ch === '[') { this.linkState = 'img_alt'; this.linkBuf = ''; this.urlBuf = ''; }
+        if (ch === '[') { this.linkState = 'img_alt'; this.linkBuf = ''; this.urlBuf = ''; this._imgAltDepth = 0; this._imgAltEscapeNext = false; }
         else { this.linkState = null; this.linkIsImage = false; this.appendToTextNode('!'); this.onInlineChar(ch); }
         return;
 
       case 'img_alt':
-        if (ch === ']') this.linkState = 'img_expect_paren';
-        else this.linkBuf += ch;
+        // Balanced-bracket tracking (CommonMark: an image's alt text is
+        // parsed as link text — nested "[...]" and "![...]" are legal
+        // content, e.g. "![foo ![bar](/url)](/url2)" — nesting one level
+        // deeper each unescaped "[", so the FIRST "]" doesn't wrongly end
+        // the outer alt text right after the inner one's own label starts
+        // (previously: "foo ![bar" got cut at "bar"'s own "]", losing
+        // everything from there on, since a bare unmatched-length count
+        // was never tracked at all). The buffered raw text (nested markup
+        // and all) is re-parsed for real once the TRUE matching "]"
+        // arrives, via _renderInlineToPlainText() below — this is only
+        // about finding where that closing bracket actually is.
+        if (this._imgAltEscapeNext) { this._imgAltEscapeNext = false; this.linkBuf += ch; return; }
+        if (ch === '\\') { this._imgAltEscapeNext = true; this.linkBuf += ch; return; }
+        if (ch === '[') { this._imgAltDepth = (this._imgAltDepth || 0) + 1; this.linkBuf += ch; return; }
+        if (ch === ']') {
+          if (this._imgAltDepth > 0) { this._imgAltDepth--; this.linkBuf += ch; return; }
+          this.linkState = 'img_expect_paren';
+          return;
+        }
+        this.linkBuf += ch;
         return;
 
       case 'img_expect_paren':
@@ -1836,14 +2793,14 @@ class MarkdownStreamer {
         else {
           // Shortcut reference form: ![alt] with no following (...)/[...] —
           // resolved against refDefs at finalize() (defs may come later).
-          this._pushRefImage(this.linkBuf.trim().toLowerCase(), true);
+          this._pushRefImage(this._normalizeRefKey(this.linkBuf), true);
           if (ch !== '\n') this.onInlineChar(ch);
         }
         return;
 
       case 'img_ref_id':
         if (ch === ']') {
-          const refKey = (this.urlBuf.trim() || this.linkBuf.trim()).toLowerCase();
+          const refKey = this._normalizeRefKey(this.urlBuf.trim() || this.linkBuf);
           this._pushRefImage(refKey, false);
         } else { this.urlBuf += ch; }
         return;
@@ -1890,7 +2847,16 @@ class MarkdownStreamer {
         // — "\]" inside a label is a literal "]" character, not the
         // label's own closing bracket, and must not be intercepted
         // here before the escape gets a chance to apply.
-        if (this.autolinkBuf !== null || this.escapeNext) {
+        // Same reasoning applies to a still-open inline code span: once a
+        // backtick run inside the label has opened a code span (buffered
+        // as dom.current._mdMarker), CommonMark scans forward for the
+        // matching closing run with priority over link-bracket matching —
+        // so "]"/"("/etc. reaching here while that span is still open are
+        // just more of the code span's raw content, not link syntax (see
+        // CommonMark 0.31.2 example 525: "[foo`](/uri)`").
+        if (this.autolinkBuf !== null || this.escapeNext
+            || (this.dom.current._mdMarker && this.dom.current._mdMarker[0] === '`')
+            || (this.inlinePending && this.inlinePending[0] === '`')) {
           if (this.linkLabelRaw !== undefined) this.linkLabelRaw += ch;
           this.linkState = null; this.onInlineChar(ch); this.linkState = 'label_open';
           return;
@@ -1899,7 +2865,15 @@ class MarkdownStreamer {
         if (ch === ']') {
           this.flushInlinePending();
           this._popMarkers(); this.textNode = null;
-          const a = this.dom.find('A'); if (a) this.linkBuf = (this.linkLabelRaw ?? a.textContent);
+          const a = this.dom.find('A');
+          // linkLabelRaw is ONE buffer shared across every nesting level
+          // (see the comment where it's pushed, at case '[' above) — this
+          // label's OWN raw text is only the slice from where IT started,
+          // not the whole accumulated buffer (which may still be carrying
+          // an outer label's own earlier content too, e.g. "[[*foo*
+          // bar]]"'s inner "]" must key on "*foo* bar", not "[*foo* bar").
+          const start = this._labelRawStack && this._labelRawStack.length ? this._labelRawStack.pop() : 0;
+          if (a) this.linkBuf = (this.linkLabelRaw !== undefined ? this.linkLabelRaw.slice(start) : a.textContent);
           this.linkState = 'expect_paren'; return;
         }
         if (ch === '^' && this.linkBuf === '') {
@@ -1945,9 +2919,19 @@ class MarkdownStreamer {
 
       case 'ref_id':
         if (ch === ']') {
-          const refKey = (this.urlBuf.trim() || this.linkBuf.trim()).toLowerCase();
+          const refKey = this._normalizeRefKey(this.urlBuf.trim() || this.linkBuf);
           const a = this.dom.find('A');
-          if (a && a.querySelector('a')) {
+          // Only a nested bracket that's already genuinely, successfully
+          // resolved into a real link (a real href, not just "#" — see
+          // _finalizeShortcutRef()'s own comment) permanently refuses this
+          // one; a nested bracket that's itself still only DEFERRED
+          // (data-implicit-ref, or href="#" awaiting its own reference) has
+          // no decided fate yet and must not be mistaken for one — this
+          // outer attempt proceeds normally, and finalize()'s
+          // _resolveDeferredIn() re-checks this same "link in link" rule
+          // once every deferred bracket's fate really is known (see its
+          // own _findEnclosingA() guard).
+          if (a && a.querySelector('a[href]:not([href="#"])')) {
             // Same "a link cannot contain a link" rule as the inline
             // '(...)' case — refused regardless of whether refKey turns
             // out to match a real definition. The "[refKey]" that broke
@@ -1967,7 +2951,25 @@ class MarkdownStreamer {
           const def = this.refDefs[refKey];
           if (a) {
             if (def) { a.href = def.url; if (def.title) a.title = def.title; }
-            else { a.href = '#'; a.dataset.refKey = refKey; }
+            else {
+              a.href = '#'; a.dataset.refKey = refKey;
+              // Full reference form ("[label][ref]", as opposed to
+              // collapsed "[label][]" where urlBuf is empty): if `ref`
+              // never resolves, CommonMark does NOT fall back to trying
+              // `label` as a shortcut reference — the whole "[label][ref]"
+              // reverts to literal "[label]" text, but "[ref]" itself was
+              // never consumed by this failed attempt (CommonMark's real
+              // algorithm only PEEKS at it to read a label for the lookup,
+              // it doesn't remove it from the stream) — it gets its own,
+              // entirely independent bracket-matching attempt. Remember
+              // the raw (un-normalized, un-rendered) source here so
+              // finalize()'s failure path can replay "[" + raw + "]"
+              // through the normal inline pipeline instead of just
+              // dumping it back as inert literal text (see example #569:
+              // "[foo][bar][baz]" with only "baz" defined resolves as
+              // literal "[foo]" + a real link for "[bar][baz]").
+              if (this.urlBuf.trim() !== '') a.dataset.refRaw = this.urlBuf;
+            }
             this._pop(a);
           }
           this._resetLinkUrl();
@@ -1978,22 +2980,50 @@ class MarkdownStreamer {
         const result = this._feedUrlChar(ch);
         if (result !== null) {
           const a = this.dom.find('A');
+          // A malformed inline destination/title doesn't necessarily doom
+          // the label — CommonMark still gives it a shortcut-reference
+          // chance before falling back fully to literal text (example
+          // #568: "[foo](not a link)" with "[foo]: /url1" defined resolves
+          // as a real link, with "(not a link)" surviving as ordinary
+          // trailing text). Deferred to finalize() (data-implicit-ref, the
+          // same mechanism a top-level "[foo]" shortcut already uses)
+          // since whether the label matches a definition can depend on one
+          // declared LATER in the document — only for a genuinely
+          // top-level attempt, though: a NESTED one can't defer this
+          // decision (see _finalizeShortcutRef()'s own comment), so it
+          // keeps the old immediate revert-to-literal behavior.
+          if (result.failed && a && !a.querySelector('a') && !this._findEnclosingA(a)) {
+            a.dataset.implicitRef = this._normalizeRefKey(this.linkBuf);
+            a.dataset.failTrail = '(' + this.urlRawBuf;
+            this._pop(a);
+            this._resetLinkUrl();
+            return;
+          }
           // CommonMark: a link cannot CONTAIN a link — a nested "[...]"
           // inside this label may have already resolved into a real,
           // live-nested <a> (see case '[' above), in which case this
           // outer attempt is refused regardless of whether its own
-          // destination/title syntax is otherwise perfectly valid.
-          if (result.failed || (a && a.querySelector('a'))) {
+          // destination/title syntax is otherwise perfectly valid. Same
+          // "real link only" relaxation as the 'ref_id' case just above —
+          // a still-deferred nested bracket doesn't refuse this one (its
+          // own fate isn't decided yet), see _resolveDeferredIn().
+          if (result.failed || (a && a.querySelector('a[href]:not([href="#"])'))) {
             // Invalid destination/title syntax (or a forbidden nested
             // link) — the "[label]" was never really a link; unwrap the
             // <a> (its content, e.g. already-rendered emphasis OR a
             // genuinely valid nested link, stays as plain content, with
             // a literal "[" restored before it — never written earlier,
             // since "[" commits straight to a real <a> for the live-
-            // streaming case) and append "(" + the whole failed attempt,
-            // exactly as typed.
-            if (a) { a.insertBefore(document.createTextNode('['), a.firstChild); a.appendChild(document.createTextNode(']')); }
-            this.abortLinkElement('(' + this._unescapeRaw(this.urlRawBuf));
+            // streaming case) and replay "(" + the whole failed attempt
+            // through the ordinary inline pipeline, exactly as typed —
+            // NOT a plain literal dump: CommonMark's real algorithm never
+            // set this text aside in the first place, so any raw HTML
+            // tag/autolink, code span, entity, or backslash escape inside
+            // it was already resolved during the initial scan regardless
+            // of the link ultimately failing (e.g. "[a](<b>c)" -> the
+            // "<b>" is a real raw-HTML tag, not escaped "&lt;b&gt;" text).
+            // See _abortUrlToLiteralReplay() for the shared implementation.
+            this._abortUrlToLiteralReplay();
           }
           else {
             if (a) { a.href = result.url; if (result.title) a.title = result.title; this._pop(a); }
@@ -2015,6 +3045,12 @@ class MarkdownStreamer {
     img.src = ''; // set first so later resolving it in finalize() keeps src before alt in attribute order
     img.alt = this._renderInlineToPlainText(this.linkBuf);
     img.dataset.refKey = refKey;
+    // The raw (un-flattened) label text, for finalize()'s literal-text
+    // fallback if this reference never resolves — reconstructing from
+    // `alt` there would use the ALREADY-flattened plain text instead of
+    // the original source, silently dropping any markup it had (most
+    // visibly a nested "[...]", e.g. "![[foo]]" turning into "![foo]").
+    img.dataset.altRaw = this.linkBuf;
     if (isShortcut) img.dataset.refShortcut = '1';
     if (!insideLink) img.className = 'blk';
     this.dom.current.appendChild(img);
@@ -2029,6 +3065,22 @@ class MarkdownStreamer {
   // detached scratch element using the same inline machinery as real
   // content, then read back via textContent (which itself strips all
   // tags) — no separate plain-text renderer needed.
+  // Like el.textContent, except a nested <img> (CommonMark: an image's
+  // alt text is parsed the same as link text, so it may itself contain
+  // another image or link) contributes its OWN alt attribute instead of
+  // nothing — .textContent is always "" for an img (a void element with
+  // no children), which would otherwise silently drop a nested image's
+  // text entirely instead of flattening it in, same as a nested link's
+  // plain text already gets included via its child text nodes.
+  _plainTextOf(el) {
+    let out = '';
+    for (const n of el.childNodes) {
+      if (n.nodeType === 1 && n.tagName === 'IMG') out += n.getAttribute('alt') || '';
+      else if (n.nodeType === 1) out += this._plainTextOf(n);
+      else if (n.nodeType === 3) out += n.data;
+    }
+    return out;
+  }
   _renderInlineToPlainText(raw) {
     const scratch = document.createElement('span');
     const saved = {
@@ -2042,11 +3094,273 @@ class MarkdownStreamer {
     this.flushInlinePending();
     this._flushCodeSpans(scratch);
     this._flushEmphasis(scratch);
-    const text = scratch.textContent;
+    const text = this._plainTextOf(scratch);
     this.dom.current = saved.current; this.textNode = saved.textNode; this.inlinePending = saved.inlinePending;
     this.lastChar = saved.lastChar; this.prevCharWs = saved.prevCharWs; this.pendingDelimBefore = saved.pendingDelimBefore;
     this.linkState = saved.linkState; this.linkBuf = saved.linkBuf; this.urlBuf = saved.urlBuf; this.linkIsImage = saved.linkIsImage;
     return text;
+  }
+
+  // Re-parses raw markdown SOURCE text through the normal inline pipeline
+  // in an isolated, detached container — unlike _renderInlineToPlainText()
+  // this keeps full DOM structure (emphasis, links, code spans, ...), it
+  // just doesn't happen to live in the real document tree yet. Used by
+  // finalize()'s deferred-reference failure paths to give a bracket that
+  // was only ever PEEKED AT (never consumed) during an earlier, failed
+  // "]"-driven lookahead a fresh, independent parse of its own — e.g.
+  // example #569 "[foo][bar][baz]" (only "baz" defined): "[foo]"'s own
+  // closing "]" peeks at "[bar]" as a candidate reference label, the
+  // lookup fails, and "[foo]" reverts to literal text — but "[bar]" was
+  // never actually consumed by that failed attempt, so it must still get
+  // its own turn, here re-scanned as "[bar][baz]" and resolved as a real
+  // link. Caller reads the result off the returned element's childNodes
+  // and splices them into the real tree.
+  _replayRawInline(raw) {
+    const scratch = document.createElement('span');
+    const saved = {
+      current: this.dom.current, textNode: this.textNode, inlinePending: this.inlinePending,
+      lastChar: this.lastChar, prevCharWs: this.prevCharWs, pendingDelimBefore: this.pendingDelimBefore,
+      linkState: this.linkState, linkBuf: this.linkBuf, urlBuf: this.urlBuf, linkIsImage: this.linkIsImage,
+      escapeNext: this.escapeNext, autolinkBuf: this.autolinkBuf,
+    };
+    this.dom.current = scratch; this.textNode = null; this.inlinePending = '';
+    this.lastChar = undefined; this.prevCharWs = true; this.linkState = null;
+    this.escapeNext = false; this.autolinkBuf = null;
+    for (const ch of raw) { this.onInlineChar(ch); this.lastChar = ch; }
+    // Whatever the raw text ends WITH (e.g. a bracket that never got a
+    // following "(...)"/"[...]" to complete it, since replayed text is
+    // always a single isolated span with nothing after it) never reaches
+    // onLinkChar's own handling for that — same "stops here" resolution
+    // an ordinary line ending needs, see _flushDanglingLinkState().
+    this._flushDanglingLinkState();
+    this.flushInlinePending();
+    this._flushCodeSpans(scratch);
+    this._flushEmphasis(scratch);
+    this.dom.current = saved.current; this.textNode = saved.textNode; this.inlinePending = saved.inlinePending;
+    this.lastChar = saved.lastChar; this.prevCharWs = saved.prevCharWs; this.pendingDelimBefore = saved.pendingDelimBefore;
+    this.linkState = saved.linkState; this.linkBuf = saved.linkBuf; this.urlBuf = saved.urlBuf; this.linkIsImage = saved.linkIsImage;
+    this.escapeNext = saved.escapeNext; this.autolinkBuf = saved.autolinkBuf;
+    return scratch;
+  }
+
+  // Unwraps `el` in place — its children move up to become its parent's
+  // own children, flanked by literal `beforeText`/`afterText` text nodes —
+  // used at finalize() time when a deferred link/reference attempt fails
+  // and must revert to literal "[...]" text WITHOUT flattening whatever
+  // markup its content already rendered into (e.g. a nested <em>), the
+  // same way abortLinkElement() already does for the live-streaming case.
+  // Returns the afterText node (a fixed insertion point right after `el`'s
+  // former content) so a caller can splice in further sibling content —
+  // e.g. a fresh reference-label parse — in the correct place.
+  _unwrapBracket(el, beforeText, afterText) {
+    const parent = el.parentNode;
+    if (!parent) return null;
+    if (beforeText) parent.insertBefore(document.createTextNode(beforeText), el);
+    const afterNode = document.createTextNode(afterText || '');
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.insertBefore(afterNode, el);
+    parent.removeChild(el);
+    return afterNode;
+  }
+
+  // Reverts a failed EXPLICIT full-reference link ("[label][ref]" whose
+  // "ref" never matched any definition) to literal "[label]" text, then —
+  // if a raw candidate-label source was recorded (see the 'ref_id' "]"
+  // handler) — re-parses "[" + that raw text + "]" as fresh, independent
+  // markdown and splices the result in right after, exactly where it
+  // appeared in the original source (see _replayRawInline() above).
+  _revertFailedRefLink(a) {
+    const raw = a.dataset.refRaw;
+    const afterNode = this._unwrapBracket(a, '[', ']');
+    if (raw === undefined || !afterNode) return;
+    let replayText = '[' + raw + ']';
+    // The peeked-at label bracket may ALSO already have been independently
+    // turned into its own (still-deferred) DOM node earlier in the stream
+    // — e.g. example #569 "[foo][bar][baz]" (only "baz" defined): "[foo]"
+    // peeks "[bar]" as a candidate label, but "[bar]" itself was already
+    // separately scanned and resolved into its own deferred attempt. Since
+    // that source span is EXACTLY what this fresh replay needs to
+    // re-consume too (the real algorithm's single scan pointer would just
+    // continue reading straight through it), pull its raw source back out
+    // and fold it into the SAME replay instead of leaving it to resolve on
+    // its own as an unrelated sibling — only one such bracket ever needs
+    // absorbing (CommonMark's lookahead here is a single label, not a
+    // chain), so nothing recurses past this one adjacent sibling.
+    const next = afterNode.nextSibling;
+    if (next && next.nodeType === 1 && next.tagName === 'A') {
+      if (next.dataset.implicitRef !== undefined) {
+        replayText += '[' + next.textContent + ']';
+        next.parentNode.removeChild(next);
+      } else if (next.getAttribute('href') === '#' && next.dataset.refKey !== undefined) {
+        replayText += '[' + next.textContent + '][' + this._unescapeRaw(next.dataset.refKey) + ']';
+        next.parentNode.removeChild(next);
+      }
+    }
+    this._spliceReplayAfter(afterNode, replayText);
+  }
+
+  // Reverts a failed label to literal "[label]" text, then replays
+  // `trailRaw` (raw source exactly as typed, e.g. a malformed inline
+  // "(...)" attempt) through the normal inline pipeline right after it —
+  // shared by the malformed-inline-destination shortcut-fallback path (see
+  // the 'url' case) once ITS OWN deferred shortcut-reference attempt also
+  // fails.
+  _revertToLiteralWithTrail(a, trailRaw) {
+    const afterNode = this._unwrapBracket(a, '[', ']');
+    if (trailRaw === undefined || !afterNode) return;
+    this._spliceReplayAfter(afterNode, trailRaw);
+  }
+
+  // Re-parses `raw` (see _replayRawInline() above) and splices the result
+  // in as `node`'s new following siblings, right where `raw` appeared in
+  // the original source.
+  _spliceReplayAfter(node, raw) {
+    const parent = node.parentNode;
+    if (!parent) return;
+    const scratch = this._replayRawInline(raw);
+    const refPoint = node.nextSibling;
+    while (scratch.firstChild) parent.insertBefore(scratch.firstChild, refPoint);
+  }
+
+  // Runs the three deferred-reference resolution passes (explicit
+  // "[label][ref]"/"[label][]", implicit shortcut "[label]", and
+  // reference images) against `container`, repeating to a fixpoint since
+  // a failure can itself splice in NEW deferred markers that need their
+  // own turn (see _revertFailedRefLink() above) — e.g. "[foo][bar][baz]"
+  // needs "[foo]"'s own failure to expose "[bar][baz]" as a fresh attempt
+  // before THAT can be resolved against refDefs in turn.
+  _resolveDeferredIn(container) {
+    let changed = true, guard = 0;
+    while (changed && guard++ < 10000) {
+      changed = false;
+      // Both passes below walk their matches INNERMOST-FIRST (reverse
+      // document order — a descendant always appears AFTER its ancestor in
+      // normal document order, so reversing a flat querySelectorAll() list
+      // is enough to put every descendant before any of its ancestors,
+      // with no actual tree-depth computation needed) rather than in
+      // ordinary document order. CommonMark resolves nested brackets
+      // innermost-first — real cmark's left-to-right scan always reaches
+      // an INNER bracket's own closing "]" before an enclosing OUTER
+      // bracket's — so if BOTH a still-deferred inner bracket (inside this
+      // one's label) and this one are only decided HERE, at finalize()
+      // (rather than one of them already having resolved live, earlier,
+      // during the original streaming pass), the inner one must get first
+      // claim on "becoming a real link" — CommonMark #533: "[foo *bar
+      // [baz][ref]*][ref]" (only "ref" defined) resolves "[baz][ref]" as
+      // the real link, which — per "a link cannot contain a link" —
+      // permanently deactivates the OUTER "[...][ref]", reverting it to
+      // literal "[foo ...]" text with its own separate "[ref]" then
+      // getting an independent, fresh resolution attempt of its own (see
+      // _revertFailedRefLink()) that in turn ALSO finds "ref" and becomes
+      // its own second, separate real link.
+      Array.from(container.querySelectorAll('a[href="#"]')).reverse().forEach(a => {
+        const key = a.dataset.refKey || this._normalizeRefKey(a.textContent);
+        // "Blocked" by the link-cannot-contain-link rule either because an
+        // ancestor is ALREADY a real link (_hasRealEnclosingA — e.g. it
+        // resolved live, during the original streaming pass, well before
+        // finalize() even started), or because — thanks to the innermost-
+        // first order above — a nested bracket inside THIS one's own
+        // label just became a real link earlier in this very pass
+        // (a.querySelector('a[href]:not([href="#"])'), the same "does my
+        // label contain a nested real link" check onLinkChar's own
+        // "]"/"(...)" handling already makes live — this is its
+        // finalize()-time equivalent, for exactly the cases that were
+        // still too undecided to make it there). Treated as an outright
+        // failure (never a real link) exactly like a genuinely unmatched
+        // reference, not silently skipped: it still needs its own
+        // literal-text-or-independent-replay fallback below.
+        const blocked = this._hasRealEnclosingA(a, container) || a.querySelector('a[href]:not([href="#"])');
+        const def = !blocked ? this.refDefs[key] : null;
+        if (def) {
+          a.href = def.url; if (def.title) a.title = def.title;
+          delete a.dataset.refKey; delete a.dataset.refRaw;
+          changed = true;
+        } else if (a.dataset.refKey) {
+          // An explicit "[label][ref]" whose ref never matched any
+          // definition — CommonMark: the WHOLE thing (both bracket pairs)
+          // falls back to literal text, same as the analogous img[data-
+          // ref-key] case just below already does. Left as a real,
+          // unresolved href="#" anchor otherwise, forever.
+          if (a.dataset.refRaw !== undefined) this._revertFailedRefLink(a);
+          else {
+            const parent = a.parentNode;
+            if (parent) {
+              // The ref key itself must stay exactly as typed for the
+              // lookup above (CommonMark doesn't unescape for matching
+              // purposes — see the comment on the analogous nested-bracket
+              // check earlier), but once it's just literal fallback text,
+              // ordinary backslash-escape processing applies to it same as
+              // any other text.
+              const literal = '[' + a.textContent + '][' + this._unescapeRaw(a.dataset.refKey) + ']';
+              parent.replaceChild(document.createTextNode(literal), a);
+            }
+          }
+          changed = true;
+        }
+      });
+
+      Array.from(container.querySelectorAll('a[data-implicit-ref]')).reverse().forEach(a => {
+        const key = a.dataset.implicitRef;
+        // Same innermost-first "link cannot contain link" check as the
+        // a[href="#"] pass just above.
+        const blocked = this._hasRealEnclosingA(a, container) || a.querySelector('a[href]:not([href="#"])');
+        const def = !blocked ? this.refDefs[key] : null;
+        const trail = a.dataset.failTrail; // see the 'url' case's own comment
+        if (def) {
+          a.href = def.url; if (def.title) a.title = def.title;
+          a.removeAttribute('data-implicit-ref'); a.removeAttribute('data-fail-trail');
+          // A malformed inline "(...)" that fell back to a shortcut
+          // reference which DID resolve (example #568) — the "(...)" was
+          // never part of the link to begin with, just ordinary content
+          // that happened to follow it, so it's replayed as a ordinary
+          // sibling either way, success or failure.
+          if (trail !== undefined) this._spliceReplayAfter(a, trail);
+        } else if (trail !== undefined) {
+          // The shortcut fallback ALSO failed — revert the rest of the
+          // way: literal "[label]" text, followed by the "(...)" attempt
+          // replayed exactly as typed (same treatment the immediate-
+          // failure path already gives it).
+          this._revertToLiteralWithTrail(a, trail);
+        } else {
+          this._unwrapBracket(a, '[', ']');
+        }
+        changed = true;
+      });
+
+      container.querySelectorAll('img[data-ref-key]').forEach(img => {
+        const key = img.dataset.refKey;
+        const def = this.refDefs[key];
+        if (def) {
+          img.src = def.url; if (def.title) img.title = def.title;
+          img.removeAttribute('data-ref-key'); img.removeAttribute('data-ref-shortcut'); img.removeAttribute('data-alt-raw');
+        } else {
+          const raw = img.dataset.altRaw ?? img.alt;
+          const literal = img.dataset.refShortcut ? `![${raw}]` : `![${raw}][${key}]`;
+          const parent = img.parentNode;
+          if (parent) parent.replaceChild(document.createTextNode(literal), img);
+        }
+        changed = true;
+      });
+    }
+  }
+
+  // Walks UP from `a`'s parent (not `a` itself), bounded by `root`, looking
+  // for an ancestor <a> that's already a genuine, resolved real link (a
+  // real href, not just the "#" placeholder a still-deferred one carries)
+  // — used by _resolveDeferredIn()'s own two <a>-resolution passes to
+  // enforce "a link cannot contain a link" even when the enclosing one
+  // only became real LATER than this one was originally opened (an inline
+  // "(url)" form resolves synchronously the instant it's typed, live,
+  // while a deferred reference/shortcut inside its label may still be
+  // waiting on a definition declared further down the document — see
+  // _finalizeShortcutRef()'s own, earlier "is my label's nested bracket
+  // already a real link" check, which this is the finalize()-time
+  // equivalent of, for exactly the cases that check couldn't see yet).
+  _hasRealEnclosingA(a, root) {
+    for (let n = a.parentNode; n && n !== root.parentNode; n = n.parentNode) {
+      if (n.nodeType === 1 && n.tagName === 'A' && n.hasAttribute('href') && n.getAttribute('href') !== '#') return true;
+    }
+    return false;
   }
 
   // Walks UP from el's parent (not el itself) looking for an enclosing
@@ -2065,28 +3379,31 @@ class MarkdownStreamer {
   // Resolves the currently-open link attempt as a shortcut reference
   // ("[label]" with nothing else — no "(...)" or "[...]" — following),
   // called once from 'expect_paren' whenever nothing valid follows the
-  // label's own "]". A NESTED attempt (opened while another link was
-  // already open, see case '[') can't defer resolution to finalize()
-  // the way a top-level one normally does (data-implicit-ref) — whether
-  // it resolves decides right now whether the ENCLOSING link is even
-  // allowed to succeed (its own eventual "]" checks via
-  // querySelector('a') for a real nested link), so it's checked
-  // immediately against refDefs as they stand so far instead. Matches
-  // real-world usage (a definition a nested bracket references is
-  // essentially never declared LATER in the document) at the cost of
-  // the rare forward-reference case.
+  // label's own "]". Deferred to finalize()'s data-implicit-ref pass, same
+  // as a top-level "[label]" shortcut — whether it resolves can depend on
+  // a reference definition declared LATER in the document, regardless of
+  // nesting (CommonMark #559: "[[*foo* bar]]" whose "*foo* bar" definition
+  // appears after the paragraph using it) — UNLESS `a` already contains a
+  // genuine, already-successfully-resolved nested link (a real <a href>,
+  // not another still-deferred data-implicit-ref/href="#" placeholder —
+  // see querySelector's own selector), in which case CommonMark's "a link
+  // cannot contain a link" is unconditional and immediate: nothing to
+  // defer, this one can never become a link no matter what refDefs ends up
+  // holding, and finalize()'s own "does my label contain a nested real
+  // link" checks (a.querySelector('a') at the various OTHER call sites —
+  // 'ref_id'/'url' cases, _resolveDeferredIn()) need this decided right
+  // now, not left as an <a> tag they'd otherwise (wrongly) also count as
+  // "contains a link" while it's still only tentatively deferred.
   _finalizeShortcutRef() {
     const a = this.dom.find('A');
     if (!a) { this._resetLinkUrl(); return; }
-    if (a.querySelector('a') || this._findEnclosingA(a)) {
-      const def = !a.querySelector('a') ? this.refDefs[this.linkBuf.trim().toLowerCase()] : null;
-      if (def) { a.href = def.url; if (def.title) a.title = def.title; this._pop(a); this._resetLinkUrl(); return; }
+    if (a.querySelector('a[href]:not([href="#"])')) {
       a.insertBefore(document.createTextNode('['), a.firstChild);
       a.appendChild(document.createTextNode(']'));
       this.abortLinkElement(null);
       return;
     }
-    a.dataset.implicitRef = this.linkBuf.toLowerCase(); this._pop(a);
+    a.dataset.implicitRef = this._normalizeRefKey(this.linkBuf); this._pop(a);
     this._resetLinkUrl();
   }
 
@@ -2099,6 +3416,46 @@ class MarkdownStreamer {
     }
     this._resetLinkUrl();
     if (extraCh !== null) this.appendToTextNode(extraCh);
+  }
+
+  // Reverts a failed "(...)" link-destination/title attempt back to
+  // literal "[label]" text, then replays "(" + everything consumed of
+  // the (now abandoned) attempt so far — urlRawBuf, which always holds
+  // every character exactly as typed (see _feedUrlChar's own comment) —
+  // through the ordinary inline pipeline, exactly as typed, rather than a
+  // plain literal text dump: CommonMark's real algorithm never set this
+  // text aside in the first place, so any raw HTML tag/autolink, code
+  // span, entity, or backslash escape inside it is still resolved
+  // normally regardless of the link ultimately failing (e.g. example
+  // #491: "[link](<foo\nbar>)" fails as a link destination — an
+  // angle-bracketed destination can never contain a line ending — but
+  // "<foo\nbar>" still gets its own fresh, independent chance to be
+  // recognized by the ordinary inline raw-HTML-tag scanner, which
+  // (unlike the destination grammar) already tolerates a tag's own
+  // attributes spanning multiple lines, see processChar()'s autolinkBuf
+  // handling above). Shared by the immediate-failure path in case 'url'
+  // below and processChar()'s own angle-bracket embedded-line-ending
+  // bypass (both abandon this same destination attempt, just detected at
+  // different points — the bypass fires the instant the line ending
+  // itself arrives, before _feedUrlChar ever sees it).
+  _abortUrlToLiteralReplay() {
+    const a = this.dom.find('A');
+    if (a) { a.insertBefore(document.createTextNode('['), a.firstChild); a.appendChild(document.createTextNode(']')); }
+    const raw = this.urlRawBuf; // captured before abortLinkElement() clears it via _resetUrlParse()
+    this.abortLinkElement(null);
+    for (const c of '(' + raw) { this.onInlineChar(c); this.lastChar = c; }
+  }
+
+  // Mirrors (read-only — doesn't mutate any parse state, unlike
+  // _feedUrlChar itself) the gap/trail-phase acceptance checks inside
+  // _feedUrlChar, so processChar()'s own bypass can decide whether a
+  // character is even worth feeding BEFORE committing it to the scan —
+  // see the "already crossed a newline" check there. Only meaningful for
+  // urlPhase 'gap'/'trail'; not called otherwise.
+  _urlPhaseAcceptsChar(ch) {
+    if (this.urlPhase === 'gap') return ch === ')' || this._isLinkWs(ch) || ch === '"' || ch === "'" || ch === '(';
+    if (this.urlPhase === 'trail') return ch === ')' || this._isLinkWs(ch);
+    return true;
   }
 
   // Feeds one character of a `(...)` inline link/image destination + title,
@@ -2132,12 +3489,19 @@ class MarkdownStreamer {
 
     if (this.urlPhase === 'dest') {
       if (this.urlAngle === undefined) {
-        this.urlAngle = ch === '<' && this.urlDest === '';
+        // Whitespace (including a line ending) before the destination
+        // itself even starts is tolerated (CommonMark 6.3's link-paren
+        // grammar allows optional whitespace ahead of the destination) —
+        // stay in this "not decided yet" state rather than prematurely
+        // treating it as the gap AFTER an (empty) destination, which
+        // would then reject the destination's own first real character.
+        if (this._isLinkWs(ch)) return null;
+        this.urlAngle = ch === '<';
         if (this.urlAngle) return null; // consume the "<" itself, not part of the destination
       }
       if (this.urlAngle) {
         if (ch === '>') { this.urlPhase = 'gap'; return null; }
-        if (ch === '<') this.urlFailed = true; // an unescaped "<" inside <...> is invalid
+        if (ch === '<' || ch === '\n') this.urlFailed = true; // an unescaped "<" or line ending inside <...> is invalid
         this.urlDest += ch; return null;
       }
       // Bare (unwrapped) destination: balanced, unescaped parens are part
@@ -2223,6 +3587,35 @@ class MarkdownStreamer {
   // example: "\φ" and "\«" stay literal backslash-then-character, since φ
   // and « aren't ASCII, even though « IS Unicode punctuation).
   _isAsciiPunct(ch) { return ch !== undefined && ch !== null && /[!-/:-@[-`{-~]/.test(ch); }
+
+  // CommonMark 6.1: a link label cannot contain an unescaped "[" or "]" —
+  // checked against the RAW (pre-unescape) label text, so e.g. "ref[bar]"
+  // is rejected but "ref\[bar\]" is not. Used both for a reference
+  // definition's own "[label]:" and for a reference lookup's key.
+  _hasUnescapedBracket(raw) {
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i] === '\\') { i++; continue; }
+      if (raw[i] === '[' || raw[i] === ']') return true;
+    }
+    return false;
+  }
+
+  // CommonMark 6.1/6.2/6.3: a reference label (both a definition's own
+  // "[label]:" and a lookup's "[...]"/"[...][...]") is matched
+  // case-INsensitively and with internal whitespace normalized — any run
+  // of whitespace (including a line ending, for a label that spans
+  // multiple physical lines) collapses to a single space, and leading/
+  // trailing whitespace is stripped, before the two sides are compared.
+  // "Case-insensitive" here means full Unicode case folding, not just
+  // ASCII/simple lowercasing — str.toLowerCase() alone leaves U+1E9E "ẞ"
+  // as "ß" (one character), which then wouldn't match a definition's
+  // "SS"/"ss"; round-tripping upper->lower once more folds both down to
+  // the same "ss" (JS has no direct case-fold primitive, but this
+  // three-step chain reproduces it for the common precomposed cases,
+  // CommonMark's own example included).
+  _normalizeRefKey(raw) {
+    return raw.trim().replace(/\s+/g, ' ').toLowerCase().toUpperCase().toLowerCase();
+  }
   // CommonMark 6.2 defines "punctuation" for emphasis flanking as any
   // Unicode P (punctuation) or S (symbol) character — not just ASCII
   // punctuation — so e.g. "£"/"€" (Unicode Sc, currency symbols) count
@@ -2289,7 +3682,24 @@ class MarkdownStreamer {
       }
     }
     if (len > 0) {
-      if (canOpen) {
+      // A run that can neither open NOR close anything is dead on arrival —
+      // written immediately as literal text, since nothing will ever revisit
+      // it. A run that COULD close (even though, right here, right now, no
+      // local opener was found) is kept as a placeholder instead, just like
+      // a genuine opener — see _retryEmphasisClosers()/_flushEmphasis()
+      // below: a bracket "[" that's currently open (still mid-label, not
+      // yet decided success/failure) commits eagerly to a real, live-nested
+      // <a> element (see case '[' in onLinkChar), which acts as a DOM
+      // container boundary this delimiter-matching sibling-walk can't see
+      // past — but CommonMark's real algorithm keeps a flat delimiter stack
+      // regardless of brackets, so a "*" opener BEFORE an unresolved "[" and
+      // a "*" closer INSIDE it (not yet matchable locally, since they're on
+      // opposite sides of the live <a>) must still be able to pair once the
+      // bracket's own fate is decided — immediately, if it fails and
+      // unwraps back to flat text (CommonMark #523: "*foo [bar* baz]"), or
+      // deferred to finalize(), if resolution itself was deferred waiting
+      // on a reference definition declared later in the document.
+      if (canOpen || canClose) {
         const node = document.createComment('em');
         node._emBase = baseChar; node._emLen = len; node._emCanOpen = canOpen; node._emCanClose = canClose;
         this.dom.current.appendChild(node);
@@ -2300,14 +3710,19 @@ class MarkdownStreamer {
     this.textNode = null;
   }
 
-  // Walks DIRECT children of dom.current backward (real siblings, not a
-  // buffer) for the nearest still-open run that could pair with a closer of
+  // Walks backward from `node` (inclusive) via previousSibling for the
+  // nearest still-open run that could pair with a closer of
   // `closerLen`/`closerCanOpen` — applying the "multiple of 3" rule (6.2
   // rules 9/10): if either side can both open and close, and the two
   // lengths sum to a multiple of 3, the pairing is only valid if BOTH
-  // lengths individually are also multiples of 3.
-  _findOpenerSibling(baseChar, closerLen, closerCanOpen) {
-    for (let n = this.dom.current.lastChild; n; n = n.previousSibling) {
+  // lengths individually are also multiples of 3. Shared by the live,
+  // eager close-on-arrival path (_findOpenerSibling, starting from
+  // dom.current's last child) and the retroactive cross-boundary retry
+  // (_retryEmphasisClosers, starting from an existing closer placeholder's
+  // own previous sibling) — both are the exact same search, just anchored
+  // at a different starting point.
+  _findOpenerFrom(node, baseChar, closerLen, closerCanOpen) {
+    for (let n = node; n; n = n.previousSibling) {
       if (n.nodeType !== 8 || n._emBase !== baseChar || !n._emCanOpen || n._emLen <= 0) continue;
       if (n._emCanClose || closerCanOpen) {
         const sum = n._emLen + closerLen;
@@ -2317,15 +3732,64 @@ class MarkdownStreamer {
     }
     return null;
   }
+  // Walks DIRECT children of dom.current backward (real siblings, not a
+  // buffer) for the nearest still-open run — see _findOpenerFrom() above.
+  _findOpenerSibling(baseChar, closerLen, closerCanOpen) {
+    return this._findOpenerFrom(this.dom.current.lastChild, baseChar, closerLen, closerCanOpen);
+  }
 
-  // Wraps everything between `openerNode` and the current end of its parent
-  // (i.e. everything typed since the opener) in a new <em>/<strong> element.
-  _wrapDelimRange(openerNode, tag) {
+  // Wraps everything between `openerNode` and `endNode` (exclusive) — or,
+  // if `endNode` is omitted, everything up to the current end of
+  // openerNode's parent (i.e. everything typed since the opener, for the
+  // live eager-close path where the closer IS the last thing written) — in
+  // a new <em>/<strong> element. `endNode` is needed by the retroactive
+  // cross-boundary retry (_retryEmphasisClosers), where the closer being
+  // matched is an EXISTING placeholder that may not be its container's
+  // last child (more content can already follow it), so wrapping "to the
+  // end" would wrongly scoop up that later content too.
+  _wrapDelimRange(openerNode, tag, endNode = null) {
     const el = document.createElement(tag);
     openerNode.parentNode.insertBefore(el, openerNode.nextSibling);
     let n = el.nextSibling;
-    while (n) { const next = n.nextSibling; el.appendChild(n); n = next; }
+    while (n && n !== endNode) { const next = n.nextSibling; el.appendChild(n); n = next; }
     this.textNode = null;
+  }
+
+  // Gives every leftover "closer" placeholder in `root` (one that, at the
+  // moment it originally streamed in, already tried — and failed — to find
+  // a matching opener among its THEN-current DOM siblings) a fresh chance
+  // to find one now, in left-to-right document order — exactly replicating
+  // what the live eager-close path already does, just re-run after the
+  // fact. A no-op for the ordinary case (nothing changed since the
+  // original failed attempt, so the same search just fails again the same
+  // way) — it only actually finds something NEW when a container boundary
+  // that blocked the original search (an unresolved link/bracket's live
+  // <a> element) has SINCE been unwrapped back to flat text (see
+  // abortLinkElement()/_unwrapBracket() and their call sites), exposing an
+  // opener that was previously on the other side of it. Must run BEFORE
+  // _flushEmphasis()'s own leftover-to-literal sweep, in the same pass,
+  // since a closer this finds a home for is no longer "leftover" at all.
+  _retryEmphasisClosers(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+    const closers = [];
+    let n;
+    while ((n = walker.nextNode())) { if (n._emBase && n._emCanClose && n._emLen > 0) closers.push(n); }
+    for (const node of closers) {
+      if (!node.parentNode || node._emLen <= 0) continue;
+      let len = node._emLen;
+      while (len > 0) {
+        const opener = this._findOpenerFrom(node.previousSibling, node._emBase, len, node._emCanOpen);
+        if (!opener) break;
+        const use = Math.min(2, opener._emLen, len);
+        let tag = use === 2 ? 'strong' : 'em';
+        if (use === 2 && node._emBase === '_' && !this.commonMarkStrict) tag = 'u';
+        this._wrapDelimRange(opener, tag, node);
+        opener._emLen -= use; len -= use;
+        if (opener._emLen <= 0) opener.remove();
+      }
+      node._emLen = len;
+      if (len <= 0) node.remove();
+    }
   }
 
   // Same idea as _flushEmphasis, for code spans: an opening backtick run
@@ -2386,6 +3850,30 @@ class MarkdownStreamer {
   // partner and is swept to literal text (or removed, if fully consumed).
   _flushEmphasis(root) {
     if (!root || root.nodeType !== 1) return;
+    // Give any closer stuck on the far side of a since-unwrapped bracket
+    // boundary a fresh chance to pair up (see _retryEmphasisClosers()) —
+    // must run BEFORE the leftover sweep below, since a closer it finds a
+    // home for is no longer leftover at all. Always safe/cheap to run
+    // unconditionally (see its own comment): a no-op unless some bracket
+    // boundary that blocked an earlier attempt has since gone away.
+    this._retryEmphasisClosers(root);
+    // If `root` still has a link/image bracket whose own success-or-failure
+    // is itself deferred to finalize()'s later _resolveDeferredIn() pass
+    // (data-implicit-ref / href="#"+data-ref-key — see there), don't sweep
+    // ANY leftover placeholder in this subtree to literal text yet — not
+    // just ones physically nested inside that bracket, but also, e.g., an
+    // OPENER sitting BEFORE it (CommonMark #523's "*" before "[bar* baz]",
+    // once that bracket's own failure is itself deferred to a reference
+    // definition declared later in the document — CommonMark #559 combined
+    // with #523): if the bracket eventually fails and unwraps back to flat
+    // text, that opener needs to still be there, un-swept, for
+    // _retryEmphasisClosers()'s cross-boundary retry to find. Deferred
+    // brackets are never split across blocks, so this check — scoped to
+    // THIS call's own `root` — already only defers the specific
+    // block(s)/subtree that actually still has one; finalize()'s own final
+    // _flushEmphasis(this.root) call (after every deferred bracket has been
+    // resolved one way or the other) always completes the sweep for real.
+    if (root.querySelector('a[data-implicit-ref], a[href="#"]')) return;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
     const leftover = [];
     let n;
@@ -2492,8 +3980,7 @@ class MarkdownStreamer {
   // soft-break join space) instead of starting a new one, matching how
   // decideBlock's own _blockDefault() treats an ordinary continuation line.
   _continueOrFallback() {
-    const tag = this.dom.currentTag();
-    if (tag === 'P' || tag === 'LI' || tag === 'DD') {
+    if (this._nearestParaAncestorTag()) {
       if (this.hadJoinSpace) { this.hadJoinSpace = false; this.appendToTextNode(' '); this.lastChar = ' '; }
       this.feedPendingAsInline(); this.blockDecided = true;
     } else this.fallbackToParagraph();
@@ -2517,7 +4004,25 @@ class MarkdownStreamer {
       // not re-splitting multi-line raw text into separate paragraphs
       // the way a real per-character replay would (rare in practice).
       this.defPending = null;
-      this._appendOrNewParagraph(d.raw);
+      // Replayed through the INLINE-only pipeline (onInlineChar) instead of
+      // _appendOrNewParagraph's plain literal-text write, so e.g. a literal
+      // "<bar>" fallback still parses as real (inert) inline HTML the way a
+      // browser's DOM actually would (CommonMark example #201) — safe from
+      // the recursion a full processChar()/decideBlock() replay would risk
+      // (this same text containing its OWN "[label]:"-shaped prefix) since
+      // onInlineChar never touches this.defPending or block decisions at
+      // all. A raw newline becomes an ordinary soft-break space rather than
+      // re-split into its own paragraph (a rare, accepted deviation for
+      // this already-invalid-syntax fallback).
+      {
+        const tag = this.dom.currentTag();
+        if (!(tag === 'P' || tag === 'LI' || tag === 'DD')) { this.closeBlock(); this.openParagraph(); }
+        else if (this.hadJoinSpace) { this.hadJoinSpace = false; this.appendToTextNode(' '); this.lastChar = ' '; }
+        for (const c of d.raw) {
+          if (c === '\n') { this.appendToTextNode(' '); this.lastChar = ' '; }
+          else { this.onInlineChar(c); this.lastChar = c; }
+        }
+      }
       // This call is always reached from a blank-line trigger (the
       // ONLY case that ever finalizes a still-open ref attempt as
       // invalid — see the d.failed early-finalize check and the
@@ -2558,6 +4063,13 @@ class MarkdownStreamer {
   _reprocessAfterDef(ch) {
     this.flushDefPending();
     this.pending = '';
+    // A failed speculative title (see _feedDefChar()'s 'trail' phase) left
+    // its own already-consumed text behind for us to replay first, in
+    // order, before `ch` itself — none of it is still sitting unread in
+    // the input the way a single-character reprocess's `ch` is.
+    const prefix = this._defReplayPrefix;
+    this._defReplayPrefix = null;
+    if (prefix) for (const c of prefix) this.processChar(c);
     this.decideBlock(ch);
   }
 
@@ -2604,7 +4116,19 @@ class MarkdownStreamer {
     }
     if (d.phase === 'gap') {
       if (/\s/.test(ch)) { d.gapSawSpace = true; return; }
-      if (d.gapSawSpace && (ch === '"' || ch === "'" || ch === '(')) { d.phase = 'title'; d.titleQuote = ch; d.title = ''; return; }
+      if (d.gapSawSpace && (ch === '"' || ch === "'" || ch === '(')) {
+        d.phase = 'title'; d.titleQuote = ch; d.title = ''; d.titleStartRawLen = d.raw.length - 1;
+        // Whether the destination's OWN line had already validly ended
+        // (nothing but whitespace after it) before this title attempt
+        // began — see the 'trail' phase below, where this decides whether
+        // a failed title just falls back to a still-valid dest-only
+        // definition (the title attempt started fresh on a later line) or
+        // invalidates the whole definition (it was crammed onto the same
+        // line as the destination, with nothing valid separating a
+        // complete dest-only definition from this garbage).
+        d.titleAfterLineBreak = d.destLineEnded;
+        return;
+      }
       // A title is OPTIONAL — content here that isn't whitespace or a
       // title-opening delimiter doesn't invalidate the definition (which
       // is already complete: label + destination, no title), it just
@@ -2630,11 +4154,80 @@ class MarkdownStreamer {
       if (ch === closeCh) { d.phase = 'trail'; return; }
       d.title += ch; return;
     }
-    // 'trail': only whitespace may follow the title.
-    if (!/\s/.test(ch)) d.failed = true;
+    // 'trail': only whitespace may follow the title — but content here
+    // doesn't invalidate the WHOLE definition the way a malformed
+    // destination does; CommonMark still accepts "[label]: dest" alone
+    // (no title) and treats the speculative title text as ordinary
+    // content starting right after the destination (e.g. #210: an
+    // unterminated title attempt on the line right after a valid bare
+    // destination becomes its own paragraph, the definition itself still
+    // registers with dest only). Stash that speculative text (the
+    // opening quote through the last character consumed so far, all of
+    // which _feedDefChar already swallowed one char at a time and so
+    // can't simply be left for the normal pipeline to see on its own)
+    // for _reprocessAfterDef() to replay, and signal reprocess same as
+    // the optional-title-never-started case just above.
+    if (!/\s/.test(ch)) {
+      if (!d.titleAfterLineBreak) { d.failed = true; return; }
+      this._defReplayPrefix = d.raw.slice(d.titleStartRawLen, d.raw.length - 1);
+      d.title = null;
+      return 'reprocess';
+    }
   }
   startHrWatch(c,n,f,buf)   { this.hrWatch = true; this.hrChar = c; this.hrCount = n; this.hrFailed = f; this.hrBuf = buf; this._bd(); }
   startSetextWatch(c,b,f){ this.setextWatch = true; this.setextChar = c; this.setextBuf = b; this.setextFailed = f; this._bd(); }
+  // Opens a "-" list item whose marker is followed by whitespace containing
+  // at least one TAB before its first real content character (CommonMark
+  // tabs example #7: "-\t\tfoo") — openUlDecided() below assumes every
+  // whitespace character it's handed is exactly one column wide, which a
+  // literal space always is but a tab (which jumps to the next multiple-
+  // of-4 column) is not, so that case is split out here instead of trying
+  // to bolt tab-stop math onto openUlDecided()'s char-counting. Mirrors
+  // the identical column-math fix already applied to blockquote content
+  // (case '>' above): a one-character marker occupies column 0, so real
+  // content (if the whole run collapses to 4 or more extra columns past
+  // the one required separator column) starts at column 2 and anything
+  // from there up to the 4-columns-past-that boundary is literal leading
+  // space of an indented code block, not further indentation to absorb.
+  // `ws` is the whitespace run between the marker and the first content
+  // char, `firstChar` that first content character itself.
+  _openTabbedListItem(ws, firstChar) {
+    const base = 2; // column right after "-" + its 1 required separator column
+    let col = 1, j = 0, leadSpaces = 0;
+    if (ws[0] === '\t') {
+      const stop = (Math.floor(col / 4) + 1) * 4;
+      leadSpaces += stop - col - 1;
+      col = stop; j = 1;
+    } else { col = 2; j = 1; } // a literal space satisfies the required separator outright
+    while (j < ws.length) {
+      if (ws[j] === ' ') { leadSpaces++; col++; }
+      else { const stop = (Math.floor(col / 4) + 1) * 4; leadSpaces += stop - col; col = stop; }
+      j++;
+    }
+    if (leadSpaces >= 4) {
+      this.openListItem('ul', this.lineIndent, '-', undefined, base);
+      const top = this.listStack[this.listStack.length - 1];
+      const pre = this.dom.push('pre');
+      const code = document.createElement('code');
+      pre.appendChild(code);
+      this.textNode = document.createTextNode(' '.repeat(leadSpaces - 4) + firstChar);
+      code.appendChild(this.textNode);
+      this.inIndentCode = true; this.lastBlockEl = pre;
+      this.indentCodeListCol = base;
+      if (top) top.contentCol = base;
+      this._bd();
+      return;
+    }
+    this.openListItem('ul', this.lineIndent, '-', undefined, base + leadSpaces);
+    this._bd();
+    this.pending = ''; this.blockDecided = false;
+    this.lineIndent = base + leadSpaces;
+    this.needsJoinSpace = false;
+    this._inListContinuation = true;
+    this._bqFreshRestart = true; // see its own comment
+    this.decideBlock(firstChar);
+  }
+
   openUlDecided(s, marker) {
     const base = this.linePos - s.length; // column right after marker + its 1 required space
     // `s` can be a MIX of already-buffered extra spaces followed by the
@@ -2674,6 +4267,7 @@ class MarkdownStreamer {
       // _popToBlockContainer() — same _inListContinuation guard used for a
       // list item's SECOND block (_resolveListBlankContinuation()).
       this._inListContinuation = true;
+      this._bqFreshRestart = true; // see its own comment
       for (const c of rest) {
         if (this.blockDecided) {
           if (c === ' ') this.trailingSpaces++; else this.trailingSpaces = 0;
@@ -2847,16 +4441,47 @@ class MarkdownStreamer {
   }
 
   _startHtmlBlock(mode, closeTag) {
+    // Snapshotted once, at open time — not read live later — same
+    // pattern already used for fenceInBlockquote just above: whether
+    // THIS block was opened while replaying a blockquote's own ">"-led
+    // line content (CommonMark 4.6 interacting with 5.1's lazy
+    // continuation). An HTML block opened this way is scoped to the
+    // blockquote's content the same way an ordinary paragraph inside one
+    // is — see onNewline()'s inRawHtml handling for how it actually ends
+    // implicitly when the blockquote does, without ever needing a blank
+    // line or matching closing tag of its own.
+    const openedInBlockquote = this._inBlockquoteContent;
+    // Same idea, for a list item's own first content instead of a
+    // blockquote's (_inListContinuation is set the same way by
+    // openUlDecided()/openListItem()'s equivalent replay of a marker's
+    // own first line — e.g. "- <div>"). Captures the item's content
+    // column too: onNewline() needs it on every later line to tell
+    // whether that line is still indented far enough to belong to this
+    // same item.
+    const openedInListItem = this._inListContinuation;
+    const listTop = openedInListItem ? this.listStack[this.listStack.length - 1] : null;
     this.closeBlock();
     this.inRawHtml = true;
     this.rawHtmlBuf = this.pending;
     this.rawHtmlLineBuf = this.pending;
     this.rawHtmlEndMode = mode;
     this.rawHtmlCloseTag = closeTag;
+    this.rawHtmlInBlockquote = openedInBlockquote;
+    this.rawHtmlInListItem = openedInListItem;
+    this.rawHtmlListContentCol = listTop ? listTop.contentCol : 0;
+    // This block's own OPENING line already had its ">" marker (or list
+    // marker + required space) consumed by the ordinary blockquote/list
+    // replay mechanism (case '>':/openUlDecided()) before
+    // `_startHtmlBlock` was ever reached — only rawHtmlBuf/rawHtmlLineBuf
+    // content accumulated AFTER this point (i.e. every LATER line, fed
+    // through processChar()'s unconditional inRawHtml bypass, which has
+    // no idea a ">" marker or list indentation is structural) still needs
+    // it stripped.
+    this.rawHtmlBqFirstLinePending = openedInBlockquote || openedInListItem;
     this._bd();
   }
 
-  flushRawHtml() {
+  flushRawHtml(atEOF) {
     let raw = this.rawHtmlBuf;
     // A type-6/7 HTML block that's JUST a closing tag (e.g. "</div>") —
     // if it matches one of the still-open, no-matching-close-yet elements
@@ -2875,6 +4500,7 @@ class MarkdownStreamer {
         this._rawHtmlChain = null;
         this.inRawHtml = false; this.rawHtmlBuf = ''; this.rawHtmlLineBuf = '';
         this.rawHtmlEndMode = null; this.rawHtmlCloseTag = null;
+        this.rawHtmlInBlockquote = false; this.rawHtmlInListItem = false;
         this.resetLine();
         return;
       }
@@ -2920,7 +4546,24 @@ class MarkdownStreamer {
       // content, not block-level padding to strip. Every other mode
       // trims (its content is a mix of block-level lines where the
       // final line ending is just structural, not meaningful text).
-      template.innerHTML = this.rawHtmlEndMode === 'tag' ? raw : raw.trim();
+      // An unclosed type-1 block reaching true end-of-input (no matching
+      // closing tag ever arrived) drops exactly the input's own final
+      // trailing line ending — same as CommonMark's convention that every
+      // input implicitly ends with a newline that is not itself content —
+      // rather than storing it as literal RAWTEXT.
+      let tagRaw = (atEOF && this.rawHtmlEndMode === 'tag' && raw.endsWith('\n')) ? raw.slice(0, -1) : raw;
+      // HTML5's parser silently drops a single leading newline immediately
+      // after a <pre>/<textarea> start tag (never <script>/<style>) —
+      // real-browser behavior template.innerHTML itself follows. That
+      // newline is genuine literal content here (the blank line right
+      // after the opening tag, CommonMark example #171), so counteract the
+      // parser's own strip by feeding it one extra leading newline to eat
+      // instead.
+      if (this.rawHtmlEndMode === 'tag' && (this.rawHtmlCloseTag === 'pre' || this.rawHtmlCloseTag === 'textarea')
+          && /^<[^>]*>\n/.test(tagRaw)) {
+        tagRaw = tagRaw.replace(/^(<[^>]*>)/, '$1\n');
+      }
+      template.innerHTML = this.rawHtmlEndMode === 'tag' ? tagRaw : raw.trim();
       if (template.content.childNodes.length === 0) {
         // Truly nothing survived parsing at all (not even a leftover text
         // node) — e.g. raw was only a stray closing tag with nothing
@@ -2956,8 +4599,24 @@ class MarkdownStreamer {
           const tag = el.tagName.toLowerCase();
           const explicitlyClosed = new RegExp('</' + tag + '(?=[\\s>])', 'i').test(raw);
           if (!explicitlyClosed) {
-            this._openRawHtmlEls.add(el);
-            this.dom.current = el;
+            // The element that stays "open" for subsequent content isn't
+            // necessarily `el` itself — raw's own source can open SEVERAL
+            // levels of nested tags on one line with none of them closed
+            // (e.g. "<table><tr><td>\n<pre>\n**Hello**,\n", CommonMark
+            // example #148: `el` is <table>, but a real streaming HTML
+            // parser given only that text is actually still sitting
+            // inside the innermost <pre>). Walk to that deepest still-
+            // open descendant and register every element on the way
+            // down, not just `el`, so _popToBlockContainer() keeps the
+            // WHOLE chain open (any of them could turn out to be a later
+            // raw-HTML block's matching close, not only the outermost).
+            let deepest = el;
+            this._openRawHtmlEls.add(deepest);
+            while (deepest.lastElementChild) {
+              deepest = deepest.lastElementChild;
+              this._openRawHtmlEls.add(deepest);
+            }
+            this.dom.current = deepest;
             // raw.trim() above dropped the trailing line ending that
             // separated this block's last line from whatever comes
             // next while it's kept open — without it, e.g. "<div>\n
@@ -2965,7 +4624,7 @@ class MarkdownStreamer {
             // SAME block's literal content) loses the only thing that
             // would otherwise separate "*foo*" from a directly-
             // following element once more content is appended here.
-            el.appendChild(document.createTextNode('\n'));
+            deepest.appendChild(document.createTextNode('\n'));
           } else if (/\s$/.test(raw)) {
             // Explicitly closed within its own text after all (e.g.
             // "<div>...</div>" all as one blank-line-terminated block) —
@@ -2975,7 +4634,7 @@ class MarkdownStreamer {
             // (now complete) element itself.
             parent.appendChild(document.createTextNode('\n'));
           }
-        } else if (insertedNodes.length > 0 && /\s$/.test(raw)) {
+        } else if (insertedNodes.length > 0 && /\s$/.test(raw) && !(atEOF && this.rawHtmlEndMode === 'tag')) {
           // A block that ends mid-line, at its own terminator, rather
           // than at a blank line (a comment/PI/CDATA reaching "-->" etc,
           // or a type-1 tag reaching its matching closing tag) — e.g.
@@ -2989,6 +4648,7 @@ class MarkdownStreamer {
     this._rawHtmlChain = { parent, nodes: insertedNodes, raw };
     this.inRawHtml = false; this.rawHtmlBuf = ''; this.rawHtmlLineBuf = '';
     this.rawHtmlEndMode = null; this.rawHtmlCloseTag = null;
+    this.rawHtmlInBlockquote = false; this.rawHtmlInListItem = false;
     this.resetLine();
   }
 
@@ -3214,6 +4874,30 @@ class MarkdownStreamer {
   }
 
   openListItem(type, indent, marker, startNum, contentCol) {
+    // A list item can never be LAZILY continued into an enclosing
+    // blockquote (CommonMark 5.1: laziness only ever applies to plain
+    // paragraph continuation text, never to a fresh block-starting
+    // marker like this one). If the line providing this marker has no
+    // ">" of its own, yet the list currently on top of listStack is
+    // itself nested INSIDE a blockquote an earlier line left open, that
+    // blockquote — and the list tracked inside it — is over: the same
+    // "close it, don't lazily continue" call closeBlock() already makes
+    // for every OTHER new block-starter, just applied here too (this
+    // path reaches the listStack machinery directly, bypassing
+    // closeBlock() and its blockquote check entirely otherwise).
+    // Deliberately keyed off the LIST's own element, not just whether
+    // dom.current currently has some blockquote ancestor — the opposite
+    // nesting (a blockquote sitting inside one of THIS list's own items,
+    // e.g. "* a\n  > b\n") must NOT trigger this: that blockquote is the
+    // list's content, not the other way around, and a later sibling
+    // marker at the list's own level still belongs to the same list.
+    if (this.listStack.length > 0 && !this._inBlockquoteContent) {
+      const top = this.listStack[this.listStack.length - 1];
+      if (top.el && top.el.closest && top.el.closest('blockquote')) {
+        this.closeBlock();
+        this.listStack = [];
+      }
+    }
     this._popMarkers();
     this.textNode = null;
     if (this.listStack.length === 0) {
@@ -3275,6 +4959,10 @@ class MarkdownStreamer {
           this.listStack.pop(); this.pushNewList(type, indent, marker, startNum, contentCol);
         } else {
           now.contentCol = contentCol;
+          // A new sibling marker line has its own (possibly differently-
+          // sized) blockquote prefix — refresh bqBaseCol to match, same
+          // reasoning as pushNewList()'s own initial assignment.
+          now.bqBaseCol = this._bqReplayBaseCol;
           // This new item follows a blank line and reuses the SAME list
           // (not a fresh one) — that blank line separated two items of this
           // list, which is exactly what makes it loose.
@@ -3291,7 +4979,14 @@ class MarkdownStreamer {
   pushNewList(type, indent, marker, startNum, contentCol) {
     const list = this.dom.push(type);
     if (type === 'ol' && startNum !== undefined && startNum !== 1) list.setAttribute('start', String(startNum));
-    this.listStack.push({ el: list, type, indent, marker, contentCol, loose: false });
+    // bqBaseCol: null unless this item is being opened WHILE replaying a
+    // blockquote's own content (decideBlock()'s "case '>'" sets
+    // this._bqReplayBaseCol for the duration of that replay) — see
+    // _effContentCol(), which uses it to turn this absolute contentCol
+    // into one relative to the blockquote instead, since a blockquote's
+    // raw marker-prefix width (unlike a plain list's own indentation) can
+    // legitimately differ from one line to the next.
+    this.listStack.push({ el: list, type, indent, marker, contentCol, loose: false, bqBaseCol: this._bqReplayBaseCol });
   }
 
   // Called for the first character of the line right after a blank line that
@@ -3305,14 +5000,54 @@ class MarkdownStreamer {
   // the list (that content ends up going through _blockDefault(), sees
   // dom.currentTag() is no longer P/LI/DD, and calls fallbackToParagraph(),
   // which is what actually clears listStack once the list is genuinely done).
+  // The contentCol to actually compare a line's indentation against: the
+  // plain stored value for an ordinary (non-blockquote) list, but adjusted
+  // to be relative to the blockquote's own content for one opened while
+  // replaying it (bqBaseCol != null — see pushNewList()) — a raw column
+  // comparison there would be comparing two different lines' potentially
+  // differently-sized blockquote-marker prefixes against each other,
+  // which CommonMark's blockquote syntax never requires to match.
+  _effContentCol(entry) {
+    return entry.bqBaseCol != null ? entry.contentCol - entry.bqBaseCol : entry.contentCol;
+  }
+
+  // A potential list-marker (or thematic-break) character, while a list is
+  // already open, that needs 4+ raw columns of indentation yet still falls
+  // SHORT of the innermost open item's own content column, is too indented
+  // to be recognized as any kind of new block here at all — the same flat
+  // 4-space threshold CommonMark applies everywhere else (an ordinary
+  // indented code block, say) governs this too, completely independent of
+  // whatever column each of this list's own PREVIOUS sibling markers
+  // happened to sit at (CommonMark example #312: "- a\n - b\n  - c\n   -
+  // d\n    - e\n" — each of b/c/d IS still a valid sibling of the flat
+  // list despite drifting ever further right, but "- e", one column
+  // deeper still, first crosses the absolute 4-column line while not yet
+  // reaching "d"'s own content column of 5 — the deciding factor is that
+  // absolute threshold, not "one more than d's own indent"). Reaching the
+  // item's content column instead nests as a legitimate sub-list, an
+  // entirely different — unaffected — path.
+  _listMarkerTooIndented() {
+    if (this.listStack.length === 0 || this.lineIndent < 4) return false;
+    const top = this.listStack[this.listStack.length - 1];
+    return this.lineIndent < this._effContentCol(top);
+  }
+
   // `fromBlank`: true when a genuine blank line separated the marker/prior
   // content from this line (the pendingListBlank path — makes the list
   // loose, and this becomes a SECOND paragraph); false when this is the
   // very next line right after a list marker with no content of its own
   // (e.g. "-\n" — the pendingEmptyItem path) — that item stays tight, and
   // this is simply its (first and only) content, not a second block.
-  _resolveListBlankContinuation(ch, fromBlank) {
+  // `indentOverride`: when given, used in place of this.lineIndent for
+  // every comparison below — needed when this is being resolved from
+  // WITHIN a blockquote's own content replay (decideBlock()'s "case
+  // '>'"), where this.lineIndent only ever reflects this line's raw
+  // leading whitespace BEFORE its ">" marker(s), not the indentation of
+  // its actual (post-marker) content — the caller passes the already-
+  // computed blockquote-relative leadSpaces (`j`) instead.
+  _resolveListBlankContinuation(ch, fromBlank, indentOverride) {
     let top = this.listStack[this.listStack.length - 1];
+    const indent = indentOverride !== undefined ? indentOverride : this.lineIndent;
     // This line's indent may fall short of the INNERMOST list's own
     // content column while still qualifying for an OUTER one — e.g.
     // "* foo\n  * bar\n\n  baz\n": "baz" doesn't belong to "bar"'s
@@ -3321,13 +5056,13 @@ class MarkdownStreamer {
     // and the <ul>/<ol> it was the last child of) before checking the
     // next one out, same as decideBlock()'s own multi-level dedent
     // logic for a genuinely new sibling marker.
-    while (top && this.lineIndent < top.contentCol && this.listStack.length > 1) {
+    while (top && indent < this._effContentCol(top) && this.listStack.length > 1) {
       if (this.dom.currentTag() === 'LI') { this._flushEmphasis(this.dom.current); this.dom.pop(); }
       if (['UL', 'OL'].includes(this.dom.currentTag())) this.dom.pop();
       this.listStack.pop();
       top = this.listStack[this.listStack.length - 1];
     }
-    if (top && this.lineIndent >= top.contentCol) {
+    if (top && indent >= this._effContentCol(top)) {
       this.lineIndent = 0; this.leadingWsChars = 0;
       if (fromBlank) {
         // A second paragraph within the same item: this blank line
@@ -3358,6 +5093,20 @@ class MarkdownStreamer {
           // fence's relative indent from them only works if the fence's
           // OWN recorded opening column matches that same absolute scale.
           this.lineIndent = top.contentCol;
+        } else if (/^[-*+0-9]$/.test(ch)) {
+          // A list marker opened here (e.g. CommonMark example #109:
+          // "1.  foo\n\n    - bar\n", indented exactly to "1.  foo"'s own
+          // content column) needs the SAME restoration, for the SAME
+          // reason: openUlDecided()/the digit case both read
+          // this.lineIndent (not the 0 it was just reset to) as the new
+          // marker's own "indent" — openListItem()'s "indent >=
+          // top.contentCol" nesting check needs that real value to
+          // correctly recognize this as a NESTED sub-list of the current
+          // item rather than mistaking it for a dedented sibling of some
+          // OUTER list (or, worse, an entirely new top-level one). The
+          // new marker's own contentCol is unaffected — that's still
+          // computed from this.linePos, never reset here.
+          this.lineIndent = top.contentCol;
         }
       } else {
         // This is the item's very FIRST content (an empty-marker line has
@@ -3372,7 +5121,9 @@ class MarkdownStreamer {
         // otherwise record as its own opening indent, understripping (or
         // in this case not stripping at all) every content line's shared
         // 2-space indent instead of the item's real content column.
-        if (ch === '`' || ch === '~') this.lineIndent = top.contentCol;
+        // Same list-marker restoration as the fromBlank branch above, and
+        // for the identical reason.
+        if (ch === '`' || ch === '~' || /^[-*+0-9]$/.test(ch)) this.lineIndent = top.contentCol;
       }
       // Whatever decideBlock() opens for `ch` (a fence, table, blockquote,
       // ...) must stay nested inside THIS <li> — closeBlock() (called by
@@ -3382,6 +5133,7 @@ class MarkdownStreamer {
       // this session. Reset every line (resetLine()), so this only
       // affects this one replay, not the whole rest of the document.
       this._inListContinuation = true;
+      this._bqFreshRestart = true; // see its own comment
       this.decideBlock(ch);
       return;
     }
@@ -3536,6 +5288,19 @@ class MarkdownStreamer {
     // none of which applies yet if the block type isn't even decided.
     if (!this.blockDecided && this.pending) this.onNewline();
 
+    // A link/image destination or title still dangling (processChar()'s
+    // own bypass, above, kept it open across one or more line endings
+    // hoping for a closing ")" that never actually came before the input
+    // itself ran out) needs the same literal-text fallback an ordinary
+    // same-line failure already gets — nothing else ever resolves this at
+    // true end-of-input, since that bypass deliberately skips onNewline()
+    // (and its normal _flushDanglingLinkState() call) while tolerating a
+    // mid-attempt line ending.
+    if (this.linkState === 'url' || this.linkState === 'img_url') {
+      this._urlNLPending = false;
+      this._flushDanglingLinkState();
+    }
+
     // Same as onNewline()'s handling: a counted closing-backtick run is only
     // confirmed once a following character rules out a longer run — one
     // right at the very end of the input (no trailing newline either) never
@@ -3555,10 +5320,7 @@ class MarkdownStreamer {
       const t = this.dom.current.firstChild;
       if (t && t.nodeType === 3 && t.data.endsWith(' ')) t.data = t.data.slice(0, -1);
     }
-    if (this.autolinkBuf !== null) {
-      this.appendToTextNode('<' + this.autolinkBuf);
-      this.autolinkBuf = null; this.autolinkQuote = null;
-    }
+    if (this.autolinkBuf !== null) this._flushAutolinkAsLiteral();
     if (this.mathInlineBuf !== null) {
       this.appendToTextNode('$' + this.mathInlineBuf);
       this.mathInlineBuf = null;
@@ -3571,7 +5333,7 @@ class MarkdownStreamer {
     // matching close marker) before the very end of the input — a real
     // scenario for a *streaming* renderer with content still being typed —
     // is flushed as-is rather than left stuck mid-block forever.
-    if (this.inRawHtml) this.flushRawHtml();
+    if (this.inRawHtml) this.flushRawHtml(true);
 
     this._trimIndentCode();
     this.flushDefPending();
@@ -3596,57 +5358,57 @@ class MarkdownStreamer {
     }
     hardBreaks.forEach(br => br.removeAttribute('data-hardbreak'));
 
-    this.root.querySelectorAll('a[href="#"]').forEach(a => {
-      const key = a.dataset.refKey || a.textContent.trim().toLowerCase();
-      const def = this.refDefs[key];
-      if (def) { a.href = def.url; if (def.title) a.title = def.title; delete a.dataset.refKey; }
-      else if (a.dataset.refKey) {
-        // An explicit "[label][ref]" whose ref never matched any
-        // definition — CommonMark: the WHOLE thing (both bracket pairs)
-        // falls back to literal text, same as the analogous img[data-
-        // ref-key] case just below already does. Left as a real,
-        // unresolved href="#" anchor otherwise, forever.
-        const parent = a.parentNode;
-        if (parent) {
-          // The ref key itself must stay exactly as typed for the
-          // lookup above (CommonMark doesn't unescape for matching
-          // purposes — see the comment on the analogous nested-bracket
-          // check earlier), but once it's just literal fallback text,
-          // ordinary backslash-escape processing applies to it same as
-          // any other text.
-          const literal = '[' + a.textContent + '][' + this._unescapeRaw(a.dataset.refKey) + ']';
-          parent.replaceChild(document.createTextNode(literal), a);
-        }
-      }
+    // Resolves every deferred reference-style link/image against refDefs
+    // (now fully known — reference definitions can appear anywhere in the
+    // document, even after their first use, so none of this could be
+    // decided any earlier). Repeats to a fixpoint: a failed EXPLICIT
+    // "[label][ref]" doesn't just revert to literal text, it also
+    // re-parses "[ref]" as fresh, independent markdown (see
+    // _revertFailedRefLink()) — which can itself contain another deferred
+    // reference needing its own resolution pass, e.g. example #569
+    // "[foo][bar][baz]" (only "baz" defined): "[foo]"'s failure exposes
+    // "[bar][baz]" as a brand new attempt, which THEN resolves as a real
+    // link via "baz"'s definition.
+    this._resolveDeferredIn(this.root);
+
+    // A link attempt whose label never actually reached its own closing "]"
+    // as literal text — the "]" (and everything after, up through the would-
+    // be destination) got swallowed as raw content of a code span opened
+    // INSIDE the label instead (CommonMark 6.1's code-span scan takes
+    // priority over link-bracket matching — see example 525:
+    // "[foo`](/uri)`") — is left here as a real <a> with no href and none
+    // of the other markers (data-implicit-ref/data-ref-key) the normal
+    // "saw a ']', then failed" paths above set. Just the opening "[" was
+    // ever literal syntax, so unwrap back to that (no matching "]" to add
+    // back — it's part of the code span's content now).
+    this.root.querySelectorAll('a').forEach(a => {
+      // initAnchor() stamps target/rel on every <a> OUR OWN link-syntax
+      // handling creates (dom.push('a') sites) — used here to tell those
+      // apart from a raw HTML "<a>" tag typed literally by the user (e.g.
+      // CommonMark 6.9 example 613's "<a><bab><c2c>"), which must survive
+      // untouched even though it likewise has no href.
+      if (a.hasAttribute('href') || a.rel !== 'noopener noreferrer'
+          || a.dataset.implicitRef !== undefined || a.dataset.refKey !== undefined) return;
+      const parent = a.parentNode;
+      if (!parent) return;
+      parent.insertBefore(document.createTextNode('['), a);
+      while (a.firstChild) parent.insertBefore(a.firstChild, a);
+      parent.removeChild(a);
     });
 
-    this.root.querySelectorAll('a[data-implicit-ref]').forEach(a => {
-      const key = a.dataset.implicitRef;
-      const def = this.refDefs[key];
-      if (def) {
-        a.href = def.url; if (def.title) a.title = def.title;
-        a.removeAttribute('data-implicit-ref');
-      } else {
-        const parent = a.parentNode;
-        if (parent) {
-          parent.insertBefore(document.createTextNode('[' + a.textContent + ']'), a);
-          parent.removeChild(a);
-        }
-      }
-    });
-
-    this.root.querySelectorAll('img[data-ref-key]').forEach(img => {
-      const key = img.dataset.refKey;
-      const def = this.refDefs[key];
-      if (def) {
-        img.src = def.url; if (def.title) img.title = def.title;
-        img.removeAttribute('data-ref-key'); img.removeAttribute('data-ref-shortcut');
-      } else {
-        const literal = img.dataset.refShortcut ? `![${img.alt}]` : `![${img.alt}][${key}]`;
-        const parent = img.parentNode;
-        if (parent) parent.replaceChild(document.createTextNode(literal), img);
-      }
-    });
+    // Every deferred link/image bracket has now been resolved one way or
+    // the other (real link, or unwrapped back to flat literal text) — a
+    // second, final sweep catches any emphasis placeholder that the
+    // earlier per-block _flushEmphasis() calls above (and the one at the
+    // very start of this function) had to leave alone specifically because
+    // `root` still had a bracket whose fate was unknown at the time (see
+    // _flushEmphasis()'s own querySelector guard) — giving it the SAME
+    // cross-boundary retry chance _flushEmphasis() already gives a
+    // bracket that fails immediately, live, mid-stream (CommonMark #523),
+    // now that a bracket whose failure was itself deferred to the
+    // resolution pass just above (CommonMark #559) has ALSO had a chance
+    // to unwrap.
+    this._flushEmphasis(this.root);
 
     if (Object.keys(this.abbrMap).length > 0) this.applyAbbrs(this.root);
     this.renderFootnotes();
