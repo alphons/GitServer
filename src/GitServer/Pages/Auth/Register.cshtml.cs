@@ -75,7 +75,9 @@ public class RegisterModel(
 			values: new { email = user.Email, token }, protocol: Request.Scheme)!;
 
 		await emailService.SendEmailAsync(email, L["register_email_subject"],
-			L.Format("register_email_body", link));
+			L.RenderEmail("register", ("link", link),
+				("button_label", L["complete_registration_submit"]),
+				("fallback_label", L["email_button_fallback"])));
 
 		SuccessMessage = L["register_email_sent"];
 		return Page();

@@ -55,7 +55,6 @@
   "register_submit": "Bestätigungs-E-Mail senden",
   "register_login_link": "Bereits ein Konto? Hier anmelden",
   "register_email_subject": "Bestätige deine E-Mail-Adresse",
-  "register_email_body": "Klicke auf den folgenden Link, um dein Konto zu erstellen. Dieser Link ist 20 Minuten gültig.<br/><br/><a href=\"{0}\">{0}</a>",
   "register_email_sent": "Prüfe deine E-Mails auf einen Bestätigungslink, um die Registrierung fortzusetzen.",
   "error_email_already_registered": "Es existiert bereits ein Konto mit dieser E-Mail-Adresse. Bitte melde dich stattdessen an.",
 
@@ -71,7 +70,6 @@
   "forgot_password_intro": "Gib deine E-Mail-Adresse ein, wir senden dir einen Link zum Zurücksetzen.",
   "forgot_password_submit": "Link senden",
   "reset_password_email_subject": "Passwort zurücksetzen",
-  "reset_password_email_body": "Klicke auf den folgenden Link, um ein neues Passwort zu wählen. Dieser Link ist 30 Minuten gültig.<br/><br/><a href=\"{0}\">{0}</a>",
   "reset_password_email_sent": "Falls diese E-Mail-Adresse registriert ist, wurde ein Link zum Zurücksetzen gesendet.",
 
   "reset_password_page_title": "Passwort zurücksetzen",
@@ -210,6 +208,7 @@
   "admin_cannot_delete_self": "Du kannst dich nicht selbst löschen.",
   "admin_cannot_disable_self": "Du kannst dich nicht selbst deaktivieren.",
   "admin_user_deleted": "Benutzer {0} gelöscht.",
+  "email_button_fallback": "Falls die Schaltfläche nicht funktioniert, kopiere diesen Link in deinen Browser:",
   "error_email_blocked": "Diese E-Mail-Adresse darf sich nicht registrieren.",
   "admin_blocked_emails_title": "Gesperrte E-Mail-Muster",
   "admin_blocked_emails_hint": "E-Mails, die einem dieser Wildcard-Muster entsprechen, können sich nicht registrieren. Verwende * für beliebige Zeichen, ? für ein einzelnes Zeichen, z. B. *hacker*.com",

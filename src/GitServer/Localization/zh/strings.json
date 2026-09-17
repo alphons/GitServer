@@ -55,7 +55,6 @@
   "register_submit": "发送验证邮件",
   "register_login_link": "已有账户？在此登录",
   "register_email_subject": "确认你的邮箱地址",
-  "register_email_body": "点击下方链接继续创建账户。此链接20分钟内有效。<br/><br/><a href=\"{0}\">{0}</a>",
   "register_email_sent": "请查收邮件中的验证链接以继续注册。",
   "error_email_already_registered": "该邮箱已注册账户，请直接登录。",
 
@@ -71,7 +70,6 @@
   "forgot_password_intro": "输入你的邮箱地址，我们会发送重置密码的链接。",
   "forgot_password_submit": "发送重置链接",
   "reset_password_email_subject": "重置你的密码",
-  "reset_password_email_body": "点击下方链接设置新密码。此链接30分钟内有效。<br/><br/><a href=\"{0}\">{0}</a>",
   "reset_password_email_sent": "如果该邮箱已注册，我们已发送重置链接。",
 
   "reset_password_page_title": "重置密码",
@@ -210,6 +208,7 @@
   "admin_cannot_delete_self": "无法删除自己的账户。",
   "admin_cannot_disable_self": "无法禁用自己的账户。",
   "admin_user_deleted": "用户 {0} 已删除。",
+  "email_button_fallback": "如果按钮无法使用，请复制以下链接并粘贴到浏览器中：",
   "error_email_blocked": "该邮箱地址不允许注册。",
   "admin_blocked_emails_title": "屏蔽的邮箱模式",
   "admin_blocked_emails_hint": "匹配以下任一通配符模式的邮箱将无法注册。* 表示任意字符，? 表示单个字符，例如 *hacker*.com",

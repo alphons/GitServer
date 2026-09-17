@@ -55,7 +55,6 @@
   "register_submit": "Envoyer l'e-mail de vérification",
   "register_login_link": "Déjà un compte ? Se connecter ici",
   "register_email_subject": "Confirmez votre adresse e-mail",
-  "register_email_body": "Cliquez sur le lien ci-dessous pour créer votre compte. Ce lien est valable 20 minutes.<br/><br/><a href=\"{0}\">{0}</a>",
   "register_email_sent": "Vérifiez vos e-mails pour un lien de vérification afin de poursuivre l'inscription.",
   "error_email_already_registered": "Un compte existe déjà avec cet e-mail. Connectez-vous à la place.",
 
@@ -71,7 +70,6 @@
   "forgot_password_intro": "Entrez votre e-mail, nous vous enverrons un lien de réinitialisation.",
   "forgot_password_submit": "Envoyer le lien",
   "reset_password_email_subject": "Réinitialisez votre mot de passe",
-  "reset_password_email_body": "Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien est valable 30 minutes.<br/><br/><a href=\"{0}\">{0}</a>",
   "reset_password_email_sent": "Si cet e-mail est enregistré, un lien de réinitialisation a été envoyé.",
 
   "reset_password_page_title": "Réinitialiser le mot de passe",
@@ -210,6 +208,7 @@
   "admin_cannot_delete_self": "Vous ne pouvez pas vous supprimer vous-même.",
   "admin_cannot_disable_self": "Vous ne pouvez pas vous désactiver vous-même.",
   "admin_user_deleted": "Utilisateur {0} supprimé.",
+  "email_button_fallback": "Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :",
   "error_email_blocked": "Cette adresse e-mail n'est pas autorisée à s'inscrire.",
   "admin_blocked_emails_title": "Modèles d'e-mails bloqués",
   "admin_blocked_emails_hint": "Les e-mails correspondant à l'un de ces modèles génériques ne peuvent pas s'inscrire. Utilisez * pour tout caractère, ? pour un seul caractère, ex. *hacker*.com",

@@ -55,7 +55,6 @@
   "register_submit": "Enviar correo de verificación",
   "register_login_link": "¿Ya tienes cuenta? Inicia sesión aquí",
   "register_email_subject": "Confirma tu correo electrónico",
-  "register_email_body": "Haz clic en el siguiente enlace para crear tu cuenta. Este enlace es válido durante 20 minutos.<br/><br/><a href=\"{0}\">{0}</a>",
   "register_email_sent": "Revisa tu correo para un enlace de verificación y continuar el registro.",
   "error_email_already_registered": "Ya existe una cuenta con este correo. Inicia sesión en su lugar.",
 
@@ -71,7 +70,6 @@
   "forgot_password_intro": "Introduce tu correo electrónico y te enviaremos un enlace para restablecerla.",
   "forgot_password_submit": "Enviar enlace",
   "reset_password_email_subject": "Restablece tu contraseña",
-  "reset_password_email_body": "Haz clic en el siguiente enlace para elegir una nueva contraseña. Este enlace es válido durante 30 minutos.<br/><br/><a href=\"{0}\">{0}</a>",
   "reset_password_email_sent": "Si ese correo está registrado, se ha enviado un enlace para restablecer la contraseña.",
 
   "reset_password_page_title": "Restablecer contraseña",
@@ -210,6 +208,7 @@
   "admin_cannot_delete_self": "No puedes eliminarte a ti mismo.",
   "admin_cannot_disable_self": "No puedes deshabilitarte a ti mismo.",
   "admin_user_deleted": "Usuario {0} eliminado.",
+  "email_button_fallback": "Si el botón no funciona, copia y pega este enlace en tu navegador:",
   "error_email_blocked": "Este correo electrónico no puede registrarse.",
   "admin_blocked_emails_title": "Patrones de correo bloqueados",
   "admin_blocked_emails_hint": "Los correos que coincidan con alguno de estos patrones comodín no podrán registrarse. Usa * para cualquier carácter, ? para un solo carácter, p. ej. *hacker*.com",

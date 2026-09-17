@@ -55,7 +55,6 @@
   "register_submit": "確認メールを送信",
   "register_login_link": "すでにアカウントをお持ちの場合はこちらでログイン",
   "register_email_subject": "メールアドレスの確認",
-  "register_email_body": "以下のリンクをクリックしてアカウント作成を続けてください。このリンクの有効期限は20分です。<br/><br/><a href=\"{0}\">{0}</a>",
   "register_email_sent": "登録を続けるには、メールの確認リンクをご確認ください。",
   "error_email_already_registered": "このメールアドレスのアカウントは既に存在します。ログインしてください。",
 
@@ -71,7 +70,6 @@
   "forgot_password_intro": "メールアドレスを入力すると、パスワードリセット用のリンクをお送りします。",
   "forgot_password_submit": "リセットリンクを送信",
   "reset_password_email_subject": "パスワードのリセット",
-  "reset_password_email_body": "以下のリンクをクリックして新しいパスワードを設定してください。このリンクの有効期限は30分です。<br/><br/><a href=\"{0}\">{0}</a>",
   "reset_password_email_sent": "このメールアドレスが登録されている場合、リセットリンクを送信しました。",
 
   "reset_password_page_title": "パスワードのリセット",
@@ -210,6 +208,7 @@
   "admin_cannot_delete_self": "自分自身を削除することはできません。",
   "admin_cannot_disable_self": "自分自身を無効化することはできません。",
   "admin_user_deleted": "ユーザー {0} を削除しました。",
+  "email_button_fallback": "ボタンが機能しない場合は、以下のリンクをブラウザにコピーして貼り付けてください：",
   "error_email_blocked": "このメールアドレスは登録できません。",
   "admin_blocked_emails_title": "ブロックされたメールパターン",
   "admin_blocked_emails_hint": "これらのワイルドカードパターンに一致するメールは登録できません。* は任意の文字列、? は1文字を表します。例: *hacker*.com",

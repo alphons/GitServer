@@ -34,7 +34,7 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
             var ctx = _httpContextAccessor.HttpContext;
             if (ctx?.Request.Cookies.TryGetValue("lang", out var lang) == true
                 && !string.IsNullOrEmpty(lang)
-                && File.Exists(Path.Combine(_localizationPath, lang + ".json")))
+                && File.Exists(Path.Combine(_localizationPath, lang, "strings.json")))
             {
                 return lang;
             }
@@ -47,10 +47,10 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
         if (!Directory.Exists(_localizationPath))
             yield break;
 
-        var langs = Directory.GetFiles(_localizationPath, "*.json")
-            .Select(file =>
+        var langs = Directory.GetDirectories(_localizationPath)
+            .Select(dir =>
             {
-                var code = Path.GetFileNameWithoutExtension(file);
+                var code = Path.GetFileName(dir);
                 var dict = GetDictionary(code);
                 var name = dict.TryGetValue("__name__", out var n) ? n : code;
                 var order = dict.TryGetValue("__order__", out var o) && int.TryParse(o, out var oi) ? oi : 999;
@@ -148,7 +148,7 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
     {
         return _cache.GetOrAdd(lang, code =>
         {
-            var file = Path.Combine(_localizationPath, code + ".json");
+            var file = Path.Combine(_localizationPath, code, "strings.json");
             if (!File.Exists(file)) return new Dictionary<string, string>();
             try
             {
@@ -161,5 +161,28 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
                 return new Dictionary<string, string>();
             }
         });
+    }
+
+    /// <summary>
+    /// Renders an HTML email body from Localization/{lang}/emails/{template}.html, wrapped in the
+    /// shared Localization/_email-layout.html. Falls back to the "en" template if the current
+    /// language doesn't have one. Placeholders are written as {{key}} in the template files.
+    /// </summary>
+    public string RenderEmail(string template, params (string Key, string Value)[] values)
+    {
+        var lang = CurrentLanguage;
+        var file = Path.Combine(_localizationPath, lang, "emails", template + ".html");
+        if (!File.Exists(file))
+            file = Path.Combine(_localizationPath, "en", "emails", template + ".html");
+
+        var body = File.Exists(file) ? File.ReadAllText(file) : "";
+        foreach (var (key, value) in values)
+            body = body.Replace("{{" + key + "}}", value);
+
+        var layoutFile = Path.Combine(_localizationPath, "_email-layout.html");
+        if (!File.Exists(layoutFile))
+            return body;
+
+        return File.ReadAllText(layoutFile).Replace("{{body}}", body);
     }
 }

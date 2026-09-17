@@ -50,6 +50,16 @@ public class CompleteRegistrationModel(
 			return Page();
 		}
 
+		// Confirm the email token first: AddPasswordAsync/SetUserNameAsync bump the user's
+		// security stamp, which the default token provider ties the token to — confirming
+		// afterwards would always fail with "invalid or expired link".
+		var confirmResult = await userManager.ConfirmEmailAsync(user, Token);
+		if (!confirmResult.Succeeded)
+		{
+			ErrorMessage = L["error_invalid_or_expired_link"];
+			return Page();
+		}
+
 		var username = Username.Trim();
 		var existing = await userManager.FindByNameAsync(username);
 		if (existing != null && existing.Id != user.Id)
@@ -67,8 +77,10 @@ public class CompleteRegistrationModel(
 
 		user.DisplayName = string.IsNullOrWhiteSpace(DisplayName) ? username : DisplayName;
 
-		// First completed registration becomes admin
-		if (!await userManager.Users.AnyAsync(u => u.EmailConfirmed))
+		// First completed registration becomes admin. ConfirmEmailAsync above already persisted
+		// EmailConfirmed=true for this user, so exclude them from the check or it always counts
+		// itself as "an existing confirmed user".
+		if (!await userManager.Users.AnyAsync(u => u.EmailConfirmed && u.Id != user.Id))
 			user.IsAdmin = true;
 
 		await userManager.UpdateAsync(user);
@@ -77,13 +89,6 @@ public class CompleteRegistrationModel(
 		if (!passwordResult.Succeeded)
 		{
 			ErrorMessage = string.Join(" ", passwordResult.Errors.Select(e => e.Description));
-			return Page();
-		}
-
-		var confirmResult = await userManager.ConfirmEmailAsync(user, Token);
-		if (!confirmResult.Succeeded)
-		{
-			ErrorMessage = L["error_invalid_or_expired_link"];
 			return Page();
 		}
 
