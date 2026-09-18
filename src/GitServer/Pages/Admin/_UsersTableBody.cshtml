@@ -39,8 +39,8 @@
                 </td>
                 <td>@user.DisplayName</td>
                 <td>@user.Email</td>
-                <td>@TZ.ToLocal(user.CreatedAt).ToString("d", L.CurrentCulture)</td>
-                <td>@(user.LastLoginAt.HasValue ? TZ.ToLocal(user.LastLoginAt.Value).ToString("g", L.CurrentCulture) : L["admin_never_logged_in"])</td>
+                <td>@TZ.ToLocal(user.CreatedAt).ToString("d MMM yyyy", L.CurrentCulture)</td>
+                <td>@(user.LastLoginAt.HasValue ? TZ.ToLocal(user.LastLoginAt.Value).ToString("d MMM yyyy HH:mm", L.CurrentCulture) : L["admin_never_logged_in"])</td>
                 <td>
                     @if (user.IsDisabled)
                     {
