@@ -13,8 +13,8 @@
       '<div class="gs-confirm-modal" role="alertdialog" aria-modal="true">' +
         '<div class="gs-confirm-text"></div>' +
         '<div class="gs-confirm-actions">' +
-          '<button type="button" class="btn btn-ghost gs-confirm-cancel"></button>' +
           '<button type="button" class="btn btn-danger gs-confirm-ok"></button>' +
+          '<button type="button" class="btn btn-ghost gs-confirm-cancel"></button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(backdrop);
