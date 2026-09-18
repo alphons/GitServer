@@ -220,6 +220,7 @@
 
   "admin_new_user_button": "Nieuwe gebruiker",
   "admin_users_filter_placeholder": "Filteren op gebruikersnaam, weergavenaam of e-mail...",
+  "admin_pagination_page_of": "Pagina {0} van {1}",
 
   "commit_files_changed": "bestanden gewijzigd",
 

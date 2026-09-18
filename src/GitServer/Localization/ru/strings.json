@@ -197,6 +197,7 @@
 
   "admin_new_user_button": "Новый пользователь",
   "admin_users_filter_placeholder": "Фильтр по имени пользователя, отображаемому имени или email...",
+  "admin_pagination_page_of": "Страница {0} из {1}",
 
   "commit_files_changed": "файлов изменено",
 

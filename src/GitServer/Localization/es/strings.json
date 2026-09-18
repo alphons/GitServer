@@ -195,6 +195,7 @@
   "admin_enable_user": "Habilitar",
   "admin_new_user_button": "Nuevo usuario",
   "admin_users_filter_placeholder": "Filtrar por nombre de usuario, nombre visible o correo electrónico...",
+  "admin_pagination_page_of": "Página {0} de {1}",
   "admin_disable_user": "Deshabilitar",
 
   "commit_files_changed": "archivos modificados",

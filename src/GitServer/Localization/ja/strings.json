@@ -197,6 +197,7 @@
 
   "admin_new_user_button": "新規ユーザー",
   "admin_users_filter_placeholder": "ユーザー名、表示名、メールアドレスで絞り込み...",
+  "admin_pagination_page_of": "ページ {0} / {1}",
 
   "commit_files_changed": "ファイルが変更されました",
 

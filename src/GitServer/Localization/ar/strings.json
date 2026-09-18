@@ -197,6 +197,7 @@
 
   "admin_new_user_button": "مستخدم جديد",
   "admin_users_filter_placeholder": "تصفية حسب اسم المستخدم أو الاسم المعروض أو البريد الإلكتروني...",
+  "admin_pagination_page_of": "الصفحة {0} من {1}",
 
   "commit_files_changed": "ملفات تم تغييرها",
 

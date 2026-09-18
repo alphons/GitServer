@@ -196,6 +196,7 @@
   "admin_disable_user": "Désactiver",
   "admin_new_user_button": "Nouvel utilisateur",
   "admin_users_filter_placeholder": "Filtrer par nom d'utilisateur, nom d'affichage ou e-mail...",
+  "admin_pagination_page_of": "Page {0} sur {1}",
 
   "commit_files_changed": "fichiers modifiés",
 
