@@ -14,7 +14,15 @@
         </div>
 
         <section class="settings-section">
-            <h2>@L["group_repos_title"]</h2>
+            <h2>@L["group_repos_title"] (@Model.TotalCount)</h2>
+            @{
+                var prevUrl = $"?p={Model.CurrentPage - 1}";
+                var nextUrl = $"?p={Model.CurrentPage + 1}";
+            }
+            @if (Model.Repos.Any() && (Model.CurrentPage > 0 || Model.HasNextPage))
+            {
+                @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
+            }
             @if (Model.Repos.Any())
             {
                 <div class="repo-list">
@@ -36,6 +44,10 @@
                         </div>
                     }
                 </div>
+                @if (Model.CurrentPage > 0 || Model.HasNextPage)
+                {
+                    @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
+                }
             }
             else
             {
