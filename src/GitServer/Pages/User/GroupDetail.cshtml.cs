@@ -54,6 +54,12 @@ public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager,
 		return Page();
 	}
 
+	public async Task<IActionResult> OnGetReposAsync(int id, int rp = 0)
+	{
+		if (!await LoadAsync(id, rp)) return NotFound();
+		return Partial("_GroupDetailRepos", this);
+	}
+
 	public async Task<IActionResult> OnGetSearchUsersAsync(int id, string? q)
 	{
 		if (!await LoadAsync(id)) return NotFound();

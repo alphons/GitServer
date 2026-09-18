@@ -616,7 +616,8 @@ textarea.form-control { resize: vertical; }
   padding-bottom: 1rem;
 }
 
-.collapsible-section .pagination {
+.collapsible-section .pagination,
+.settings-section .pagination {
   justify-content: flex-start;
 }
 

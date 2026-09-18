@@ -41,6 +41,10 @@
                             @repo.OwnerName / @repo.Name
                         </a>
                         <span class="badge badge-success">@L["badge_public"]</span>
+                        @if (repo.IsReadOnly)
+                        {
+                            <span class="badge badge-warning">@L["settings_readonly_label"]</span>
+                        }
                     </div>
                     @if (!string.IsNullOrEmpty(repo.Description))
                     {
