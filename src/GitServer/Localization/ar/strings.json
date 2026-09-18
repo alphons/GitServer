@@ -212,6 +212,15 @@
   "error_group_name_required": "أدخل اسم المجموعة.",
   "error_invalid_group_name": "الأحرف والأرقام و- و_ فقط.",
   "error_group_name_taken": "لديك بالفعل مجموعة بهذا الاسم.",
+  "group_members_hint": "إدارة أعضاء هذه المجموعة.",
+  "group_no_members": "لا يوجد أعضاء بعد.",
+  "group_add_member": "إضافة عضو",
+  "group_delete": "حذف المجموعة",
+  "confirm_delete_group": "حذف المجموعة {0}؟",
+  "error_group_member_is_owner": "لا يمكنك إضافة نفسك كعضو.",
+  "group_repos_title": "المستودعات",
+  "group_repos_empty": "لا تملك هذه المجموعة أي مستودعات بعد.",
+  "success_group_member_added": "تمت إضافة العضو.",
 
   "commit_files_changed": "ملفات تم تغييرها",
 

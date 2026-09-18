@@ -212,6 +212,15 @@
   "error_group_name_required": "请输入组名称。",
   "error_invalid_group_name": "仅限字母、数字、- 和 _。",
   "error_group_name_taken": "您已有一个同名的群组。",
+  "group_members_hint": "管理此群组的成员。",
+  "group_no_members": "暂无成员。",
+  "group_add_member": "添加成员",
+  "group_delete": "删除群组",
+  "confirm_delete_group": "删除群组「{0}」？",
+  "error_group_member_is_owner": "您不能将自己添加为成员。",
+  "group_repos_title": "仓库",
+  "group_repos_empty": "该群组尚未拥有任何仓库。",
+  "success_group_member_added": "已添加成员。",
 
   "commit_files_changed": "个文件已更改",
 

@@ -212,6 +212,15 @@
   "error_group_name_required": "Введите название группы.",
   "error_invalid_group_name": "Только буквы, цифры, - и _.",
   "error_group_name_taken": "У вас уже есть группа с таким названием.",
+  "group_members_hint": "Управляйте участниками этой группы.",
+  "group_no_members": "Участников пока нет.",
+  "group_add_member": "Добавить участника",
+  "group_delete": "Удалить группу",
+  "confirm_delete_group": "Удалить группу {0}?",
+  "error_group_member_is_owner": "Вы не можете добавить самого себя в качестве участника.",
+  "group_repos_title": "Репозитории",
+  "group_repos_empty": "У этой группы пока нет репозиториев.",
+  "success_group_member_added": "Участник добавлен.",
 
   "commit_files_changed": "файлов изменено",
 

@@ -212,6 +212,15 @@
   "error_group_name_required": "Digite um nome de grupo.",
   "error_invalid_group_name": "Somente letras, dígitos, - e _.",
   "error_group_name_taken": "Você já tem um grupo com esse nome.",
+  "group_members_hint": "Gerencie os membros deste grupo.",
+  "group_no_members": "Ainda não há membros.",
+  "group_add_member": "Adicionar membro",
+  "group_delete": "Excluir grupo",
+  "confirm_delete_group": "Excluir o grupo {0}?",
+  "error_group_member_is_owner": "Você não pode se adicionar como membro.",
+  "group_repos_title": "Repositórios",
+  "group_repos_empty": "Este grupo ainda não possui repositórios.",
+  "success_group_member_added": "Membro adicionado.",
 
   "commit_files_changed": "arquivos alterados",
 

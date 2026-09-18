@@ -212,6 +212,15 @@
   "error_group_name_required": "グループ名を入力してください。",
   "error_invalid_group_name": "使用できるのは英数字、-、_ のみです。",
   "error_group_name_taken": "この名前のグループは既に存在します。",
+  "group_members_hint": "このグループのメンバーを管理します。",
+  "group_no_members": "メンバーはまだいません。",
+  "group_add_member": "メンバーを追加",
+  "group_delete": "グループを削除",
+  "confirm_delete_group": "グループ「{0}」を削除しますか？",
+  "error_group_member_is_owner": "自分自身をメンバーとして追加することはできません。",
+  "group_repos_title": "リポジトリ",
+  "group_repos_empty": "このグループはまだリポジトリを所有していません。",
+  "success_group_member_added": "メンバーを追加しました。",
 
   "commit_files_changed": "ファイルが変更されました",
 

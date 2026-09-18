@@ -211,6 +211,15 @@
   "error_group_name_required": "Gib einen Gruppennamen ein.",
   "error_invalid_group_name": "Nur Buchstaben, Ziffern, - und _.",
   "error_group_name_taken": "Du hast bereits eine Gruppe mit diesem Namen.",
+  "group_members_hint": "Verwalte die Mitglieder dieser Gruppe.",
+  "group_no_members": "Noch keine Mitglieder.",
+  "group_add_member": "Mitglied hinzufügen",
+  "group_delete": "Gruppe löschen",
+  "confirm_delete_group": "Gruppe {0} löschen?",
+  "error_group_member_is_owner": "Du kannst dich nicht selbst als Mitglied hinzufügen.",
+  "group_repos_title": "Repositories",
+  "group_repos_empty": "Diese Gruppe besitzt noch keine Repositories.",
+  "success_group_member_added": "Mitglied hinzugefügt.",
 
   "commit_files_changed": "Dateien geändert",
 
