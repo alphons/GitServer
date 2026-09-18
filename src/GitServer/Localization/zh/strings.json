@@ -157,6 +157,7 @@
 
   "profile_repos": "仓库",
   "profile_no_repos": "没有公开仓库。",
+  "profile_group_repos_title": "群组仓库",
   "profile_member_since": "加入于",
   "profile_not_found": "用户不存在",
 

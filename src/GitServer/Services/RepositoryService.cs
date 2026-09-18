@@ -131,6 +131,26 @@ public class RepositoryService(AppDbContext db,
             .ToListAsync();
     }
 
+    /// <summary>Repositories owned by any group the user owns or is a member of.</summary>
+    public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId)
+    {
+        var groupIds = await _db.Groups
+            .Where(g => g.OwnerId == userId || g.Members.Any(m => m.UserId == userId))
+            .Select(g => g.Id)
+            .ToListAsync();
+
+        if (groupIds.Count == 0) return new List<Repository>();
+
+        return await _db.Repositories
+            .Include(r => r.GroupOwner)
+            .Include(r => r.Accesses).ThenInclude(a => a.User)
+            .Include(r => r.Accesses).ThenInclude(a => a.Group)
+            .Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value))
+            .OrderBy(r => r.GroupOwner!.Name)
+            .ThenByDescending(r => r.UpdatedAt)
+            .ToListAsync();
+    }
+
     public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null, int skip = 0, int take = int.MaxValue)
     {
         var q = _db.Repositories

@@ -583,6 +583,39 @@ textarea.form-control { resize: vertical; }
   font-size: 0.8125rem;
 }
 
+/* === Collapsible section (native <details>/<summary>) === */
+.collapsible-section {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 1rem;
+}
+
+.collapsible-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.875rem 0;
+  list-style: none;
+}
+
+.collapsible-section summary::-webkit-details-marker { display: none; }
+
+.collapsible-section summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 0.7em;
+  transition: transform 0.15s;
+}
+
+.collapsible-section[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.collapsible-section > .repo-list {
+  padding-bottom: 1rem;
+}
+
 /* === Generic confirm modal (replaces native confirm()) === */
 .gs-confirm-backdrop {
   position: fixed;

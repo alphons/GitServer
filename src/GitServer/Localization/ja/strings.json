@@ -157,6 +157,7 @@
 
   "profile_repos": "リポジトリ",
   "profile_no_repos": "公開リポジトリはありません。",
+  "profile_group_repos_title": "グループのリポジトリ",
   "profile_member_since": "参加日",
   "profile_not_found": "ユーザーが見つかりません",
 

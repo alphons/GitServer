@@ -89,6 +89,41 @@
                 @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
             }
         }
+
+        @if (Model.IsOwner && Model.GroupRepos.Any())
+        {
+            <details class="collapsible-section" open>
+                <summary>@L["profile_group_repos_title"] (@Model.GroupRepos.Count)</summary>
+                <div class="repo-list">
+                    @foreach (var repo in Model.GroupRepos)
+                    {
+                        <div class="repo-card">
+                            <div class="repo-card-header">
+                                <a class="repo-name" href="/@repo.GroupOwner!.Name/@repo.Name">
+                                    @repo.GroupOwner!.Name / @repo.Name
+                                </a>
+                                @if (repo.IsPrivate)
+                                {
+                                    <span class="badge badge-warning">@L["badge_private"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success">@L["badge_public"]</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(repo.Description))
+                            {
+                                <p class="repo-description">@repo.Description</p>
+                            }
+                            <div class="repo-meta">
+                                <span class="text-muted">@L["updated_prefix"] @TZ.ToLocal(repo.UpdatedAt).ToString("d MMM yyyy HH:mm", L.CurrentCulture)</span>
+                                <span class="text-muted">@L["created_prefix"] @TZ.ToLocal(repo.CreatedAt).ToString("d MMM yyyy HH:mm", L.CurrentCulture)</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </details>
+        }
     }
     else
     {
