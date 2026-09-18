@@ -34,7 +34,7 @@ public class SettingsModel(
 		if (repoObj == null) return (null, false);
 
 		var userId = userManager.GetUserId(User);
-		var isOwner = repoObj.OwnerId == userId;
+		var isOwner = await repos.IsOwnerAsync(repoObj, userId);
 		Repo = repoObj;
 		return (repoObj, isOwner);
 	}

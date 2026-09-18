@@ -87,6 +87,7 @@
   "repo_name_label": "名前",
   "repo_name_hint": "文字、数字、ハイフン、ドットのみ。",
   "description_label": "説明",
+  "new_repo_owner_label": "所有者",
   "new_repo_private_label": "プライベートリポジトリ",
   "new_repo_submit": "リポジトリを作成",
   "cancel": "キャンセル",
@@ -200,6 +201,7 @@
   "admin_users_filter_placeholder": "ユーザー名、表示名、メールアドレスで絞り込み...",
   "admin_pagination_page_of": "ページ {0} / {1}",
 
+  "error_group_not_found": "グループが見つかりません。",
   "groups_hint": "ユーザーのグループを作成すると、リポジトリへのアクセス権をまとめて付与できます。",
   "group_name_label": "グループ名",
   "group_members_count": "メンバー",
@@ -208,6 +210,7 @@
   "group_name_placeholder": "グループ名",
   "group_create": "グループを作成",
   "error_group_name_required": "グループ名を入力してください。",
+  "error_invalid_group_name": "使用できるのは英数字、-、_ のみです。",
   "error_group_name_taken": "この名前のグループは既に存在します。",
 
   "commit_files_changed": "ファイルが変更されました",

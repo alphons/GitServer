@@ -87,6 +87,7 @@
   "repo_name_label": "名称",
   "repo_name_hint": "仅限字母、数字、连字符和点。",
   "description_label": "描述",
+  "new_repo_owner_label": "所有者",
   "new_repo_private_label": "私有仓库",
   "new_repo_submit": "创建仓库",
   "cancel": "取消",
@@ -200,6 +201,7 @@
   "admin_users_filter_placeholder": "按用户名、显示名称或电子邮件筛选...",
   "admin_pagination_page_of": "第 {0} 页，共 {1} 页",
 
+  "error_group_not_found": "未找到该群组。",
   "groups_hint": "创建用户组，以便一次性授予他们对某个仓库的访问权限。",
   "group_name_label": "组名称",
   "group_members_count": "成员",
@@ -208,6 +210,7 @@
   "group_name_placeholder": "组名称",
   "group_create": "创建群组",
   "error_group_name_required": "请输入组名称。",
+  "error_invalid_group_name": "仅限字母、数字、- 和 _。",
   "error_group_name_taken": "您已有一个同名的群组。",
 
   "commit_files_changed": "个文件已更改",

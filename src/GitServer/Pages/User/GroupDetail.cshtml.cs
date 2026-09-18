@@ -10,11 +10,12 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager, LocalizationService L) : PageModel
+public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public Group? Group { get; set; }
 	public List<GroupMember> Members { get; set; } = new();
+	public List<Repository> Repositories { get; set; } = new();
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
 
@@ -33,6 +34,8 @@ public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager,
 			.Where(m => m.GroupId == id)
 			.OrderBy(m => m.User.UserName)
 			.ToListAsync();
+
+		Repositories = await repos.GetGroupReposAsync(id);
 
 		return true;
 	}

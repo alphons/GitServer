@@ -87,6 +87,7 @@
   "repo_name_label": "الاسم",
   "repo_name_hint": "حروف وأرقام وشرطات ونقاط فقط.",
   "description_label": "الوصف",
+  "new_repo_owner_label": "المالك",
   "new_repo_private_label": "مستودع خاص",
   "new_repo_submit": "إنشاء المستودع",
   "cancel": "إلغاء",
@@ -200,6 +201,7 @@
   "admin_users_filter_placeholder": "تصفية حسب اسم المستخدم أو الاسم المعروض أو البريد الإلكتروني...",
   "admin_pagination_page_of": "الصفحة {0} من {1}",
 
+  "error_group_not_found": "المجموعة غير موجودة.",
   "groups_hint": "أنشئ مجموعات من المستخدمين حتى تتمكن من منحهم الوصول إلى مستودع دفعة واحدة.",
   "group_name_label": "اسم المجموعة",
   "group_members_count": "الأعضاء",
@@ -208,6 +210,7 @@
   "group_name_placeholder": "اسم المجموعة",
   "group_create": "إنشاء مجموعة",
   "error_group_name_required": "أدخل اسم المجموعة.",
+  "error_invalid_group_name": "الأحرف والأرقام و- و_ فقط.",
   "error_group_name_taken": "لديك بالفعل مجموعة بهذا الاسم.",
 
   "commit_files_changed": "ملفات تم تغييرها",

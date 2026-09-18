@@ -87,6 +87,7 @@
   "repo_name_label": "Название",
   "repo_name_hint": "Только буквы, цифры, дефисы и точки.",
   "description_label": "Описание",
+  "new_repo_owner_label": "Владелец",
   "new_repo_private_label": "Приватный репозиторий",
   "new_repo_submit": "Создать репозиторий",
   "cancel": "Отмена",
@@ -200,6 +201,7 @@
   "admin_users_filter_placeholder": "Фильтр по имени пользователя, отображаемому имени или email...",
   "admin_pagination_page_of": "Страница {0} из {1}",
 
+  "error_group_not_found": "Группа не найдена.",
   "groups_hint": "Создавайте группы пользователей, чтобы предоставлять им доступ к репозиторию сразу всем вместе.",
   "group_name_label": "Название группы",
   "group_members_count": "Участники",
@@ -208,6 +210,7 @@
   "group_name_placeholder": "Название группы",
   "group_create": "Создать группу",
   "error_group_name_required": "Введите название группы.",
+  "error_invalid_group_name": "Только буквы, цифры, - и _.",
   "error_group_name_taken": "У вас уже есть группа с таким названием.",
 
   "commit_files_changed": "файлов изменено",

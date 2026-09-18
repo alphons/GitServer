@@ -87,6 +87,7 @@
   "repo_name_label": "Name",
   "repo_name_hint": "Nur Buchstaben, Ziffern, Bindestriche und Punkte.",
   "description_label": "Beschreibung",
+  "new_repo_owner_label": "Besitzer",
   "new_repo_private_label": "Privates Repository",
   "new_repo_submit": "Repository erstellen",
   "cancel": "Abbrechen",
@@ -199,6 +200,7 @@
   "admin_users_filter_placeholder": "Nach Benutzername, Anzeigename oder E-Mail filtern...",
   "admin_pagination_page_of": "Seite {0} von {1}",
 
+  "error_group_not_found": "Gruppe nicht gefunden.",
   "groups_hint": "Erstelle Gruppen von Benutzern, um ihnen auf einmal Zugriff auf ein Repository zu gewähren.",
   "group_name_label": "Gruppenname",
   "group_members_count": "Mitglieder",
@@ -207,6 +209,7 @@
   "group_name_placeholder": "Gruppenname",
   "group_create": "Gruppe erstellen",
   "error_group_name_required": "Gib einen Gruppennamen ein.",
+  "error_invalid_group_name": "Nur Buchstaben, Ziffern, - und _.",
   "error_group_name_taken": "Du hast bereits eine Gruppe mit diesem Namen.",
 
   "commit_files_changed": "Dateien geändert",

@@ -37,7 +37,7 @@ public class CollaboratorsModel(
 		if (repoObj == null) return (null, false);
 
 		var userId = userManager.GetUserId(User);
-		var isOwner = repoObj.OwnerId == userId;
+		var isOwner = await repos.IsOwnerAsync(repoObj, userId);
 		Repo = repoObj;
 		return (repoObj, isOwner);
 	}
@@ -52,10 +52,10 @@ public class CollaboratorsModel(
 			.ToListAsync();
 	}
 
-	private async Task LoadOwnGroupsAsync(string ownerId)
+	private async Task LoadOwnGroupsAsync(string userId)
 	{
 		OwnGroups = await db.Groups
-			.Where(g => g.OwnerId == ownerId)
+			.Where(g => g.OwnerId == userId)
 			.OrderBy(g => g.Name)
 			.ToListAsync();
 	}
@@ -67,7 +67,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
-		await LoadOwnGroupsAsync(repoObj.OwnerId);
+		await LoadOwnGroupsAsync(userManager.GetUserId(User)!);
 		return Page();
 	}
 
@@ -101,7 +101,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
-		await LoadOwnGroupsAsync(repoObj.OwnerId);
+		await LoadOwnGroupsAsync(userManager.GetUserId(User)!);
 
 		var name = CollaboratorName?.Trim();
 		if (string.IsNullOrEmpty(name))
@@ -153,7 +153,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
-		await LoadOwnGroupsAsync(repoObj.OwnerId);
+		await LoadOwnGroupsAsync(userManager.GetUserId(User)!);
 
 		var group = OwnGroups.FirstOrDefault(g => g.Id == GroupId);
 		if (group == null)

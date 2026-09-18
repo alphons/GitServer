@@ -52,19 +52,24 @@ public class GitAuthMiddleware(RequestDelegate next)
             return;
         }
 
-        var userName = segments[0];
+        var ownerName = segments[0];
         var repoSegment = segments[1]; // e.g. "myrepo.git"
         var repoName = repoSegment.EndsWith(".git") ? repoSegment[..^4] : repoSegment;
 
-        var owner = await userManager.FindByNameAsync(userName);
-        if (owner == null)
+        var owner = await userManager.FindByNameAsync(ownerName);
+        var ownerGroup = owner == null
+            ? await db.Groups.FirstOrDefaultAsync(g => g.Name == ownerName)
+            : null;
+
+        if (owner == null && ownerGroup == null)
         {
             context.Response.StatusCode = 404;
             return;
         }
 
-        var repo = await db.Repositories
-            .FirstOrDefaultAsync(r => r.OwnerId == owner.Id && r.Name == repoName);
+        var repo = owner != null
+            ? await db.Repositories.FirstOrDefaultAsync(r => r.OwnerId == owner.Id && r.Name == repoName)
+            : await db.Repositories.FirstOrDefaultAsync(r => r.GroupOwnerId == ownerGroup!.Id && r.Name == repoName);
 
         // Check if this is a push (receive-pack) — path or query string
         var isPush = context.Request.Path.Value?.Contains("receive-pack") == true
@@ -103,10 +108,11 @@ public class GitAuthMiddleware(RequestDelegate next)
 
         var settings = await siteSettings.GetAsync();
 
-        // Auto-create repo on first push if it doesn't exist yet
+        // Auto-create repo on first push if it doesn't exist yet (user-owned namespaces only;
+        // pushing into a not-yet-existing repo under a group requires creating it via the UI first).
         if (repo == null && isPush)
         {
-            if (!settings.AllowPushToCreateRepositories)
+            if (!settings.AllowPushToCreateRepositories || owner == null)
             {
                 context.Response.StatusCode = 404;
                 return;

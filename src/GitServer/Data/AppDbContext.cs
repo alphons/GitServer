@@ -22,10 +22,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<Repository>(e =>
         {
-            e.HasIndex(r => new { r.OwnerId, r.Name }).IsUnique();
+            e.HasIndex(r => new { r.OwnerId, r.Name }).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
+            e.HasIndex(r => new { r.GroupOwnerId, r.Name }).IsUnique().HasFilter("[GroupOwnerId] IS NOT NULL");
             e.HasOne(r => r.Owner)
              .WithMany(u => u.Repositories)
              .HasForeignKey(r => r.OwnerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.GroupOwner)
+             .WithMany(g => g.Repositories)
+             .HasForeignKey(r => r.GroupOwnerId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -49,7 +54,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<Group>(e =>
         {
-            e.HasIndex(g => new { g.OwnerId, g.Name }).IsUnique();
+            // Group names double as a URL namespace segment (like a username), so they must be
+            // globally unique rather than just unique per owner.
+            e.HasIndex(g => g.Name).IsUnique();
             e.HasOne(g => g.Owner)
              .WithMany(u => u.Groups)
              .HasForeignKey(g => g.OwnerId)

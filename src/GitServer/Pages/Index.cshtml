@@ -27,8 +27,8 @@
             {
                 <div class="repo-card">
                     <div class="repo-card-header">
-                        <a class="repo-name" href="/@repo.Owner.UserName/@repo.Name">
-                            @repo.Owner.UserName / @repo.Name
+                        <a class="repo-name" href="/@repo.OwnerName/@repo.Name">
+                            @repo.OwnerName / @repo.Name
                         </a>
                         <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
                             @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])

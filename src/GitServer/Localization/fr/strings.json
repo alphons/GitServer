@@ -87,6 +87,7 @@
   "repo_name_label": "Nom",
   "repo_name_hint": "Lettres, chiffres, tirets et points uniquement.",
   "description_label": "Description",
+  "new_repo_owner_label": "Propriétaire",
   "new_repo_private_label": "Dépôt privé",
   "new_repo_submit": "Créer le dépôt",
   "cancel": "Annuler",
@@ -199,6 +200,7 @@
   "admin_users_filter_placeholder": "Filtrer par nom d'utilisateur, nom d'affichage ou e-mail...",
   "admin_pagination_page_of": "Page {0} sur {1}",
 
+  "error_group_not_found": "Groupe introuvable.",
   "groups_hint": "Créez des groupes d'utilisateurs pour leur accorder l'accès à un dépôt en une seule fois.",
   "group_name_label": "Nom du groupe",
   "group_members_count": "Membres",
@@ -207,6 +209,7 @@
   "group_name_placeholder": "Nom du groupe",
   "group_create": "Créer un groupe",
   "error_group_name_required": "Entrez un nom de groupe.",
+  "error_invalid_group_name": "Lettres, chiffres, - et _ uniquement.",
   "error_group_name_taken": "Vous avez déjà un groupe avec ce nom.",
 
   "commit_files_changed": "fichiers modifiés",

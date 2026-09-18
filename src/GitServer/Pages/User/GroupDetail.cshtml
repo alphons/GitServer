@@ -73,6 +73,37 @@
     </section>
 
     <section class="settings-section">
+        <h2>@L["nav_groups"] — @L["group_repos_title"]</h2>
+        @if (Model.Repositories.Count > 0)
+        {
+            <div class="repo-list">
+                @foreach (var repo in Model.Repositories)
+                {
+                    <div class="repo-card">
+                        <div class="repo-card-header">
+                            <a class="repo-name" href="/@Model.Group!.Name/@repo.Name">
+                                @Model.Group!.Name / @repo.Name
+                            </a>
+                            <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
+                                @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(repo.Description))
+                        {
+                            <p class="repo-description">@repo.Description</p>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-muted">@L["group_repos_empty"]</p>
+        }
+        <a href="/Repo/New" class="btn btn-primary">@L["index_empty_create"]</a>
+    </section>
+
+    <section class="settings-section">
         <h2>@L["settings_danger_zone"]</h2>
         <form method="post" asp-page-handler="Delete"
               onsubmit="return confirm('@L.Format("confirm_delete_group", Model.Group.Name)')">

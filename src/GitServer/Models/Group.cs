@@ -10,4 +10,5 @@ public class Group
 
     public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
     public ICollection<RepositoryAccess> Accesses { get; set; } = new List<RepositoryAccess>();
+    public ICollection<Repository> Repositories { get; set; } = new List<Repository>();
 }

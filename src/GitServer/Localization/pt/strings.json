@@ -87,6 +87,7 @@
   "repo_name_label": "Nome",
   "repo_name_hint": "Apenas letras, dígitos, hifens e pontos.",
   "description_label": "Descrição",
+  "new_repo_owner_label": "Proprietário",
   "new_repo_private_label": "Repositório privado",
   "new_repo_submit": "Criar repositório",
   "cancel": "Cancelar",
@@ -200,6 +201,7 @@
   "admin_users_filter_placeholder": "Filtrar por nome de usuário, nome de exibição ou e-mail...",
   "admin_pagination_page_of": "Página {0} de {1}",
 
+  "error_group_not_found": "Grupo não encontrado.",
   "groups_hint": "Crie grupos de usuários para conceder acesso a um repositório de uma só vez.",
   "group_name_label": "Nome do grupo",
   "group_members_count": "Membros",
@@ -208,6 +210,7 @@
   "group_name_placeholder": "Nome do grupo",
   "group_create": "Criar grupo",
   "error_group_name_required": "Digite um nome de grupo.",
+  "error_invalid_group_name": "Somente letras, dígitos, - e _.",
   "error_group_name_taken": "Você já tem um grupo com esse nome.",
 
   "commit_files_changed": "arquivos alterados",
