@@ -103,6 +103,8 @@
 
   "settings_general": "Algemeen",
   "settings_default_branch": "Standaard branch",
+  "settings_readonly_label": "Alleen-lezen",
+  "settings_readonly_hint": "Niemand, ook de eigenaar niet, kan nog naar deze repository pushen.",
   "save_button": "Opslaan",
   "settings_danger_zone": "Gevarenzone",
   "settings_delete_repo": "Repository verwijderen",

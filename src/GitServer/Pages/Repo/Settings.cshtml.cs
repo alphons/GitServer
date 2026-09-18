@@ -24,6 +24,7 @@ public class SettingsModel(
 
 	[BindProperty] public string? Description { get; set; }
 	[BindProperty] public bool IsPrivate { get; set; }
+	[BindProperty] public bool IsReadOnly { get; set; }
 	[BindProperty] public string DefaultBranch { get; set; } = "main";
 
 	private async Task<(Repository? repo, bool isOwner)> LoadAsync(string user, string repo)
@@ -47,6 +48,7 @@ public class SettingsModel(
 
 		Description = repoObj.Description;
 		IsPrivate = repoObj.IsPrivate;
+		IsReadOnly = repoObj.IsReadOnly;
 		DefaultBranch = repoObj.DefaultBranch;
 
 		return Page();
@@ -60,6 +62,7 @@ public class SettingsModel(
 
 		repoObj.Description = Description;
 		repoObj.IsPrivate = IsPrivate;
+		repoObj.IsReadOnly = IsReadOnly;
 		repoObj.DefaultBranch = string.IsNullOrEmpty(DefaultBranch) ? "main" : DefaultBranch;
 		repoObj.UpdatedAt = DateTime.UtcNow;
 

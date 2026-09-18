@@ -102,6 +102,8 @@
 
   "settings_general": "Allgemein",
   "settings_default_branch": "Standardbranch",
+  "settings_readonly_label": "Schreibgeschützt",
+  "settings_readonly_hint": "Niemand, auch nicht der Besitzer, kann noch in dieses Repository pushen.",
   "save_button": "Speichern",
   "settings_danger_zone": "Gefahrenzone",
   "settings_delete_repo": "Repository löschen",

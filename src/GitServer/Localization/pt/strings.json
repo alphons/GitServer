@@ -102,6 +102,8 @@
 
   "settings_general": "Geral",
   "settings_default_branch": "Branch padrão",
+  "settings_readonly_label": "Somente leitura",
+  "settings_readonly_hint": "Ninguém, nem mesmo o proprietário, poderá mais enviar (push) para este repositório.",
   "save_button": "Salvar",
   "settings_danger_zone": "Zona de perigo",
   "settings_delete_repo": "Excluir repositório",

@@ -102,6 +102,8 @@
 
   "settings_general": "عام",
   "settings_default_branch": "الفرع الافتراضي",
+  "settings_readonly_label": "للقراءة فقط",
+  "settings_readonly_hint": "لن يتمكن أحد، ولا حتى المالك، من الدفع (push) إلى هذا المستودع بعد الآن.",
   "save_button": "حفظ",
   "settings_danger_zone": "منطقة الخطر",
   "settings_delete_repo": "حذف المستودع",

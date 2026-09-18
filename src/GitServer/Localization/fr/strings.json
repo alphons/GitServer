@@ -102,6 +102,8 @@
 
   "settings_general": "Général",
   "settings_default_branch": "Branche par défaut",
+  "settings_readonly_label": "Lecture seule",
+  "settings_readonly_hint": "Personne, pas même le propriétaire, ne pourra plus pousser vers ce dépôt.",
   "save_button": "Enregistrer",
   "settings_danger_zone": "Zone dangereuse",
   "settings_delete_repo": "Supprimer le dépôt",

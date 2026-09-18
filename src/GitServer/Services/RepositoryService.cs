@@ -108,6 +108,7 @@ public class RepositoryService(AppDbContext db,
 
     public async Task<bool> CanWriteAsync(Repository repo, string? userId)
     {
+        if (repo.IsReadOnly) return false;
         if (userId == null) return false;
         if (await IsOwnerAsync(repo, userId)) return true;
         if (repo.GroupOwnerId != null && await IsGroupMemberAsync(repo.GroupOwnerId.Value, userId)) return true;

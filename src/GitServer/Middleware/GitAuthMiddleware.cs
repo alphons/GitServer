@@ -151,6 +151,14 @@ public class GitAuthMiddleware(RequestDelegate next)
             }
         }
 
+        // A read-only repository can never be pushed to, regardless of who's asking or how
+        // anonymous/write access is otherwise configured.
+        if (isPush && repo!.IsReadOnly)
+        {
+            context.Response.StatusCode = 403;
+            return;
+        }
+
         // Authorization check
         if (repo!.IsPrivate || isPush)
         {

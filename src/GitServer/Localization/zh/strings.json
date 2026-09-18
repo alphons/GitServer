@@ -102,6 +102,8 @@
 
   "settings_general": "常规",
   "settings_default_branch": "默认分支",
+  "settings_readonly_label": "只读",
+  "settings_readonly_hint": "任何人（包括所有者）都将无法再向此仓库推送。",
   "save_button": "保存",
   "settings_danger_zone": "危险区域",
   "settings_delete_repo": "删除仓库",

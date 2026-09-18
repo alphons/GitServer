@@ -102,6 +102,8 @@
 
   "settings_general": "一般",
   "settings_default_branch": "デフォルトブランチ",
+  "settings_readonly_label": "読み取り専用",
+  "settings_readonly_hint": "所有者を含め、誰もこのリポジトリにプッシュできなくなります。",
   "save_button": "保存",
   "settings_danger_zone": "危険ゾーン",
   "settings_delete_repo": "リポジトリを削除",

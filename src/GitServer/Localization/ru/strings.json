@@ -102,6 +102,8 @@
 
   "settings_general": "Общие",
   "settings_default_branch": "Ветка по умолчанию",
+  "settings_readonly_label": "Только чтение",
+  "settings_readonly_hint": "Никто, включая владельца, больше не сможет отправлять push в этот репозиторий.",
   "save_button": "Сохранить",
   "settings_danger_zone": "Опасная зона",
   "settings_delete_repo": "Удалить репозиторий",

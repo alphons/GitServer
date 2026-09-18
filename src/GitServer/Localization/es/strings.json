@@ -102,6 +102,8 @@
 
   "settings_general": "General",
   "settings_default_branch": "Rama predeterminada",
+  "settings_readonly_label": "Solo lectura",
+  "settings_readonly_hint": "Nadie, ni siquiera el propietario, podrá volver a hacer push a este repositorio.",
   "save_button": "Guardar",
   "settings_danger_zone": "Zona de peligro",
   "settings_delete_repo": "Eliminar repositorio",

@@ -103,6 +103,8 @@
 
   "settings_general": "General",
   "settings_default_branch": "Default branch",
+  "settings_readonly_label": "Read-only",
+  "settings_readonly_hint": "No one, including the owner, can push to this repository anymore.",
   "save_button": "Save",
   "settings_danger_zone": "Danger zone",
   "settings_delete_repo": "Delete repository",

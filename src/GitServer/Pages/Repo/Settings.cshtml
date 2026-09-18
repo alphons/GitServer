@@ -32,6 +32,13 @@
                 </label>
             </div>
             <div class="form-group">
+                <label class="checkbox-label">
+                    <input asp-for="IsReadOnly" type="checkbox" />
+                    @L["settings_readonly_label"]
+                </label>
+                <span class="form-hint">@L["settings_readonly_hint"]</span>
+            </div>
+            <div class="form-group">
                 <label for="defaultBranch">@L["settings_default_branch"]</label>
                 <input asp-for="DefaultBranch" id="defaultBranch" type="text" class="form-control" />
             </div>

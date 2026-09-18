@@ -14,6 +14,10 @@ public class Repository
     public Group? GroupOwner { get; set; }
 
     public bool IsPrivate { get; set; }
+
+    /// <summary>When true, no one (including the owner) can push to this repository — reads only.</summary>
+    public bool IsReadOnly { get; set; }
+
     public string DefaultBranch { get; set; } = "main";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

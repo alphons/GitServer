@@ -15,6 +15,10 @@
             <span class="badge @(Model.Repo.GroupOwnerId != null ? "badge-group" : "badge-muted")">
                 @(Model.Repo.GroupOwnerId != null ? L["group_label"] : L["user_label"])
             </span>
+            @if (Model.Repo.IsReadOnly)
+            {
+                <span class="badge badge-warning">@L["settings_readonly_label"]</span>
+            }
         </div>
         @if (!string.IsNullOrEmpty(Model.Repo.Description))
         {
