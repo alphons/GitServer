@@ -11,6 +11,7 @@
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Blocked emails",
   "nav_admin_git_version": "Git version",
+  "nav_admin_settings": "Settings",
   "footer_tagline": "self-hosted git",
 
   "search_placeholder": "Search...",
@@ -48,6 +49,7 @@
 
   "register_page_title": "Register",
   "register_title": "Create account",
+  "register_disabled": "The administrator has disabled new user registrations.",
   "register_intro": "Enter your email address and we'll send you a verification link.",
   "username_label": "Username",
   "username_hint": "Letters, digits, - and _ only",
@@ -82,6 +84,7 @@
 
   "new_repo_page_title": "New repository",
   "new_repo_title": "Create new repository",
+  "new_repo_creation_disabled": "The administrator has disabled creating new repositories.",
   "repo_name_label": "Name",
   "repo_name_hint": "Letters, digits, hyphens and dots only.",
   "description_label": "Description",
@@ -279,5 +282,19 @@
   "admin_gitversion_installed": "Version {0} installed.",
   "admin_gitversion_deleted": "Installation deleted.",
   "admin_gitversion_no_installations": "No MinGit versions installed yet.",
-  "admin_gitversion_missing_removed": "Removed {0} installation(s) whose files were no longer found on disk."
+  "admin_gitversion_missing_removed": "Removed {0} installation(s) whose files were no longer found on disk.",
+
+  "admin_settings_title": "Settings",
+  "admin_settings_hint": "Site-wide toggles. Changes apply immediately, no restart needed.",
+  "admin_settings_allow_registration": "Allow user registration",
+  "admin_settings_allow_registration_hint": "Let new visitors sign up for an account.",
+  "admin_settings_allow_user_repo_creation": "Allow user repository creation",
+  "admin_settings_allow_user_repo_creation_hint": "Let signed-in users create repositories from the web UI.",
+  "admin_settings_allow_push_to_create": "Allow push to create repositories",
+  "admin_settings_allow_push_to_create_hint": "Let a user's first \"git push\" auto-create the repository, instead of requiring it to exist already.",
+  "admin_settings_allow_anonymous_push": "Allow push for anonymous repositories",
+  "admin_settings_allow_anonymous_push_hint": "Let unauthenticated \"git push\" write to existing public repositories.",
+  "admin_settings_show_commit_avatar": "Show commit author avatar",
+  "admin_settings_show_commit_avatar_hint": "Show the committer's avatar next to each commit in the commit list.",
+  "admin_settings_saved": "Settings saved."
 }

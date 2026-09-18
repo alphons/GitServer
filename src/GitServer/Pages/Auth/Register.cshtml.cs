@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace GitServer.Pages.Auth;
 
@@ -13,26 +12,27 @@ public class RegisterModel(
 	UserManager<AppUser> userManager,
 	IEmailService emailService,
 	AppDbContext db,
-	IOptions<GitServerOptions> options,
+	SiteSettingsService siteSettings,
 	LocalizationService L) : PageModel
 {
-	private readonly GitServerOptions _options = options.Value;
-
 	[BindProperty] public string Email { get; set; } = "";
 	public string? ErrorMessage { get; set; }
 	public string? SuccessMessage { get; set; }
+	public bool RegistrationDisabled { get; set; }
 
-	public IActionResult OnGet()
+	public async Task<IActionResult> OnGetAsync()
 	{
-		if (!_options.AllowRegistration)
-			return RedirectToPage("/Auth/Login");
+		RegistrationDisabled = !(await siteSettings.GetAsync()).AllowRegistration;
 		return Page();
 	}
 
 	public async Task<IActionResult> OnPostAsync()
 	{
-		if (!_options.AllowRegistration)
-			return RedirectToPage("/Auth/Login");
+		if (!(await siteSettings.GetAsync()).AllowRegistration)
+		{
+			RegistrationDisabled = true;
+			return Page();
+		}
 
 		var email = Email.Trim();
 

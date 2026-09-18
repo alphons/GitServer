@@ -9,6 +9,7 @@
   "nav_admin": "管理",
   "nav_admin_blocked_emails": "已屏蔽邮箱",
   "nav_admin_git_version": "Git 版本",
+  "nav_admin_settings": "设置",
   "footer_tagline": "自托管 Git",
 
   "search_placeholder": "搜索...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "注册",
   "register_title": "创建账户",
+  "register_disabled": "管理员已禁用新用户注册。",
   "register_intro": "输入你的邮箱地址，我们会发送验证链接给你。",
   "username_label": "用户名",
   "username_hint": "仅限字母、数字、- 和 _",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "新建仓库",
   "new_repo_title": "创建新仓库",
+  "new_repo_creation_disabled": "管理员已禁用创建新仓库。",
   "repo_name_label": "名称",
   "repo_name_hint": "仅限字母、数字、连字符和点。",
   "description_label": "描述",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "版本 {0} 已安装。",
   "admin_gitversion_deleted": "安装已删除。",
   "admin_gitversion_no_installations": "尚未安装任何 MinGit 版本。",
-  "admin_gitversion_missing_removed": "已移除 {0} 个磁盘上文件已不存在的安装记录。"
+  "admin_gitversion_missing_removed": "已移除 {0} 个磁盘上文件已不存在的安装记录。",
+
+  "admin_save_button": "保存",
+  "admin_settings_title": "设置",
+  "admin_settings_hint": "全站设置。更改会立即生效，无需重启。",
+  "admin_settings_allow_registration": "允许用户注册",
+  "admin_settings_allow_registration_hint": "允许新访客注册账号。",
+  "admin_settings_allow_user_repo_creation": "允许用户创建仓库",
+  "admin_settings_allow_user_repo_creation_hint": "允许已登录用户通过网页界面创建仓库。",
+  "admin_settings_allow_push_to_create": "允许通过 push 创建仓库",
+  "admin_settings_allow_push_to_create_hint": "允许用户首次 \"git push\" 时自动创建仓库，而不是要求仓库已存在。",
+  "admin_settings_allow_anonymous_push": "允许匿名 push 到仓库",
+  "admin_settings_allow_anonymous_push_hint": "允许未经身份验证的 \"git push\" 写入已存在的公开仓库。",
+  "admin_settings_show_commit_avatar": "显示提交作者头像",
+  "admin_settings_show_commit_avatar_hint": "在提交列表中每条提交旁显示提交者头像。",
+  "admin_settings_saved": "设置已保存。"
 }

@@ -15,6 +15,7 @@ public class GitAuthMiddleware(RequestDelegate next)
         UserManager<AppUser> userManager,
         AppDbContext db,
         RepositoryService repoService,
+        SiteSettingsService siteSettings,
         Microsoft.Extensions.Options.IOptions<GitServerOptions> options)
     {
         var prefix = options.Value.NormalizedGitPathPrefix; // "" or "/segment"
@@ -100,9 +101,17 @@ public class GitAuthMiddleware(RequestDelegate next)
             catch { /* invalid base64 */ }
         }
 
+        var settings = await siteSettings.GetAsync();
+
         // Auto-create repo on first push if it doesn't exist yet
         if (repo == null && isPush)
         {
+            if (!settings.AllowPushToCreateRepositories)
+            {
+                context.Response.StatusCode = 404;
+                return;
+            }
+
             if (authedUser == null)
             {
                 context.Response.Headers.WWWAuthenticate = "Basic realm=\"GitServer\"";
@@ -122,7 +131,10 @@ public class GitAuthMiddleware(RequestDelegate next)
         // Authorization check
         if (repo!.IsPrivate || isPush)
         {
-            if (authedUser == null)
+            // An unauthenticated push to an existing public repo, allowed only when enabled admin-side.
+            var anonymousPushAllowed = isPush && !repo.IsPrivate && settings.AllowAnonymousPush;
+
+            if (authedUser == null && !anonymousPushAllowed)
             {
                 context.Response.Headers.WWWAuthenticate = "Basic realm=\"GitServer\"";
                 context.Response.StatusCode = 401;
@@ -131,7 +143,7 @@ public class GitAuthMiddleware(RequestDelegate next)
 
             if (isPush)
             {
-                if (!await repoService.CanWriteAsync(repo, authedUser.Id))
+                if (!anonymousPushAllowed && !await repoService.CanWriteAsync(repo, authedUser?.Id))
                 {
                     context.Response.StatusCode = 403;
                     return;
@@ -139,7 +151,7 @@ public class GitAuthMiddleware(RequestDelegate next)
             }
             else
             {
-                if (!await repoService.CanReadAsync(repo, authedUser.Id))
+                if (!await repoService.CanReadAsync(repo, authedUser?.Id))
                 {
                     context.Response.StatusCode = 403;
                     return;

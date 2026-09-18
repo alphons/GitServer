@@ -9,6 +9,7 @@
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "E-mails bloqueados",
   "nav_admin_git_version": "Versão do Git",
+  "nav_admin_settings": "Configurações",
   "footer_tagline": "git auto-hospedado",
 
   "search_placeholder": "Pesquisar...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "Registrar",
   "register_title": "Criar conta",
+  "register_disabled": "O administrador desativou o registro de novos usuários.",
   "register_intro": "Informe seu e-mail e enviaremos um link de verificação.",
   "username_label": "Nome de usuário",
   "username_hint": "Apenas letras, dígitos, - e _",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "Novo repositório",
   "new_repo_title": "Criar novo repositório",
+  "new_repo_creation_disabled": "O administrador desativou a criação de novos repositórios.",
   "repo_name_label": "Nome",
   "repo_name_hint": "Apenas letras, dígitos, hifens e pontos.",
   "description_label": "Descrição",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "Versão {0} instalada.",
   "admin_gitversion_deleted": "Instalação excluída.",
   "admin_gitversion_no_installations": "Ainda não há versões do MinGit instaladas.",
-  "admin_gitversion_missing_removed": "{0} instalação(ões) removida(s) porque os arquivos não foram mais encontrados no disco."
+  "admin_gitversion_missing_removed": "{0} instalação(ões) removida(s) porque os arquivos não foram mais encontrados no disco.",
+
+  "admin_save_button": "Salvar",
+  "admin_settings_title": "Configurações",
+  "admin_settings_hint": "Opções globais do site. As alterações são aplicadas imediatamente, sem necessidade de reiniciar.",
+  "admin_settings_allow_registration": "Permitir registro de usuários",
+  "admin_settings_allow_registration_hint": "Permite que novos visitantes criem uma conta.",
+  "admin_settings_allow_user_repo_creation": "Permitir criação de repositórios por usuários",
+  "admin_settings_allow_user_repo_creation_hint": "Permite que usuários conectados criem repositórios pela interface web.",
+  "admin_settings_allow_push_to_create": "Permitir push para criar repositórios",
+  "admin_settings_allow_push_to_create_hint": "Permite que o primeiro \"git push\" de um usuário crie o repositório automaticamente, em vez de exigir que ele já exista.",
+  "admin_settings_allow_anonymous_push": "Permitir push para repositórios anônimos",
+  "admin_settings_allow_anonymous_push_hint": "Permite que um \"git push\" não autenticado grave em repositórios públicos existentes.",
+  "admin_settings_show_commit_avatar": "Mostrar avatar do autor do commit",
+  "admin_settings_show_commit_avatar_hint": "Mostra o avatar do committer ao lado de cada commit na lista de commits.",
+  "admin_settings_saved": "Configurações salvas."
 }

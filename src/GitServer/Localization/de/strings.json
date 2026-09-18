@@ -9,6 +9,7 @@
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Gesperrte E-Mails",
   "nav_admin_git_version": "Git-Version",
+  "nav_admin_settings": "Einstellungen",
   "footer_tagline": "selbstgehostetes Git",
 
   "search_placeholder": "Suchen...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "Registrieren",
   "register_title": "Konto erstellen",
+  "register_disabled": "Der Administrator hat die Registrierung neuer Benutzer deaktiviert.",
   "register_intro": "Gib deine E-Mail-Adresse ein, wir senden dir einen Bestätigungslink.",
   "username_label": "Benutzername",
   "username_hint": "Nur Buchstaben, Ziffern, - und _",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "Neues Repository",
   "new_repo_title": "Neues Repository erstellen",
+  "new_repo_creation_disabled": "Der Administrator hat das Erstellen neuer Repositorys deaktiviert.",
   "repo_name_label": "Name",
   "repo_name_hint": "Nur Buchstaben, Ziffern, Bindestriche und Punkte.",
   "description_label": "Beschreibung",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "Version {0} installiert.",
   "admin_gitversion_deleted": "Installation gelöscht.",
   "admin_gitversion_no_installations": "Noch keine MinGit-Versionen installiert.",
-  "admin_gitversion_missing_removed": "{0} Installation(en) entfernt, deren Dateien nicht mehr auf der Festplatte gefunden wurden."
+  "admin_gitversion_missing_removed": "{0} Installation(en) entfernt, deren Dateien nicht mehr auf der Festplatte gefunden wurden.",
+
+  "admin_save_button": "Speichern",
+  "admin_settings_title": "Einstellungen",
+  "admin_settings_hint": "Website-weite Einstellungen. Änderungen wirken sofort, kein Neustart erforderlich.",
+  "admin_settings_allow_registration": "Benutzerregistrierung erlauben",
+  "admin_settings_allow_registration_hint": "Neuen Besuchern erlauben, ein Konto zu erstellen.",
+  "admin_settings_allow_user_repo_creation": "Erstellen von Repositorys durch Benutzer erlauben",
+  "admin_settings_allow_user_repo_creation_hint": "Angemeldeten Benutzern erlauben, Repositorys über die Weboberfläche zu erstellen.",
+  "admin_settings_allow_push_to_create": "Push zum Erstellen von Repositorys erlauben",
+  "admin_settings_allow_push_to_create_hint": "Beim ersten \"git push\" eines Benutzers das Repository automatisch erstellen, statt vorauszusetzen, dass es bereits existiert.",
+  "admin_settings_allow_anonymous_push": "Push für anonyme Repositorys erlauben",
+  "admin_settings_allow_anonymous_push_hint": "Einen nicht authentifizierten \"git push\" in bestehende öffentliche Repositorys erlauben.",
+  "admin_settings_show_commit_avatar": "Avatar des Commit-Autors anzeigen",
+  "admin_settings_show_commit_avatar_hint": "Den Avatar des Committers neben jedem Commit in der Commit-Liste anzeigen.",
+  "admin_settings_saved": "Einstellungen gespeichert."
 }

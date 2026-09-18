@@ -9,6 +9,7 @@
   "nav_admin": "Админ",
   "nav_admin_blocked_emails": "Заблокированные email",
   "nav_admin_git_version": "Версия Git",
+  "nav_admin_settings": "Настройки",
   "footer_tagline": "самостоятельно размещённый git",
 
   "search_placeholder": "Поиск...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "Регистрация",
   "register_title": "Создать аккаунт",
+  "register_disabled": "Администратор отключил регистрацию новых пользователей.",
   "register_intro": "Введите email, и мы отправим вам ссылку для подтверждения.",
   "username_label": "Имя пользователя",
   "username_hint": "Только буквы, цифры, - и _",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "Новый репозиторий",
   "new_repo_title": "Создать новый репозиторий",
+  "new_repo_creation_disabled": "Администратор отключил создание новых репозиториев.",
   "repo_name_label": "Название",
   "repo_name_hint": "Только буквы, цифры, дефисы и точки.",
   "description_label": "Описание",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "Версия {0} установлена.",
   "admin_gitversion_deleted": "Установка удалена.",
   "admin_gitversion_no_installations": "Версии MinGit ещё не установлены.",
-  "admin_gitversion_missing_removed": "Удалено установок: {0} — их файлы больше не найдены на диске."
+  "admin_gitversion_missing_removed": "Удалено установок: {0} — их файлы больше не найдены на диске.",
+
+  "admin_save_button": "Сохранить",
+  "admin_settings_title": "Настройки",
+  "admin_settings_hint": "Общесайтовые параметры. Изменения применяются сразу, перезапуск не требуется.",
+  "admin_settings_allow_registration": "Разрешить регистрацию пользователей",
+  "admin_settings_allow_registration_hint": "Позволяет новым посетителям регистрировать учётную запись.",
+  "admin_settings_allow_user_repo_creation": "Разрешить создание репозиториев пользователями",
+  "admin_settings_allow_user_repo_creation_hint": "Позволяет авторизованным пользователям создавать репозитории через веб-интерфейс.",
+  "admin_settings_allow_push_to_create": "Разрешить создание репозитория через push",
+  "admin_settings_allow_push_to_create_hint": "Первый \"git push\" пользователя автоматически создаёт репозиторий, вместо требования, чтобы он уже существовал.",
+  "admin_settings_allow_anonymous_push": "Разрешить push в анонимные репозитории",
+  "admin_settings_allow_anonymous_push_hint": "Позволяет неавторизованному \"git push\" записывать в существующие публичные репозитории.",
+  "admin_settings_show_commit_avatar": "Показывать аватар автора коммита",
+  "admin_settings_show_commit_avatar_hint": "Показывать аватар коммиттера рядом с каждым коммитом в списке коммитов.",
+  "admin_settings_saved": "Настройки сохранены."
 }

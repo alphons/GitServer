@@ -3,6 +3,9 @@ namespace GitServer.Services;
 public class GitServerOptions
 {
     public string RepositoriesPath { get; set; } = "C:\\GitRepos";
+
+    /// <summary>Only used to seed SiteSettings.AllowRegistration the first time the app runs.
+    /// After that, the live value lives in the database and is managed from /Admin/Settings.</summary>
     public bool AllowRegistration { get; set; } = true;
 
     /// <summary>Visibility for repositories auto-created on first push (e.g. via "existing remote" in an IDE).</summary>

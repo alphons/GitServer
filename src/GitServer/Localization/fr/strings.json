@@ -9,6 +9,7 @@
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "E-mails bloqués",
   "nav_admin_git_version": "Version Git",
+  "nav_admin_settings": "Paramètres",
   "footer_tagline": "git auto-hébergé",
 
   "search_placeholder": "Rechercher...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "S'inscrire",
   "register_title": "Créer un compte",
+  "register_disabled": "L'administrateur a désactivé l'inscription de nouveaux utilisateurs.",
   "register_intro": "Entrez votre e-mail, nous vous enverrons un lien de vérification.",
   "username_label": "Nom d'utilisateur",
   "username_hint": "Lettres, chiffres, - et _ uniquement",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "Nouveau dépôt",
   "new_repo_title": "Créer un nouveau dépôt",
+  "new_repo_creation_disabled": "L'administrateur a désactivé la création de nouveaux dépôts.",
   "repo_name_label": "Nom",
   "repo_name_hint": "Lettres, chiffres, tirets et points uniquement.",
   "description_label": "Description",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "Version {0} installée.",
   "admin_gitversion_deleted": "Installation supprimée.",
   "admin_gitversion_no_installations": "Aucune version de MinGit installée pour le moment.",
-  "admin_gitversion_missing_removed": "{0} installation(s) supprimée(s) car leurs fichiers n'ont plus été trouvés sur le disque."
+  "admin_gitversion_missing_removed": "{0} installation(s) supprimée(s) car leurs fichiers n'ont plus été trouvés sur le disque.",
+
+  "admin_save_button": "Enregistrer",
+  "admin_settings_title": "Paramètres",
+  "admin_settings_hint": "Options globales du site. Les changements s'appliquent immédiatement, aucun redémarrage nécessaire.",
+  "admin_settings_allow_registration": "Autoriser l'inscription des utilisateurs",
+  "admin_settings_allow_registration_hint": "Permet aux nouveaux visiteurs de créer un compte.",
+  "admin_settings_allow_user_repo_creation": "Autoriser la création de dépôts par les utilisateurs",
+  "admin_settings_allow_user_repo_creation_hint": "Permet aux utilisateurs connectés de créer des dépôts depuis l'interface web.",
+  "admin_settings_allow_push_to_create": "Autoriser le push pour créer des dépôts",
+  "admin_settings_allow_push_to_create_hint": "Permet au premier \"git push\" d'un utilisateur de créer automatiquement le dépôt, au lieu d'exiger qu'il existe déjà.",
+  "admin_settings_allow_anonymous_push": "Autoriser le push pour les dépôts anonymes",
+  "admin_settings_allow_anonymous_push_hint": "Permet à un \"git push\" non authentifié d'écrire dans des dépôts publics existants.",
+  "admin_settings_show_commit_avatar": "Afficher l'avatar de l'auteur du commit",
+  "admin_settings_show_commit_avatar_hint": "Affiche l'avatar du committeur à côté de chaque commit dans la liste des commits.",
+  "admin_settings_saved": "Paramètres enregistrés."
 }

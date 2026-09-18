@@ -8,9 +8,10 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo;
 
 public class CommitsModel(
-	RepositoryService repos, 
-	GitProcessService git, 
-	UserManager<AppUser> userManager) : PageModel
+	RepositoryService repos,
+	GitProcessService git,
+	UserManager<AppUser> userManager,
+	SiteSettingsService siteSettings) : PageModel
 {
 
 	public string UserName { get; set; } = "";
@@ -21,12 +22,14 @@ public class CommitsModel(
 	public List<CommitInfo> Commits { get; set; } = new();
 	public Dictionary<string, AppUser> AuthorsByEmail { get; set; } = new();
 	public Dictionary<string, List<string>> TagsByCommit { get; set; } = new();
+	public bool ShowCommitAuthorAvatar { get; set; }
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
 	{
 		UserName = user;
 		RepoName = repo;
 		Page = page;
+		ShowCommitAuthorAvatar = (await siteSettings.GetAsync()).ShowCommitAuthorAvatar;
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();

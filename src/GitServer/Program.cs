@@ -43,6 +43,7 @@ builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
 builder.Services.AddScoped<GitReleaseService>();
 builder.Services.AddScoped<GitInstallerService>();
+builder.Services.AddScoped<SiteSettingsService>();
 builder.Services.AddHttpClient("GitHubReleases", c =>
 {
 	c.DefaultRequestHeaders.UserAgent.ParseAdd("GitServer-Updater");

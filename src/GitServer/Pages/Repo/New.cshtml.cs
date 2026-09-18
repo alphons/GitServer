@@ -12,6 +12,7 @@ namespace GitServer.Pages.Repo;
 public class NewModel(
 	RepositoryService repos,
 	UserManager<AppUser> userManager,
+	SiteSettingsService siteSettings,
 	LocalizationService L) : PageModel
 {
 
@@ -20,14 +21,24 @@ public class NewModel(
 	[BindProperty] public bool IsPrivate { get; set; }
 	public string? ErrorMessage { get; set; }
 	public AppUser? CurrentUser { get; set; }
+	public bool CreationDisabled { get; set; }
 
-	public async Task OnGetAsync()
+	public async Task<IActionResult> OnGetAsync()
 	{
 		CurrentUser = await userManager.GetUserAsync(User);
+		CreationDisabled = !(await siteSettings.GetAsync()).AllowUserRepoCreation;
+		return Page();
 	}
 
 	public async Task<IActionResult> OnPostAsync()
 	{
+		if (!(await siteSettings.GetAsync()).AllowUserRepoCreation)
+		{
+			CurrentUser = await userManager.GetUserAsync(User);
+			CreationDisabled = true;
+			return Page();
+		}
+
 		var user = await userManager.GetUserAsync(User);
 		if (user == null) return Challenge();
 		CurrentUser = user;

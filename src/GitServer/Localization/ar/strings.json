@@ -9,6 +9,7 @@
   "nav_admin": "إدارة",
   "nav_admin_blocked_emails": "البريد المحظور",
   "nav_admin_git_version": "إصدار Git",
+  "nav_admin_settings": "الإعدادات",
   "footer_tagline": "Git مستضاف ذاتياً",
 
   "search_placeholder": "بحث...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "إنشاء حساب",
   "register_title": "إنشاء حساب جديد",
+  "register_disabled": "قام المسؤول بتعطيل تسجيل المستخدمين الجدد.",
   "register_intro": "أدخل بريدك الإلكتروني وسنرسل لك رابط تحقق.",
   "username_label": "اسم المستخدم",
   "username_hint": "حروف وأرقام و - و _ فقط",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "مستودع جديد",
   "new_repo_title": "إنشاء مستودع جديد",
+  "new_repo_creation_disabled": "قام المسؤول بتعطيل إنشاء مستودعات جديدة.",
   "repo_name_label": "الاسم",
   "repo_name_hint": "حروف وأرقام وشرطات ونقاط فقط.",
   "description_label": "الوصف",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "تم تثبيت الإصدار {0}.",
   "admin_gitversion_deleted": "تم حذف التثبيت.",
   "admin_gitversion_no_installations": "لا توجد إصدارات MinGit مثبّتة بعد.",
-  "admin_gitversion_missing_removed": "تمت إزالة {0} من التثبيتات التي لم تعد ملفاتها موجودة على القرص."
+  "admin_gitversion_missing_removed": "تمت إزالة {0} من التثبيتات التي لم تعد ملفاتها موجودة على القرص.",
+
+  "admin_save_button": "حفظ",
+  "admin_settings_title": "الإعدادات",
+  "admin_settings_hint": "إعدادات على مستوى الموقع بأكمله. تُطبَّق التغييرات فورًا دون الحاجة لإعادة التشغيل.",
+  "admin_settings_allow_registration": "السماح بتسجيل المستخدمين",
+  "admin_settings_allow_registration_hint": "السماح للزوار الجدد بإنشاء حساب.",
+  "admin_settings_allow_user_repo_creation": "السماح للمستخدمين بإنشاء المستودعات",
+  "admin_settings_allow_user_repo_creation_hint": "السماح للمستخدمين المسجَّلين بإنشاء مستودعات من واجهة الويب.",
+  "admin_settings_allow_push_to_create": "السماح بإنشاء مستودع عبر الدفع (push)",
+  "admin_settings_allow_push_to_create_hint": "جعل أول \"git push\" من المستخدم يُنشئ المستودع تلقائيًا، بدلاً من اشتراط وجوده مسبقًا.",
+  "admin_settings_allow_anonymous_push": "السماح بالدفع (push) إلى مستودعات مجهولة",
+  "admin_settings_allow_anonymous_push_hint": "السماح لعملية \"git push\" غير الموثَّقة بالكتابة في المستودعات العامة الموجودة.",
+  "admin_settings_show_commit_avatar": "إظهار الصورة الرمزية لمؤلف الالتزام",
+  "admin_settings_show_commit_avatar_hint": "إظهار الصورة الرمزية للمُلتزِم بجانب كل التزام في قائمة الالتزامات.",
+  "admin_settings_saved": "تم حفظ الإعدادات."
 }

@@ -9,6 +9,7 @@
   "nav_admin": "管理",
   "nav_admin_blocked_emails": "ブロック済みメール",
   "nav_admin_git_version": "Gitバージョン",
+  "nav_admin_settings": "設定",
   "footer_tagline": "セルフホステッド Git",
 
   "search_placeholder": "検索...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "登録",
   "register_title": "アカウント作成",
+  "register_disabled": "管理者により新規ユーザー登録が無効化されています。",
   "register_intro": "メールアドレスを入力すると確認リンクをお送りします。",
   "username_label": "ユーザー名",
   "username_hint": "文字、数字、- および _ のみ",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "新しいリポジトリ",
   "new_repo_title": "新しいリポジトリを作成",
+  "new_repo_creation_disabled": "管理者により新しいリポジトリの作成が無効化されています。",
   "repo_name_label": "名前",
   "repo_name_hint": "文字、数字、ハイフン、ドットのみ。",
   "description_label": "説明",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "バージョン {0} をインストールしました。",
   "admin_gitversion_deleted": "インストールを削除しました。",
   "admin_gitversion_no_installations": "インストール済みのMinGitバージョンはまだありません。",
-  "admin_gitversion_missing_removed": "ディスク上に見つからなくなったインストール {0} 件を削除しました。"
+  "admin_gitversion_missing_removed": "ディスク上に見つからなくなったインストール {0} 件を削除しました。",
+
+  "admin_save_button": "保存",
+  "admin_settings_title": "設定",
+  "admin_settings_hint": "サイト全体の設定です。変更は再起動なしで即座に反映されます。",
+  "admin_settings_allow_registration": "ユーザー登録を許可する",
+  "admin_settings_allow_registration_hint": "新しい訪問者がアカウントを作成できるようにします。",
+  "admin_settings_allow_user_repo_creation": "ユーザーによるリポジトリ作成を許可する",
+  "admin_settings_allow_user_repo_creation_hint": "ログイン済みユーザーがWeb UIからリポジトリを作成できるようにします。",
+  "admin_settings_allow_push_to_create": "pushによるリポジトリ作成を許可する",
+  "admin_settings_allow_push_to_create_hint": "リポジトリが既に存在することを要求する代わりに、ユーザーが最初に \"git push\" した際にリポジトリを自動作成します。",
+  "admin_settings_allow_anonymous_push": "匿名リポジトリへのpushを許可する",
+  "admin_settings_allow_anonymous_push_hint": "認証されていない \"git push\" が既存の公開リポジトリに書き込めるようにします。",
+  "admin_settings_show_commit_avatar": "コミット作者のアバターを表示する",
+  "admin_settings_show_commit_avatar_hint": "コミット一覧の各コミットの横にコミッターのアバターを表示します。",
+  "admin_settings_saved": "設定を保存しました。"
 }

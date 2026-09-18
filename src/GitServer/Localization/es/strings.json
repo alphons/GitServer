@@ -9,6 +9,7 @@
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Correos bloqueados",
   "nav_admin_git_version": "Versión de Git",
+  "nav_admin_settings": "Configuración",
   "footer_tagline": "git auto-alojado",
 
   "search_placeholder": "Buscar...",
@@ -46,6 +47,7 @@
 
   "register_page_title": "Registrarse",
   "register_title": "Crear cuenta",
+  "register_disabled": "El administrador ha deshabilitado el registro de nuevos usuarios.",
   "register_intro": "Introduce tu correo electrónico y te enviaremos un enlace de verificación.",
   "username_label": "Nombre de usuario",
   "username_hint": "Solo letras, dígitos, - y _",
@@ -80,6 +82,7 @@
 
   "new_repo_page_title": "Nuevo repositorio",
   "new_repo_title": "Crear nuevo repositorio",
+  "new_repo_creation_disabled": "El administrador ha deshabilitado la creación de nuevos repositorios.",
   "repo_name_label": "Nombre",
   "repo_name_hint": "Solo letras, dígitos, guiones y puntos.",
   "description_label": "Descripción",
@@ -241,5 +244,20 @@
   "admin_gitversion_installed": "Versión {0} instalada.",
   "admin_gitversion_deleted": "Instalación eliminada.",
   "admin_gitversion_no_installations": "Aún no hay versiones de MinGit instaladas.",
-  "admin_gitversion_missing_removed": "Se eliminaron {0} instalación(es) cuyos archivos ya no se encontraron en el disco."
+  "admin_gitversion_missing_removed": "Se eliminaron {0} instalación(es) cuyos archivos ya no se encontraron en el disco.",
+
+  "admin_save_button": "Guardar",
+  "admin_settings_title": "Configuración",
+  "admin_settings_hint": "Opciones globales del sitio. Los cambios se aplican de inmediato, no requiere reinicio.",
+  "admin_settings_allow_registration": "Permitir el registro de usuarios",
+  "admin_settings_allow_registration_hint": "Permite que nuevos visitantes se registren para obtener una cuenta.",
+  "admin_settings_allow_user_repo_creation": "Permitir la creación de repositorios por parte de los usuarios",
+  "admin_settings_allow_user_repo_creation_hint": "Permite que los usuarios conectados creen repositorios desde la interfaz web.",
+  "admin_settings_allow_push_to_create": "Permitir crear repositorios mediante push",
+  "admin_settings_allow_push_to_create_hint": "Permite que el primer \"git push\" de un usuario cree automáticamente el repositorio, en lugar de exigir que ya exista.",
+  "admin_settings_allow_anonymous_push": "Permitir push a repositorios anónimos",
+  "admin_settings_allow_anonymous_push_hint": "Permite que un \"git push\" no autenticado escriba en repositorios públicos existentes.",
+  "admin_settings_show_commit_avatar": "Mostrar avatar del autor del commit",
+  "admin_settings_show_commit_avatar_hint": "Muestra el avatar del autor junto a cada commit en la lista de commits.",
+  "admin_settings_saved": "Configuración guardada."
 }

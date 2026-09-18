@@ -11,6 +11,7 @@
   "nav_admin": "Admin",
   "nav_admin_blocked_emails": "Geblokkeerde e-mails",
   "nav_admin_git_version": "Git-versie",
+  "nav_admin_settings": "Instellingen",
   "footer_tagline": "zelfgehoste git",
 
   "search_placeholder": "Zoeken...",
@@ -48,6 +49,7 @@
 
   "register_page_title": "Registreren",
   "register_title": "Account aanmaken",
+  "register_disabled": "De beheerder heeft registratie van nieuwe gebruikers uitgeschakeld.",
   "register_intro": "Vul je e-mailadres in en we sturen je een verificatielink.",
   "username_label": "Gebruikersnaam",
   "username_hint": "Alleen letters, cijfers, - en _",
@@ -82,6 +84,7 @@
 
   "new_repo_page_title": "Nieuwe repository",
   "new_repo_title": "Nieuwe repository aanmaken",
+  "new_repo_creation_disabled": "De beheerder heeft het aanmaken van nieuwe repositories uitgeschakeld.",
   "repo_name_label": "Naam",
   "repo_name_hint": "Alleen letters, cijfers, koppeltekens en punten.",
   "description_label": "Beschrijving",
@@ -264,5 +267,20 @@
   "admin_gitversion_installed": "Versie {0} geïnstalleerd.",
   "admin_gitversion_deleted": "Installatie verwijderd.",
   "admin_gitversion_no_installations": "Nog geen MinGit-versies geïnstalleerd.",
-  "admin_gitversion_missing_removed": "{0} installatie(s) verwijderd waarvan de bestanden niet meer op schijf stonden."
+  "admin_gitversion_missing_removed": "{0} installatie(s) verwijderd waarvan de bestanden niet meer op schijf stonden.",
+
+  "admin_save_button": "Opslaan",
+  "admin_settings_title": "Instellingen",
+  "admin_settings_hint": "Site-brede instellingen. Wijzigingen gelden direct, geen herstart nodig.",
+  "admin_settings_allow_registration": "Registratie van gebruikers toestaan",
+  "admin_settings_allow_registration_hint": "Laat nieuwe bezoekers een account aanmaken.",
+  "admin_settings_allow_user_repo_creation": "Aanmaken van repositories door gebruikers toestaan",
+  "admin_settings_allow_user_repo_creation_hint": "Laat ingelogde gebruikers repositories aanmaken via de webinterface.",
+  "admin_settings_allow_push_to_create": "Push om repository aan te maken toestaan",
+  "admin_settings_allow_push_to_create_hint": "Laat de eerste \"git push\" van een gebruiker de repository automatisch aanmaken, in plaats van te vereisen dat deze al bestaat.",
+  "admin_settings_allow_anonymous_push": "Push naar anonieme repositories toestaan",
+  "admin_settings_allow_anonymous_push_hint": "Laat een ongeauthenticeerde \"git push\" schrijven naar bestaande openbare repositories.",
+  "admin_settings_show_commit_avatar": "Avatar van commit-auteur tonen",
+  "admin_settings_show_commit_avatar_hint": "Toon de avatar van de committer naast elke commit in de commitlijst.",
+  "admin_settings_saved": "Instellingen opgeslagen."
 }

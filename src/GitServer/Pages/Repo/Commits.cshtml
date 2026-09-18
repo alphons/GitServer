@@ -42,7 +42,10 @@
                 </div>
                 <div class="commit-side">
                     <div class="commit-committer">
-                        <img class="commit-committer-avatar" src="@(committer?.EffectiveAvatarUrl ?? GravatarService.GetUrl(commit.Email))" alt="@(committer?.DisplayName ?? commit.Author)" />
+                        @if (Model.ShowCommitAuthorAvatar)
+                        {
+                            <img class="commit-committer-avatar" src="@(committer?.EffectiveAvatarUrl ?? GravatarService.GetUrl(commit.Email))" alt="@(committer?.DisplayName ?? commit.Author)" />
+                        }
                         @if (committer != null)
                         {
                             <a href="/User/@committer.UserName">@committer.DisplayName</a>
