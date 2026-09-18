@@ -45,28 +45,31 @@
 
         <section class="settings-section">
             <h2>@L["group_members_title"]</h2>
-            @if (Model.Members.Any())
-            {
-                <table class="data-table collaborators-table">
-                    <tbody>
-                        @foreach (var member in Model.Members)
-                        {
-                            <tr>
-                                <td>
-                                    <a href="/User/@member.User.UserName" class="collaborator-user">
-                                        <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
-                                        <span>@member.User.UserName</span>
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-            else
-            {
-                <p class="text-muted">@L["group_no_members"]</p>
-            }
+            <table class="data-table collaborators-table">
+                <tbody>
+                    <tr>
+                        <td>
+                            <a href="/User/@Model.GroupEntity.Owner.UserName" class="collaborator-user">
+                                <img src="@Model.GroupEntity.Owner.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+                                <span>@Model.GroupEntity.Owner.UserName</span>
+                            </a>
+                        </td>
+                        <td><span class="badge badge-muted">@L["new_repo_owner_label"]</span></td>
+                    </tr>
+                    @foreach (var member in Model.Members)
+                    {
+                        <tr>
+                            <td>
+                                <a href="/User/@member.User.UserName" class="collaborator-user">
+                                    <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+                                    <span>@member.User.UserName</span>
+                                </a>
+                            </td>
+                            <td></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </section>
     }
 </div>

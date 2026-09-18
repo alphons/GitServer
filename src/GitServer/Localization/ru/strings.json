@@ -127,6 +127,8 @@
   "settings_no_collaborators": "Пока нет участников.",
   "settings_collaborator_search_placeholder": "Поиск по имени пользователя, email или отображаемому имени",
   "confirm_delete_user": "Удалить пользователя {0}?",
+  "group_label": "Группа",
+  "user_label": "Пользователь",
 
   "issues_open": "Открыто",
   "issues_closed": "Закрыто",

@@ -127,6 +127,8 @@
   "settings_no_collaborators": "Aún no hay colaboradores.",
   "settings_collaborator_search_placeholder": "Buscar por nombre de usuario, correo o nombre visible",
   "confirm_delete_user": "¿Eliminar usuario {0}?",
+  "group_label": "Grupo",
+  "user_label": "Usuario",
 
   "issues_open": "Abierto",
   "issues_closed": "Cerrado",

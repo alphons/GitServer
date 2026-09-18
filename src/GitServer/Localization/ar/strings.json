@@ -127,6 +127,8 @@
   "settings_no_collaborators": "لا يوجد متعاونون بعد.",
   "settings_collaborator_search_placeholder": "ابحث باسم المستخدم أو البريد الإلكتروني أو الاسم المعروض",
   "confirm_delete_user": "حذف المستخدم {0}؟",
+  "group_label": "مجموعة",
+  "user_label": "مستخدم",
 
   "issues_open": "مفتوح",
   "issues_closed": "مغلق",

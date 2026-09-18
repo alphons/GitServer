@@ -130,6 +130,7 @@
   "confirm_delete_user": "Delete user {0}?",
 
   "group_label": "Group",
+  "user_label": "User",
   "settings_add_group": "Add group",
   "error_group_not_found": "Group not found.",
   "success_group_added": "Group added.",

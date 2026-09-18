@@ -12,6 +12,9 @@
             <span class="badge @(Model.Repo!.IsPrivate ? "badge-warning" : "badge-muted")">
                 @(Model.Repo.IsPrivate ? L["badge_private"] : L["badge_public"])
             </span>
+            <span class="badge @(Model.Repo.GroupOwnerId != null ? "badge-group" : "badge-muted")">
+                @(Model.Repo.GroupOwnerId != null ? L["group_label"] : L["user_label"])
+            </span>
         </div>
         @if (!string.IsNullOrEmpty(Model.Repo.Description))
         {

@@ -130,6 +130,7 @@
   "confirm_delete_user": "Gebruiker {0} verwijderen?",
 
   "group_label": "Groep",
+  "user_label": "Gebruiker",
   "settings_add_group": "Groep toevoegen",
   "error_group_not_found": "Groep niet gevonden.",
   "success_group_added": "Groep toegevoegd.",

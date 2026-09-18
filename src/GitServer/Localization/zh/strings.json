@@ -127,6 +127,8 @@
   "settings_no_collaborators": "暂无协作者。",
   "settings_collaborator_search_placeholder": "按用户名、邮箱或显示名称搜索",
   "confirm_delete_user": "删除用户 {0}？",
+  "group_label": "群组",
+  "user_label": "用户",
 
   "issues_open": "开放",
   "issues_closed": "已关闭",

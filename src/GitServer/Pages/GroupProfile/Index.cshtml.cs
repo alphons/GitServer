@@ -20,6 +20,7 @@ public class IndexModel(AppDbContext db, RepositoryService repos, UserManager<Ap
 	public async Task<IActionResult> OnGetAsync(string name)
 	{
 		GroupEntity = await db.Groups
+			.Include(g => g.Owner)
 			.Include(g => g.Members).ThenInclude(m => m.User)
 			.FirstOrDefaultAsync(g => g.Name == name);
 		if (GroupEntity == null) return NotFound();

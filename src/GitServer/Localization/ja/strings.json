@@ -127,6 +127,8 @@
   "settings_no_collaborators": "共同作業者はまだいません。",
   "settings_collaborator_search_placeholder": "ユーザー名、メール、表示名で検索",
   "confirm_delete_user": "ユーザー {0} を削除しますか？",
+  "group_label": "グループ",
+  "user_label": "ユーザー",
 
   "issues_open": "オープン",
   "issues_closed": "クローズ",
