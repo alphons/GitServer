@@ -37,6 +37,9 @@ public class GitServerOptions
     /// <summary>Number of items per page on a user's profile repository listing.</summary>
     public int ProfileRepoPageSize { get; set; } = 10;
 
+    /// <summary>Number of items per page on the /Admin/Users listing.</summary>
+    public int AdminUsersPageSize { get; set; } = 10;
+
     /// <summary>GitHub Releases API base URL the admin git-updater queries for MinGit versions
     /// (no trailing slash), e.g. "/latest" and "?per_page=N" are appended to it.</summary>
     public string GitReleasesApiUrl { get; set; } = "https://api.github.com/repos/git-for-windows/git/releases";

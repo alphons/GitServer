@@ -4,76 +4,199 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GitServer.Pages.Admin;
 
-public class UsersModel(UserManager<AppUser> userManager, LocalizationService L) : PageModel
+public class UsersModel(UserManager<AppUser> userManager, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
 {
 	public List<AppUser> Users { get; set; } = new();
     public string? CurrentUserId { get; set; }
     public string? Message { get; set; }
+    public string? ErrorMessage { get; set; }
+    public string Filter { get; set; } = "";
+    public new int Page { get; set; }
+    public int PageSize { get; } = options.Value.AdminUsersPageSize;
+    public int TotalCount { get; set; }
+    public bool HasNextPage { get; set; }
 
-    private async Task ReloadUsersAsync()
+    private async Task LoadUsersAsync(string? filter, int page)
     {
-        Users = await userManager.Users
+        Filter = (filter ?? "").Trim();
+        Page = Math.Max(page, 0);
+
+        var query = userManager.Users.AsQueryable();
+        if (!string.IsNullOrEmpty(Filter))
+        {
+            var lower = Filter.ToLower();
+            query = query.Where(u =>
+                u.UserName!.ToLower().Contains(lower) ||
+                u.DisplayName.ToLower().Contains(lower) ||
+                u.Email!.ToLower().Contains(lower));
+        }
+
+        TotalCount = await query.CountAsync();
+
+        var fetched = await query
             .OrderByDescending(u => u.EmailConfirmed)
             .ThenBy(u => u.UserName)
+            .Skip(Page * PageSize)
+            .Take(PageSize + 1)
             .ToListAsync();
+
+        HasNextPage = fetched.Count > PageSize;
+        Users = fetched.Take(PageSize).ToList();
     }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser == null || !currentUser.IsAdmin) return Forbid();
 
         CurrentUserId = currentUser.Id;
-        await ReloadUsersAsync();
+        await LoadUsersAsync(q, p);
         return Page();
     }
 
-    public async Task<IActionResult> OnPostToggleAdminAsync(string userId)
+    public async Task<IActionResult> OnGetSearchAsync(string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser == null || !currentUser.IsAdmin) return Forbid();
 
-        var target = await userManager.FindByIdAsync(userId);
-        if (target == null) return NotFound();
-
-        target.IsAdmin = !target.IsAdmin;
-        await userManager.UpdateAsync(target);
-
-        Message = L.Format(target.IsAdmin ? "admin_now_is_admin" : "admin_now_not_admin", target.UserName!);
         CurrentUserId = currentUser.Id;
-        await ReloadUsersAsync();
-        return Page();
+        await LoadUsersAsync(q, p);
+        return Partial("_UsersTableBody", this);
     }
 
-    public async Task<IActionResult> OnPostToggleEnabledAsync(string userId)
+    public async Task<IActionResult> OnPostSaveAsync(
+        string? userId, string userName, string displayName, string email,
+        bool isDisabled, bool isAdmin, string? newPassword, string? confirmPassword, string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser == null || !currentUser.IsAdmin) return Forbid();
-        if (userId == currentUser.Id) return BadRequest(L["admin_cannot_disable_self"]);
 
-        var target = await userManager.FindByIdAsync(userId);
-        if (target == null) return NotFound();
+        userName = userName.Trim();
+        email = email.Trim();
+        displayName = displayName.Trim();
 
-        if (target.IsDisabled)
+        if (string.IsNullOrEmpty(userId))
         {
-            await userManager.SetLockoutEndDateAsync(target, null);
+            var result = await CreateUserAsync(userName, displayName, email, isDisabled, isAdmin, newPassword, confirmPassword);
+            if (result != null) { ErrorMessage = result; }
         }
         else
         {
-            await userManager.SetLockoutEnabledAsync(target, true);
-            await userManager.SetLockoutEndDateAsync(target, DateTimeOffset.MaxValue);
+            var result = await UpdateUserAsync(currentUser, userId, userName, displayName, email, isDisabled, isAdmin, newPassword, confirmPassword);
+            if (result != null) { ErrorMessage = result; }
         }
 
-        Message = L.Format(target.IsDisabled ? "admin_now_disabled" : "admin_now_enabled", target.UserName!);
         CurrentUserId = currentUser.Id;
-        await ReloadUsersAsync();
+        await LoadUsersAsync(q, p);
         return Page();
     }
 
-    public async Task<IActionResult> OnPostDeleteAsync(string userId)
+    private async Task<string?> CreateUserAsync(
+        string userName, string displayName, string email,
+        bool isDisabled, bool isAdmin, string? newPassword, string? confirmPassword)
+    {
+        if (string.IsNullOrEmpty(newPassword))
+            return L["error_new_password_required"];
+        if (newPassword != confirmPassword)
+            return L["error_passwords_do_not_match"];
+
+        var existing = await userManager.FindByNameAsync(userName);
+        if (existing != null)
+            return L["error_username_taken"];
+
+        var user = new AppUser
+        {
+            UserName = userName,
+            Email = email,
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? userName : displayName,
+            EmailConfirmed = true,
+            IsAdmin = isAdmin,
+        };
+
+        var createResult = await userManager.CreateAsync(user, newPassword);
+        if (!createResult.Succeeded)
+            return string.Join(" ", createResult.Errors.Select(e => e.Description));
+
+        if (isDisabled)
+        {
+            await userManager.SetLockoutEnabledAsync(user, true);
+            await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        }
+
+        Message = L.Format("admin_user_created", user.UserName!);
+        return null;
+    }
+
+    private async Task<string?> UpdateUserAsync(
+        AppUser currentUser, string userId, string userName, string displayName, string email,
+        bool isDisabled, bool isAdmin, string? newPassword, string? confirmPassword)
+    {
+        var target = await userManager.FindByIdAsync(userId);
+        if (target == null) return L["error_invalid_or_expired_link"];
+
+        var wasPending = !target.EmailConfirmed;
+        if (wasPending && string.IsNullOrEmpty(newPassword))
+            return L["admin_password_required_to_validate"];
+
+        if (!string.IsNullOrEmpty(newPassword) && newPassword != confirmPassword)
+            return L["error_passwords_do_not_match"];
+
+        if (!string.Equals(target.UserName, userName, StringComparison.Ordinal))
+        {
+            var existing = await userManager.FindByNameAsync(userName);
+            if (existing != null && existing.Id != target.Id)
+                return L["error_username_taken"];
+
+            var usernameResult = await userManager.SetUserNameAsync(target, userName);
+            if (!usernameResult.Succeeded)
+                return string.Join(" ", usernameResult.Errors.Select(e => e.Description));
+        }
+
+        if (!string.Equals(target.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            var emailResult = await userManager.SetEmailAsync(target, email);
+            if (!emailResult.Succeeded)
+                return string.Join(" ", emailResult.Errors.Select(e => e.Description));
+        }
+
+        target.DisplayName = string.IsNullOrWhiteSpace(displayName) ? target.UserName! : displayName;
+        target.IsAdmin = isAdmin;
+        if (wasPending) target.EmailConfirmed = true;
+
+        if (target.Id != currentUser.Id)
+        {
+            if (isDisabled && !target.IsDisabled)
+            {
+                await userManager.SetLockoutEnabledAsync(target, true);
+                await userManager.SetLockoutEndDateAsync(target, DateTimeOffset.MaxValue);
+            }
+            else if (!isDisabled && target.IsDisabled)
+            {
+                await userManager.SetLockoutEndDateAsync(target, null);
+            }
+        }
+
+        await userManager.UpdateAsync(target);
+
+        if (!string.IsNullOrEmpty(newPassword))
+        {
+            if (await userManager.HasPasswordAsync(target))
+                await userManager.RemovePasswordAsync(target);
+
+            var passwordResult = await userManager.AddPasswordAsync(target, newPassword);
+            if (!passwordResult.Succeeded)
+                return string.Join(" ", passwordResult.Errors.Select(e => e.Description));
+        }
+
+        Message = L.Format(wasPending ? "admin_user_validated" : "admin_user_saved", target.UserName!);
+        return null;
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(string userId, string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser == null || !currentUser.IsAdmin) return Forbid();
@@ -84,9 +207,9 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L)
 
         await userManager.DeleteAsync(target);
 
-        Message = L.Format("admin_user_deleted", target.UserName!);
+        Message = L.Format("admin_user_deleted", target.EmailConfirmed ? target.UserName! : target.Email!);
         CurrentUserId = currentUser.Id;
-        await ReloadUsersAsync();
+        await LoadUsersAsync(q, p);
         return Page();
     }
 }

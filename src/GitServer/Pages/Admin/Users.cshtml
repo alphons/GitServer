@@ -12,76 +12,264 @@
     {
         <div class="alert alert-success">@Model.Message</div>
     }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">@Model.ErrorMessage</div>
+    }
 
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>@L["admin_col_user"]</th>
-                <th>@L["admin_col_display_name"]</th>
-                <th>@L["email_label"]</th>
-                <th>@L["admin_col_created"]</th>
-                <th>@L["admin_col_last_login"]</th>
-                <th>@L["admin_col_status"]</th>
-                <th>@L["admin_col_admin"]</th>
-                <th>@L["admin_col_actions"]</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in Model.Users)
-            {
-                <tr>
-                    <td>
-                        @if (user.EmailConfirmed)
-                        {
-                            <a href="/User/@user.UserName">@user.UserName</a>
-                        }
-                        else
-                        {
-                            <span class="badge badge-read">@L["admin_pending_registration"]</span>
-                        }
-                    </td>
-                    <td>@user.DisplayName</td>
-                    <td>@user.Email</td>
-                    <td>@TZ.ToLocal(user.CreatedAt).ToString("d MMM yyyy")</td>
-                    <td>@(user.LastLoginAt.HasValue ? TZ.ToLocal(user.LastLoginAt.Value).ToString("d MMM yyyy HH:mm") : L["admin_never_logged_in"])</td>
-                    <td>
-                        @if (user.IsDisabled)
-                        {
-                            <span class="badge badge-write" style="background:rgba(248,81,73,0.15);color:var(--danger)">@L["admin_status_disabled"]</span>
-                        }
-                        else
-                        {
-                            <span class="badge badge-write">@L["admin_status_enabled"]</span>
-                        }
-                    </td>
-                    <td>@if (user.IsAdmin) { <text>&#x2714;</text> }</td>
-                    <td>
-                        @if (user.EmailConfirmed)
-                        {
-                            <form method="post" asp-page-handler="ToggleAdmin" style="display:inline">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <button type="submit" class="btn btn-sm btn-secondary">
-                                    @(user.IsAdmin ? L["admin_remove_admin"] : L["admin_make_admin"])
-                                </button>
-                            </form>
-                        }
-                        @if (user.Id != Model.CurrentUserId)
-                        {
-                            <form method="post" asp-page-handler="ToggleEnabled" style="display:inline">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <button type="submit" class="btn btn-sm btn-secondary">
-                                    @(user.IsDisabled ? L["admin_enable_user"] : L["admin_disable_user"])
-                                </button>
-                            </form>
-                            <form method="post" asp-page-handler="Delete" style="display:inline"
-                                  onsubmit="return confirm('@L.Format("confirm_delete_user", user.EmailConfirmed ? user.UserName : user.Email)')">
-                                <input type="hidden" name="userId" value="@user.Id" />
-                                <button type="submit" class="btn btn-sm btn-danger">@L["delete_button"]</button>
-                            </form>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="search-form search-form-full" style="display:flex; gap:0.5rem; align-items:center">
+        <input type="search" class="form-control" id="users-filter" placeholder="@L["admin_users_filter_placeholder"]" value="@Model.Filter" style="flex:1" />
+        <button type="button" id="new-user-btn" class="btn btn-primary">@L["admin_new_user_button"]</button>
+    </div>
+
+    <div id="users-list-container">
+        @await Html.PartialAsync("_UsersTableBody", Model)
+    </div>
 </div>
+
+<div id="user-modal-backdrop" class="user-modal-backdrop" hidden>
+    <div class="user-modal">
+        <form method="post" asp-page-handler="Save" id="user-form">
+            <div class="user-modal-header">
+                <span id="user-modal-title"></span>
+                <button type="button" id="user-modal-close" class="btn btn-ghost btn-sm" aria-label="Close">&times;</button>
+            </div>
+            <div class="user-modal-body">
+                <input type="hidden" name="userId" id="f-userId" />
+                <input type="hidden" name="q" id="f-q" />
+                <input type="hidden" name="p" id="f-p" />
+
+                <p id="f-pending-hint" class="text-muted" hidden>@L["admin_validate_hint"]</p>
+
+                <div class="form-group">
+                    <label for="f-userName">@L["username_label"]</label>
+                    <input type="text" class="form-control" id="f-userName" name="userName" required />
+                </div>
+                <div class="form-group">
+                    <label for="f-displayName">@L["display_name_label"]</label>
+                    <input type="text" class="form-control" id="f-displayName" name="displayName" />
+                </div>
+                <div class="form-group">
+                    <label for="f-email">@L["email_label"]</label>
+                    <input type="email" class="form-control" id="f-email" name="email" required />
+                </div>
+                <div class="form-group" id="f-status-group">
+                    <label for="f-isDisabled">@L["admin_field_status"]</label>
+                    <select class="form-control" id="f-isDisabled" name="isDisabled">
+                        <option value="false">@L["admin_status_enabled"]</option>
+                        <option value="true">@L["admin_status_disabled"]</option>
+                    </select>
+                </div>
+                <div class="form-group" id="f-admin-group">
+                    <label>
+                        <input type="checkbox" id="f-isAdmin" name="isAdmin" value="true" />
+                        @L["admin_field_is_admin"]
+                    </label>
+                    <input type="hidden" name="isAdmin" value="false" />
+                </div>
+
+                <div class="form-group">
+                    <label for="f-newPassword">@L["reset_password_new_password_label"]</label>
+                    <input type="password" class="form-control" id="f-newPassword" name="newPassword" autocomplete="new-password" />
+                    <small id="f-password-hint" class="text-muted">@L["admin_password_leave_blank"]</small>
+                </div>
+                <div class="form-group">
+                    <label for="f-confirmPassword">@L["confirm_password_label"]</label>
+                    <input type="password" class="form-control" id="f-confirmPassword" name="confirmPassword" autocomplete="new-password" />
+                </div>
+            </div>
+            <div class="user-modal-footer">
+                <button type="button" id="user-delete-btn" class="btn btn-danger">@L["delete_button"]</button>
+                <span style="flex:1"></span>
+                <button type="button" id="user-cancel-btn" class="btn btn-ghost">@L["cancel"]</button>
+                <button type="submit" class="btn btn-primary">@L["admin_save_button"]</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<form method="post" asp-page-handler="Delete" id="user-delete-form" style="display:none">
+    <input type="hidden" name="userId" id="delete-userId" />
+    <input type="hidden" name="q" id="delete-q" />
+    <input type="hidden" name="p" id="delete-p" />
+</form>
+
+<div id="confirm-modal-backdrop" class="user-modal-backdrop" hidden>
+    <div class="user-modal confirm-modal">
+        <div class="user-modal-body" id="confirm-modal-text"></div>
+        <div class="user-modal-footer">
+            <span style="flex:1"></span>
+            <button type="button" id="confirm-modal-cancel" class="btn btn-ghost">@L["cancel"]</button>
+            <button type="button" id="confirm-modal-ok" class="btn btn-danger">@L["delete_button"]</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .user-modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+        align-items: center; justify-content: center; z-index: 1000;
+    }
+    .user-modal-backdrop:not([hidden]) { display: flex; }
+    .user-modal {
+        background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+        width: min(480px, 90vw); max-height: 85vh; overflow: auto;
+    }
+    .user-modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface2);
+        font-weight: 600;
+    }
+    .user-modal-body { padding: 1rem; }
+    .user-modal-footer {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.6rem 1rem; border-top: 1px solid var(--border);
+    }
+    .confirm-modal { width: min(420px, 90vw); z-index: 1100; }
+    #confirm-modal-backdrop { z-index: 1100; }
+    #users-pagination { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            var backdrop = document.getElementById('user-modal-backdrop');
+            var form = document.getElementById('user-form');
+            var title = document.getElementById('user-modal-title');
+            var fUserId = document.getElementById('f-userId');
+            var fQ = document.getElementById('f-q');
+            var fP = document.getElementById('f-p');
+            var fUserName = document.getElementById('f-userName');
+            var fDisplayName = document.getElementById('f-displayName');
+            var fEmail = document.getElementById('f-email');
+            var fIsDisabled = document.getElementById('f-isDisabled');
+            var fIsAdmin = document.getElementById('f-isAdmin');
+            var fNewPassword = document.getElementById('f-newPassword');
+            var fConfirmPassword = document.getElementById('f-confirmPassword');
+            var fPendingHint = document.getElementById('f-pending-hint');
+            var fStatusGroup = document.getElementById('f-status-group');
+            var deleteBtn = document.getElementById('user-delete-btn');
+            var newUserBtn = document.getElementById('new-user-btn');
+            var closeBtn = document.getElementById('user-modal-close');
+            var cancelBtn = document.getElementById('user-cancel-btn');
+            var deleteForm = document.getElementById('user-delete-form');
+            var deleteUserId = document.getElementById('delete-userId');
+            var deleteQ = document.getElementById('delete-q');
+            var deleteP = document.getElementById('delete-p');
+            var confirmBackdrop = document.getElementById('confirm-modal-backdrop');
+            var confirmText = document.getElementById('confirm-modal-text');
+            var confirmOkBtn = document.getElementById('confirm-modal-ok');
+            var confirmCancelBtn = document.getElementById('confirm-modal-cancel');
+            var filterInput = document.getElementById('users-filter');
+            var listContainer = document.getElementById('users-list-container');
+
+            var editTitle = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)L["admin_edit_user_title"]));
+            var newTitle = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)L["admin_new_user_title"]));
+            var confirmDeleteTemplate = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)L["confirm_delete_user"]));
+
+            var currentFilter = filterInput.value;
+            var currentPage = 0;
+
+            function openConfirm(message, onConfirm) {
+                confirmText.textContent = message;
+                confirmOkBtn.onclick = function () {
+                    confirmBackdrop.hidden = true;
+                    onConfirm();
+                };
+                confirmBackdrop.hidden = false;
+            }
+
+            confirmCancelBtn.addEventListener('click', function () { confirmBackdrop.hidden = true; });
+            confirmBackdrop.addEventListener('click', function (e) {
+                if (e.target === confirmBackdrop) confirmBackdrop.hidden = true;
+            });
+
+            function openModal() { backdrop.hidden = false; }
+            function closeModal() { backdrop.hidden = true; }
+
+            function resetForm() {
+                form.reset();
+                fUserId.value = '';
+                fNewPassword.value = '';
+                fConfirmPassword.value = '';
+                fQ.value = currentFilter;
+                fP.value = currentPage;
+            }
+
+            newUserBtn.addEventListener('click', function () {
+                resetForm();
+                title.textContent = newTitle;
+                fPendingHint.hidden = true;
+                fStatusGroup.hidden = true;
+                fIsDisabled.value = 'false';
+                deleteBtn.hidden = true;
+                fUserName.readOnly = false;
+                openModal();
+            });
+
+            function bindRow(row) {
+                var isPending = row.dataset.isPending === 'true';
+                var isSelf = row.dataset.isSelf === 'true';
+
+                fUserId.value = row.dataset.userId;
+                fUserName.value = row.dataset.username.indexOf('pending-') === 0 ? '' : row.dataset.username;
+                fDisplayName.value = row.dataset.displayName;
+                fEmail.value = row.dataset.email;
+                fIsDisabled.value = row.dataset.isDisabled;
+                fIsAdmin.checked = row.dataset.isAdmin === 'true';
+
+                title.textContent = isPending ? newTitle : editTitle;
+                fPendingHint.hidden = !isPending;
+                fStatusGroup.hidden = isSelf;
+                deleteBtn.hidden = isSelf;
+
+                deleteBtn.onclick = function () {
+                    var message = confirmDeleteTemplate.replace('{0}', isPending ? row.dataset.email : row.dataset.username);
+                    openConfirm(message, function () {
+                        deleteUserId.value = row.dataset.userId;
+                        deleteQ.value = currentFilter;
+                        deleteP.value = currentPage;
+                        deleteForm.submit();
+                    });
+                };
+            }
+
+            listContainer.addEventListener('click', function (e) {
+                var row = e.target.closest('.user-row');
+                if (row) {
+                    resetForm();
+                    bindRow(row);
+                    openModal();
+                    return;
+                }
+
+                if (e.target.id === 'users-prev-btn' && !e.target.disabled) {
+                    currentPage = Math.max(currentPage - 1, 0);
+                    loadUsers();
+                } else if (e.target.id === 'users-next-btn' && !e.target.disabled) {
+                    currentPage = currentPage + 1;
+                    loadUsers();
+                }
+            });
+
+            function loadUsers() {
+                var url = '?handler=Search&q=' + encodeURIComponent(currentFilter) + '&p=' + currentPage;
+                fetch(url)
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) { listContainer.innerHTML = html; });
+            }
+
+            filterInput.addEventListener('input', function () {
+                currentFilter = filterInput.value;
+                currentPage = 0;
+                loadUsers();
+            });
+
+            closeBtn.addEventListener('click', closeModal);
+            cancelBtn.addEventListener('click', closeModal);
+            backdrop.addEventListener('click', function (e) {
+                if (e.target === backdrop) closeModal();
+            });
+        })();
+    </script>
+}
