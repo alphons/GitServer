@@ -194,6 +194,8 @@
   "admin_status_disabled": "Deaktiviert",
   "admin_enable_user": "Aktivieren",
   "admin_disable_user": "Deaktivieren",
+  "admin_new_user_button": "Neuer Benutzer",
+  "admin_users_filter_placeholder": "Nach Benutzername, Anzeigename oder E-Mail filtern...",
 
   "commit_files_changed": "Dateien geändert",
 

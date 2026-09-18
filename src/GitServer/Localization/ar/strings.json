@@ -195,6 +195,9 @@
   "admin_enable_user": "تفعيل",
   "admin_disable_user": "تعطيل",
 
+  "admin_new_user_button": "مستخدم جديد",
+  "admin_users_filter_placeholder": "تصفية حسب اسم المستخدم أو الاسم المعروض أو البريد الإلكتروني...",
+
   "commit_files_changed": "ملفات تم تغييرها",
 
   "error_invalid_credentials": "اسم المستخدم أو كلمة المرور غير صحيحة.",

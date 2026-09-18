@@ -195,6 +195,9 @@
   "admin_enable_user": "有効化",
   "admin_disable_user": "無効化",
 
+  "admin_new_user_button": "新規ユーザー",
+  "admin_users_filter_placeholder": "ユーザー名、表示名、メールアドレスで絞り込み...",
+
   "commit_files_changed": "ファイルが変更されました",
 
   "error_invalid_credentials": "ユーザー名またはパスワードが無効です。",

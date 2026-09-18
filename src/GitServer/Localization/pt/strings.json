@@ -195,6 +195,9 @@
   "admin_enable_user": "Ativar",
   "admin_disable_user": "Desativar",
 
+  "admin_new_user_button": "Novo usuário",
+  "admin_users_filter_placeholder": "Filtrar por nome de usuário, nome de exibição ou e-mail...",
+
   "commit_files_changed": "arquivos alterados",
 
   "error_invalid_credentials": "Nome de usuário ou senha inválidos.",

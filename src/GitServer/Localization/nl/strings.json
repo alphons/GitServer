@@ -218,6 +218,9 @@
   "admin_enable_user": "Inschakelen",
   "admin_disable_user": "Uitschakelen",
 
+  "admin_new_user_button": "Nieuwe gebruiker",
+  "admin_users_filter_placeholder": "Filteren op gebruikersnaam, weergavenaam of e-mail...",
+
   "commit_files_changed": "bestanden gewijzigd",
 
   "error_invalid_credentials": "Ongeldige gebruikersnaam of wachtwoord.",

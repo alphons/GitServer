@@ -195,6 +195,9 @@
   "admin_enable_user": "启用",
   "admin_disable_user": "禁用",
 
+  "admin_new_user_button": "新建用户",
+  "admin_users_filter_placeholder": "按用户名、显示名称或电子邮件筛选...",
+
   "commit_files_changed": "个文件已更改",
 
   "error_invalid_credentials": "用户名或密码无效。",

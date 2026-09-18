@@ -195,6 +195,9 @@
   "admin_enable_user": "Включить",
   "admin_disable_user": "Отключить",
 
+  "admin_new_user_button": "Новый пользователь",
+  "admin_users_filter_placeholder": "Фильтр по имени пользователя, отображаемому имени или email...",
+
   "commit_files_changed": "файлов изменено",
 
   "error_invalid_credentials": "Неверное имя пользователя или пароль.",

@@ -194,6 +194,8 @@
   "admin_status_disabled": "Désactivé",
   "admin_enable_user": "Activer",
   "admin_disable_user": "Désactiver",
+  "admin_new_user_button": "Nouvel utilisateur",
+  "admin_users_filter_placeholder": "Filtrer par nom d'utilisateur, nom d'affichage ou e-mail...",
 
   "commit_files_changed": "fichiers modifiés",
 
