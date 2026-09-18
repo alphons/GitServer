@@ -230,6 +230,7 @@
 
   "error_invalid_credentials": "Неверное имя пользователя или пароль.",
   "error_invalid_repo_name": "Недопустимое название. Используйте только буквы, цифры, -, _ и .",
+  "error_repo_name_taken": "Репозиторий с таким названием здесь уже существует.",
   "error_create_repo": "Не удалось создать репозиторий: ",
   "success_settings_saved": "Настройки сохранены.",
   "success_profile_saved": "Профиль сохранён.",

@@ -20,7 +20,7 @@ public class ArchiveModel(
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 
 		Response.ContentType = "application/zip";
 		Response.Headers.ContentDisposition = $"attachment; filename=\"{repo}-{treeish}.zip\"";

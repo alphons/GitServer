@@ -34,7 +34,7 @@ public class BlobModel(
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		FileSize = await git.GetFileSize(repoPath, branch, path);
 
 		// Treat files >1MB or detected binary as binary

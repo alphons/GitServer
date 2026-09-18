@@ -68,6 +68,13 @@ public class NewModel(
 			}
 		}
 
+		var ownerName = group?.Name ?? user.UserName!;
+		if (await repos.GetAsync(ownerName, Name) != null)
+		{
+			ErrorMessage = L["error_repo_name_taken"];
+			return Page();
+		}
+
 		try
 		{
 			if (group != null)

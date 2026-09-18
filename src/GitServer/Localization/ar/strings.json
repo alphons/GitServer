@@ -230,6 +230,7 @@
 
   "error_invalid_credentials": "اسم المستخدم أو كلمة المرور غير صحيحة.",
   "error_invalid_repo_name": "اسم غير صالح. استخدم الحروف والأرقام و - و _ و . فقط.",
+  "error_repo_name_taken": "يوجد بالفعل مستودع بهذا الاسم هنا.",
   "error_create_repo": "تعذّر إنشاء المستودع: ",
   "success_settings_saved": "تم حفظ الإعدادات.",
   "success_profile_saved": "تم حفظ الملف الشخصي.",

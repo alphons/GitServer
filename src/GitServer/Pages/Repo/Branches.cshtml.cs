@@ -31,7 +31,7 @@ public class BranchesModel(
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		if (await git.IsEmpty(repoPath)) return Page();
 
 		DefaultBranch = await git.GetDefaultBranch(repoPath);

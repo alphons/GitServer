@@ -230,6 +230,7 @@
 
   "error_invalid_credentials": "用户名或密码无效。",
   "error_invalid_repo_name": "名称无效。仅允许字母、数字、- _ 和 .",
+  "error_repo_name_taken": "这里已经存在同名的仓库。",
   "error_create_repo": "无法创建仓库：",
   "success_settings_saved": "设置已保存。",
   "success_profile_saved": "资料已保存。",

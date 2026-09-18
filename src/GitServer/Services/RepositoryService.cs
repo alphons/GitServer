@@ -79,13 +79,19 @@ public class RepositoryService(AppDbContext db,
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Looks up a repository case-insensitively (like GitHub): "Foo"/"foo"/"FOO" all resolve to
+    /// the one repository actually named "Foo", so pushing/pulling/browsing works with any casing
+    /// while the name is stored and displayed exactly as it was created.
+    /// </summary>
     public async Task<Repository?> GetAsync(string ownerName, string repoName)
     {
+        var normalizedOwner = ownerName.ToUpperInvariant();
         return await _db.Repositories
             .Include(r => r.Owner)
             .Include(r => r.GroupOwner)
             .FirstOrDefaultAsync(r => r.Name == repoName &&
-                ((r.Owner != null && r.Owner.UserName == ownerName) ||
+                ((r.Owner != null && r.Owner.NormalizedUserName == normalizedOwner) ||
                  (r.GroupOwner != null && r.GroupOwner.Name == ownerName)));
     }
 

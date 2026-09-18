@@ -38,7 +38,7 @@ public class DataMissingModel(
 		if (currentUser == null || (!currentUser.IsAdmin && !await repos.IsOwnerAsync(repoObj, currentUser.Id)))
 			return Forbid();
 
-		await repos.DeleteAsync(repoObj, user);
+		await repos.DeleteAsync(repoObj, repoObj.OwnerName);
 		return Redirect("/");
 	}
 }

@@ -230,6 +230,7 @@
 
   "error_invalid_credentials": "Nome de usuário ou senha inválidos.",
   "error_invalid_repo_name": "Nome inválido. Use apenas letras, dígitos, -, _ e .",
+  "error_repo_name_taken": "Já existe um repositório com esse nome aqui.",
   "error_create_repo": "Não foi possível criar o repositório: ",
   "success_settings_saved": "Configurações salvas.",
   "success_profile_saved": "Perfil salvo.",

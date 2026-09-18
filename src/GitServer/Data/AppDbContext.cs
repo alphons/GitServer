@@ -22,6 +22,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<Repository>(e =>
         {
+            // Case-preserving but case-insensitive, like GitHub: "Foo" and "foo" can't both
+            // exist, and pushing/pulling/browsing works regardless of the casing used.
+            e.Property(r => r.Name).UseCollation("NOCASE");
             e.HasIndex(r => new { r.OwnerId, r.Name }).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
             e.HasIndex(r => new { r.GroupOwnerId, r.Name }).IsUnique().HasFilter("[GroupOwnerId] IS NOT NULL");
             e.HasOne(r => r.Owner)
@@ -55,7 +58,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
         builder.Entity<Group>(e =>
         {
             // Group names double as a URL namespace segment (like a username), so they must be
-            // globally unique rather than just unique per owner.
+            // globally unique rather than just unique per owner. NOCASE keeps that uniqueness
+            // (and lookups) case-insensitive while preserving the casing it was created with.
+            e.Property(g => g.Name).UseCollation("NOCASE");
             e.HasIndex(g => g.Name).IsUnique();
             e.HasOne(g => g.Owner)
              .WithMany(u => u.Groups)

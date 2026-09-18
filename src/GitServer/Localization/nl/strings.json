@@ -233,6 +233,7 @@
 
   "error_invalid_credentials": "Ongeldige gebruikersnaam of wachtwoord.",
   "error_invalid_repo_name": "Ongeldige naam. Gebruik alleen letters, cijfers, -, _ en .",
+  "error_repo_name_taken": "Er bestaat hier al een repository met deze naam.",
   "error_create_repo": "Kon repository niet aanmaken: ",
   "success_settings_saved": "Instellingen opgeslagen.",
   "success_profile_saved": "Profiel opgeslagen.",

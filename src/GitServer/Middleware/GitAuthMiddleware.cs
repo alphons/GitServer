@@ -185,6 +185,11 @@ public class GitAuthMiddleware(RequestDelegate next)
         context.Items["GitUser"] = authedUser;
         context.Items["GitRepo"] = repo;
         context.Items["GitOwner"] = owner;
+        // Canonical, stored casing — may differ from the URL's casing now that owner/repo
+        // lookups are case-insensitive. GitController must build the on-disk path from this,
+        // not from the raw route values, since the filesystem itself is case-sensitive on Linux.
+        context.Items["GitOwnerName"] = owner?.UserName ?? ownerGroup?.Name;
+        context.Items["GitRepoName"] = repo.Name;
 
         await _next(context);
     }

@@ -75,7 +75,7 @@ public class SettingsModel(
 		if (repoObj == null) return NotFound();
 		if (!isOwner) return Forbid();
 
-		await repos.DeleteAsync(repoObj, user);
+		await repos.DeleteAsync(repoObj, repoObj.OwnerName);
 		return Redirect("/");
 	}
 }

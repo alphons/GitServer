@@ -229,6 +229,7 @@
 
   "error_invalid_credentials": "Ungültiger Benutzername oder Passwort.",
   "error_invalid_repo_name": "Ungültiger Name. Nur Buchstaben, Ziffern, -, _ und . erlaubt.",
+  "error_repo_name_taken": "Hier gibt es bereits ein Repository mit diesem Namen.",
   "error_create_repo": "Repository konnte nicht erstellt werden: ",
   "success_settings_saved": "Einstellungen gespeichert.",
   "success_profile_saved": "Profil gespeichert.",

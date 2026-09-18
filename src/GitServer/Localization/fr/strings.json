@@ -229,6 +229,7 @@
 
   "error_invalid_credentials": "Nom d'utilisateur ou mot de passe invalide.",
   "error_invalid_repo_name": "Nom invalide. Utilisez uniquement des lettres, chiffres, -, _ et .",
+  "error_repo_name_taken": "Un dépôt portant ce nom existe déjà ici.",
   "error_create_repo": "Impossible de créer le dépôt : ",
   "success_settings_saved": "Paramètres enregistrés.",
   "success_profile_saved": "Profil enregistré.",

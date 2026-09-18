@@ -244,6 +244,7 @@
 
   "error_invalid_credentials": "Invalid username or password.",
   "error_invalid_repo_name": "Invalid name. Use only letters, digits, -, _ and .",
+  "error_repo_name_taken": "A repository with this name already exists here.",
   "error_create_repo": "Could not create repository: ",
   "success_settings_saved": "Settings saved.",
   "success_profile_saved": "Profile saved.",

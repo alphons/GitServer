@@ -38,7 +38,7 @@ public class ViewModel(
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(Repo, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(Repo.OwnerName, Repo.Name);
 		CloneUrl = $"{Request.Scheme}://{Request.Host}{_options.NormalizedGitPathPrefix}/{user}/{repo}.git";
 
 		IsEmpty = await git.IsEmpty(repoPath);
