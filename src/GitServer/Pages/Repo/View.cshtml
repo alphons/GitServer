@@ -6,7 +6,7 @@
 <div class="container">
     <div class="repo-header">
         <div class="repo-title">
-            <a href="/User/@Model.UserName">@Model.UserName</a>
+            <a href="/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a>
             <span class="separator">/</span>
             <strong>@Model.RepoName</strong>
             <span class="badge @(Model.Repo!.IsPrivate ? "badge-warning" : "badge-muted")">

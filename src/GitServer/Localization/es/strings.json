@@ -214,6 +214,7 @@
   "error_group_name_taken": "Ya tienes un grupo con este nombre.",
   "group_members_hint": "Gestiona los miembros de este grupo.",
   "group_no_members": "Aún no hay miembros.",
+  "group_members_title": "Miembros",
   "group_add_member": "Añadir miembro",
   "group_delete": "Eliminar grupo",
   "confirm_delete_group": "¿Eliminar el grupo {0}?",

@@ -13,6 +13,7 @@ public class TagsModel(
 {
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public List<TagInfo> Tags { get; set; } = new();
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo)
@@ -22,6 +23,7 @@ public class TagsModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
 
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();

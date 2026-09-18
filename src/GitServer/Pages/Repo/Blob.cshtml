@@ -11,7 +11,7 @@
 <div class="container">
     <div class="repo-header">
         <div class="repo-title">
-            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@(Model.IsGroupOwner ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
             <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
         </div>
     </div>

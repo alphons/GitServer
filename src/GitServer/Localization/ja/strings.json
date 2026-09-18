@@ -215,6 +215,7 @@
   "error_group_name_taken": "この名前のグループは既に存在します。",
   "group_members_hint": "このグループのメンバーを管理します。",
   "group_no_members": "メンバーはまだいません。",
+  "group_members_title": "メンバー",
   "group_add_member": "メンバーを追加",
   "group_delete": "グループを削除",
   "confirm_delete_group": "グループ「{0}」を削除しますか？",

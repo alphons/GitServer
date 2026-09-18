@@ -14,6 +14,7 @@ public class BranchesModel(
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public string DefaultBranch { get; set; } = "main";
 	public List<string> Branches { get; set; } = new();
 	public List<string> Tags { get; set; } = new();
@@ -25,6 +26,7 @@ public class BranchesModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
 
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();

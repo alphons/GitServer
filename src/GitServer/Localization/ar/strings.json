@@ -215,6 +215,7 @@
   "error_group_name_taken": "لديك بالفعل مجموعة بهذا الاسم.",
   "group_members_hint": "إدارة أعضاء هذه المجموعة.",
   "group_no_members": "لا يوجد أعضاء بعد.",
+  "group_members_title": "الأعضاء",
   "group_add_member": "إضافة عضو",
   "group_delete": "حذف المجموعة",
   "confirm_delete_group": "حذف المجموعة {0}؟",

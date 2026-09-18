@@ -215,6 +215,7 @@
   "error_group_name_taken": "您已有一个同名的群组。",
   "group_members_hint": "管理此群组的成员。",
   "group_no_members": "暂无成员。",
+  "group_members_title": "成员",
   "group_add_member": "添加成员",
   "group_delete": "删除群组",
   "confirm_delete_group": "删除群组「{0}」？",

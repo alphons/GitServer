@@ -215,6 +215,7 @@
   "error_group_name_taken": "У вас уже есть группа с таким названием.",
   "group_members_hint": "Управляйте участниками этой группы.",
   "group_no_members": "Участников пока нет.",
+  "group_members_title": "Участники",
   "group_add_member": "Добавить участника",
   "group_delete": "Удалить группу",
   "confirm_delete_group": "Удалить группу {0}?",

@@ -17,6 +17,7 @@ public class NewIssueModel(
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	[BindProperty] public string Title { get; set; } = "";
 	[BindProperty] public string Body { get; set; } = "";
 	public string? ErrorMessage { get; set; }
@@ -26,6 +27,7 @@ public class NewIssueModel(
 		UserName = user; RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
 		return Page();

@@ -24,7 +24,7 @@ public class DataMissingModel(
 		if (Repo == null) return NotFound();
 
 		var currentUser = await userManager.GetUserAsync(User);
-		IsOwnerOrAdmin = currentUser != null && (currentUser.Id == Repo.OwnerId || currentUser.IsAdmin);
+		IsOwnerOrAdmin = currentUser != null && (currentUser.IsAdmin || await repos.IsOwnerAsync(Repo, currentUser.Id));
 
 		return Page();
 	}
@@ -35,7 +35,7 @@ public class DataMissingModel(
 		if (repoObj == null) return NotFound();
 
 		var currentUser = await userManager.GetUserAsync(User);
-		if (currentUser == null || (currentUser.Id != repoObj.OwnerId && !currentUser.IsAdmin))
+		if (currentUser == null || (!currentUser.IsAdmin && !await repos.IsOwnerAsync(repoObj, currentUser.Id)))
 			return Forbid();
 
 		await repos.DeleteAsync(repoObj, user);

@@ -13,6 +13,7 @@ public class CommitModel(
 {
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public CommitDetail? Detail { get; set; }
 	public List<string> Tags { get; set; } = new();
 
@@ -23,6 +24,7 @@ public class CommitModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
 
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();

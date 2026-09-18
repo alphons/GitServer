@@ -142,6 +142,7 @@
   "group_manage": "Manage",
   "group_members_hint": "Manage the members of this group.",
   "group_no_members": "No members yet.",
+  "group_members_title": "Members",
   "group_add_member": "Add member",
   "group_delete": "Delete group",
   "confirm_delete_group": "Delete group {0}?",

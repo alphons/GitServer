@@ -1,0 +1,72 @@
+@page "/Group/{name}"
+@model GitServer.Pages.GroupProfile.IndexModel
+@{
+    ViewData["Title"] = Model.GroupEntity?.Name;
+}
+<div class="container">
+    @if (Model.GroupEntity != null)
+    {
+        <div class="repo-header">
+            <div class="repo-title">
+                <strong>@Model.GroupEntity.Name</strong>
+                <span class="badge badge-group">@L["nav_groups"]</span>
+            </div>
+        </div>
+
+        <section class="settings-section">
+            <h2>@L["group_repos_title"]</h2>
+            @if (Model.Repos.Any())
+            {
+                <div class="repo-list">
+                    @foreach (var repo in Model.Repos)
+                    {
+                        <div class="repo-card">
+                            <div class="repo-card-header">
+                                <a class="repo-name" href="/@Model.GroupEntity.Name/@repo.Name">
+                                    @Model.GroupEntity.Name / @repo.Name
+                                </a>
+                                <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
+                                    @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(repo.Description))
+                            {
+                                <p class="repo-description">@repo.Description</p>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">@L["group_repos_empty"]</p>
+            }
+        </section>
+
+        <section class="settings-section">
+            <h2>@L["group_members_title"]</h2>
+            @if (Model.Members.Any())
+            {
+                <table class="data-table collaborators-table">
+                    <tbody>
+                        @foreach (var member in Model.Members)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="/User/@member.User.UserName" class="collaborator-user">
+                                        <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+                                        <span>@member.User.UserName</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">@L["group_no_members"]</p>
+            }
+        </section>
+    }
+</div>

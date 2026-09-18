@@ -16,6 +16,7 @@ public class CommitsModel(
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public string Branch { get; set; } = "main";
 	public new int Page { get; set; }
 	public int TotalCount { get; set; }
@@ -33,6 +34,7 @@ public class CommitsModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
 
 		var userId = userManager.GetUserId(User);
 		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();

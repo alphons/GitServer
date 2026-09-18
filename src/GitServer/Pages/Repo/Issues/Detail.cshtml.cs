@@ -17,6 +17,7 @@ public class DetailModel(
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public Issue? Issue { get; set; }
 	public bool CanManage { get; set; }
 	[BindProperty] public string CommentBody { get; set; } = "";
@@ -27,6 +28,7 @@ public class DetailModel(
 		UserName = user; RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return (null, null);
+		IsGroupOwner = repoObj.GroupOwnerId != null;
 
 		Issue = await db.Issues
 			.Include(i => i.Author)

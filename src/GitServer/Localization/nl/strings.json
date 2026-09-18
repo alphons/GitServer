@@ -142,6 +142,7 @@
   "group_manage": "Beheren",
   "group_members_hint": "Beheer de leden van deze groep.",
   "group_no_members": "Nog geen leden.",
+  "group_members_title": "Leden",
   "group_add_member": "Lid toevoegen",
   "group_delete": "Groep verwijderen",
   "confirm_delete_group": "Groep {0} verwijderen?",
