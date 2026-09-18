@@ -11,6 +11,7 @@ public class ProfileModel(UserManager<AppUser> userManager, RepositoryService re
 {
 	public AppUser? ProfileUser { get; set; }
 	public List<Repository> Repos { get; set; } = new();
+	public int TotalCount { get; set; }
 	public List<Repository> GroupRepos { get; set; } = new();
 	public bool IsOwner { get; set; }
 	public string Query { get; set; } = "";
@@ -32,6 +33,7 @@ public class ProfileModel(UserManager<AppUser> userManager, RepositoryService re
 			skip: p * PageSize, take: PageSize + 1);
 		HasNextPage = fetched.Count > PageSize;
 		Repos = fetched.Take(PageSize).ToList();
+		TotalCount = await repos.GetUserRepoCountAsync(ProfileUser.Id, includePrivate: IsOwner, query: Query);
 
 		if (IsOwner)
 			GroupRepos = await repos.GetAccessibleGroupReposAsync(ProfileUser.Id, Query);

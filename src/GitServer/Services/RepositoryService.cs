@@ -166,6 +166,24 @@ public class RepositoryService(AppDbContext db,
             .ToListAsync();
     }
 
+    public async Task<int> GetUserRepoCountAsync(string userId, bool includePrivate, string? query = null)
+    {
+        var q = _db.Repositories.Where(r => r.OwnerId == userId);
+
+        if (!includePrivate)
+            q = q.Where(r => !r.IsPrivate);
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var lower = query.Trim().ToLower();
+            q = q.Where(r =>
+                r.Name.ToLower().Contains(lower) ||
+                (r.Description != null && r.Description.ToLower().Contains(lower)));
+        }
+
+        return await q.CountAsync();
+    }
+
     public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null, int skip = 0, int take = int.MaxValue)
     {
         var q = _db.Repositories

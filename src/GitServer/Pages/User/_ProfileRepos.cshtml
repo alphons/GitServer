@@ -9,7 +9,7 @@
 }
 
 <details class="collapsible-section" open>
-    <summary>@L["profile_own_repos_title"] (@Model.Repos.Count)</summary>
+    <summary>@L["profile_own_repos_title"] (@Model.TotalCount)</summary>
 
     @if (Model.Repos.Any() && (Model.CurrentPage > 0 || Model.HasNextPage))
     {
