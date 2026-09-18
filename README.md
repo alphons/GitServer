@@ -49,13 +49,24 @@ Because your code doesn't belong to anyone else.
 - User registration and authentication via ASP.NET Core Identity (email confirmation, password reset)
 - Groups with members, usable as a unit when granting repository access
 - Per-repository access control — grant individual users or whole groups **Read** or **Write** access to private repos
-- Admin panel for user management, blocked email-pattern configuration for sign-ups, and the built-in Git engine updater (see [Git engine](#git-engine))
-- Per-user profile pages with bio and avatar (via Gravatar)
+- Per-user profile pages with bio, company, country and avatar (via Gravatar or a custom URL)
+
+### Admin Panel
+- **Users** — search/filter/paginate all accounts, create users directly, edit username/display name/email/password/role, enable or disable an account, and validate a pending (unconfirmed) registration — all from one modal, no page reloads
+- **Blocked emails** — wildcard email-pattern blocklist for sign-ups (e.g. `*@spam.net`)
+- **Git version** — the built-in Git engine updater (see [Git engine](#git-engine))
+- **Settings** — site-wide toggles, editable at runtime with no restart required:
+  - Allow user registration
+  - Allow user repository creation
+  - Allow push to create repositories (auto-create on first `git push`)
+  - Allow push for anonymous (unauthenticated) repositories
+  - Show commit author avatar
 
 ### Internationalization
 - Ships with **10 languages** out of the box: English, Dutch, German, French, Spanish, Portuguese, Russian, Chinese, Japanese, Arabic
 - Language switcher in the navbar — preference stored in a cookie
-- **Extend with your own language** by dropping a single JSON file into the `Localization/` folder — no recompile needed
+- Transactional emails (registration, password reset) are localized HTML templates, not just translated strings
+- **Extend with your own language** by adding a folder under `Localization/` — no recompile needed (see [Adding a Language](#adding-a-language))
 
 ### Security
 - CSRF protection on all forms
@@ -106,6 +117,7 @@ Edit `src/GitServer/appsettings.json`:
     "ExploreRepoPageSize": 20,
     "ExploreUserPageSize": 20,
     "ProfileRepoPageSize": 20,
+    "AdminUsersPageSize": 10,
     "IndexRecentReposCount": 5,
     "GitReleasesApiUrl": "https://api.github.com/repos/git-for-windows/git/releases",
     "GitReleaseAssetPattern": "^MinGit-[\\d.]+-64-bit\\.zip$",
@@ -118,6 +130,14 @@ Edit `src/GitServer/appsettings.json`:
   },
   "ConnectionStrings": {
     "Default": "Data Source=gitserver.db"
+  },
+  "EmailService": {
+    "ClientId": "",
+    "ClientSecret": "",
+    "SmtpHost": "",
+    "SmtpPort": 25,
+    "EnableSsl": false,
+    "FromEmail": ""
   }
 }
 ```
@@ -125,12 +145,13 @@ Edit `src/GitServer/appsettings.json`:
 | Setting | Description |
 |---------|-------------|
 | `GitServer:RepositoriesPath` | Where bare Git repositories are stored on disk |
-| `GitServer:AllowRegistration` | Set to `false` to lock down new sign-ups |
+| `GitServer:AllowRegistration` | Seeds the DB-backed "Allow user registration" toggle the first time the app runs; after that it's live-editable under **Admin → Settings** |
 | `GitServer:GitPathPrefix` | URL path segment in front of Git Smart HTTP endpoints (e.g. `/git`); empty serves at the root |
 | `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
 | `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
 | `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/explore` listings |
 | `GitServer:ProfileRepoPageSize` | Items per page on a user's profile repository list |
+| `GitServer:AdminUsersPageSize` | Items per page on the **Admin → Users** listing |
 | `GitServer:IndexRecentReposCount` | Repos shown in the home page's "recent repositories" list |
 | `GitServer:GitReleasesApiUrl` | GitHub Releases API endpoint the admin Git updater checks (see [Git engine](#git-engine)) |
 | `GitServer:GitReleaseAssetPattern` | Regex used to pick the right release asset (64-bit MinGit) from that endpoint |
@@ -138,6 +159,9 @@ Edit `src/GitServer/appsettings.json`:
 | `Authentication:KeysPath` | Folder where Data Protection keys are persisted (antiforgery tokens, auth cookies) |
 | `Authentication:ProtectKeysWithDpapi` | Encrypt the keys at rest using Windows DPAPI |
 | `ConnectionStrings:Default` | SQLite connection string |
+| `EmailService:*` | SMTP settings used to send registration and password-reset emails; leave `SmtpHost` empty to disable outgoing email (registration links then just won't be delivered) |
+
+> Everything above except `EmailService` and the identity/DB plumbing is a startup-time default. The five toggles under **Admin → Settings** (registration, user repo creation, push-to-create, anonymous push, commit avatars) live in the database instead, so an admin can flip them from the browser without editing config or restarting the app.
 
 ### 3. Run
 
@@ -207,14 +231,14 @@ dotnet test
 
 ## Adding a Language
 
-GitServer uses plain JSON files for translations. To add a new language:
+Each language is a folder under `src/GitServer/Localization/`. To add a new one:
 
-1. Copy `src/GitServer/Localization/en.json` to e.g. `src/GitServer/Localization/ko.json`
-2. Set `"__name__"` to the native language name (e.g. `"한국어"`)
-3. Translate all the values
+1. Copy `src/GitServer/Localization/en/` to e.g. `src/GitServer/Localization/ko/`
+2. In `ko/strings.json`, set `"__name__"` to the native language name (e.g. `"한국어"`) and translate all the values
+3. Translate the HTML files under `ko/emails/` (registration and password-reset emails); they share the layout in `Localization/_email-layout.html` and use `{{placeholder}}` tokens
 4. Restart the server — your language appears in the navbar dropdown automatically
 
-To pin a language to a specific position in the dropdown, add `"__order__": "3"` (lower numbers appear first; English is `1`, Dutch is `2`).
+To pin a language to a specific position in the dropdown, add `"__order__": "3"` (lower numbers appear first; English is `1`, Dutch is `2`). A key missing from a translation falls back to English automatically, so a partial translation still works.
 
 ---
 
@@ -226,15 +250,15 @@ GitServer is a single ASP.NET Core 10 application built on Razor Pages.
 src/GitServer/
 ├── Controllers/        # Git HTTP protocol (upload-pack, receive-pack)
 ├── Data/               # EF Core DbContext + SQLite migrations
-├── Localization/       # JSON translation files (one per language)
-├── Middleware/         # Git Basic Auth middleware
-├── Models/             # Domain models (User, Repository, Issue, Comment)
-├── Services/           # Business logic (Git, Repository, Markdown, Localization)
+├── Localization/       # One folder per language: strings.json + emails/*.html
+├── Middleware/         # Git Basic Auth middleware, site-settings enforcement
+├── Models/             # Domain models (User, Repository, Issue, Comment, Group, SiteSettings)
+├── Services/           # Business logic (Git, Repository, Markdown, Localization, SiteSettings)
 ├── Pages/              # Razor Pages
-│   ├── Auth/           # Login, Register
-│   ├── Repo/           # Repository browser, commits, branches, issues
-│   ├── User/           # Profile, settings
-│   └── Admin/          # User management, Git version updater
+│   ├── Auth/           # Login, Register, password reset
+│   ├── Repo/           # Repository browser, commits, branches, tags, issues
+│   ├── User/           # Profile, settings, groups
+│   └── Admin/          # Users, blocked emails, Git version updater, site settings
 └── wwwroot/            # Static assets only (css, js, favicon)
 tests/GitServer.Tests/   # Integration tests (xUnit)
 ```
