@@ -128,12 +128,17 @@ public class RepositoryService(AppDbContext db,
             .ToListAsync();
     }
 
-    public async Task<List<Repository>> GetGroupReposAsync(int groupId)
+    public async Task<int> GetGroupRepoCountAsync(int groupId) =>
+        await _db.Repositories.CountAsync(r => r.GroupOwnerId == groupId);
+
+    public async Task<List<Repository>> GetGroupReposAsync(int groupId, int skip = 0, int take = int.MaxValue)
     {
         return await _db.Repositories
             .Include(r => r.GroupOwner)
             .Where(r => r.GroupOwnerId == groupId)
             .OrderByDescending(r => r.UpdatedAt)
+            .Skip(skip)
+            .Take(take)
             .ToListAsync();
     }
 

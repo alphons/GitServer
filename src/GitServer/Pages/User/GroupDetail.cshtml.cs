@@ -6,22 +6,27 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L) : PageModel
+public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public Group? Group { get; set; }
 	public List<GroupMember> Members { get; set; } = new();
 	public List<Repository> Repositories { get; set; } = new();
+	public int RepoTotalCount { get; set; }
+	public int RepoCurrentPage { get; set; }
+	public int RepoPageSize { get; } = options.Value.ProfileRepoPageSize;
+	public bool RepoHasNextPage { get; set; }
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
 
 	[BindProperty] public string? MemberName { get; set; }
 
-	private async Task<bool> LoadAsync(int id)
+	private async Task<bool> LoadAsync(int id, int rp = 0)
 	{
 		CurrentUser = await userManager.GetUserAsync(User);
 		if (CurrentUser == null) return false;
@@ -35,14 +40,17 @@ public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager,
 			.OrderBy(m => m.User.UserName)
 			.ToListAsync();
 
-		Repositories = await repos.GetGroupReposAsync(id);
+		RepoCurrentPage = rp;
+		RepoTotalCount = await repos.GetGroupRepoCountAsync(id);
+		RepoHasNextPage = RepoTotalCount > (rp + 1) * RepoPageSize;
+		Repositories = await repos.GetGroupReposAsync(id, skip: rp * RepoPageSize, take: RepoPageSize);
 
 		return true;
 	}
 
-	public async Task<IActionResult> OnGetAsync(int id)
+	public async Task<IActionResult> OnGetAsync(int id, int rp = 0)
 	{
-		if (!await LoadAsync(id)) return NotFound();
+		if (!await LoadAsync(id, rp)) return NotFound();
 		return Page();
 	}
 

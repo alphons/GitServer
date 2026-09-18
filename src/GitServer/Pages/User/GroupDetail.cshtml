@@ -73,7 +73,15 @@
     </section>
 
     <section class="settings-section">
-        <h2>@L["nav_groups"] — @L["group_repos_title"]</h2>
+        <h2>@L["nav_groups"] — @L["group_repos_title"] (@Model.RepoTotalCount)</h2>
+        @{
+            var repoPrevUrl = $"?id={Model.Group!.Id}&rp={Model.RepoCurrentPage - 1}";
+            var repoNextUrl = $"?id={Model.Group!.Id}&rp={Model.RepoCurrentPage + 1}";
+        }
+        @if (Model.Repositories.Count > 0 && (Model.RepoCurrentPage > 0 || Model.RepoHasNextPage))
+        {
+            @await Html.PartialAsync("_Pagination", (Model.RepoCurrentPage, Model.RepoHasNextPage, repoPrevUrl, repoNextUrl))
+        }
         @if (Model.Repositories.Count > 0)
         {
             <div class="repo-list">
@@ -95,6 +103,10 @@
                     </div>
                 }
             </div>
+            @if (Model.RepoCurrentPage > 0 || Model.RepoHasNextPage)
+            {
+                @await Html.PartialAsync("_Pagination", (Model.RepoCurrentPage, Model.RepoHasNextPage, repoPrevUrl, repoNextUrl))
+            }
         }
         else
         {
