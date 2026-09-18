@@ -108,11 +108,10 @@ public class GitAuthMiddleware(RequestDelegate next)
 
         var settings = await siteSettings.GetAsync();
 
-        // Auto-create repo on first push if it doesn't exist yet (user-owned namespaces only;
-        // pushing into a not-yet-existing repo under a group requires creating it via the UI first).
+        // Auto-create repo on first push if it doesn't exist yet.
         if (repo == null && isPush)
         {
-            if (!settings.AllowPushToCreateRepositories || owner == null)
+            if (!settings.AllowPushToCreateRepositories)
             {
                 context.Response.StatusCode = 404;
                 return;
@@ -125,13 +124,31 @@ public class GitAuthMiddleware(RequestDelegate next)
                 return;
             }
 
-            if (authedUser.Id != owner.Id)
+            if (owner != null)
             {
-                context.Response.StatusCode = 403;
-                return;
-            }
+                if (authedUser.Id != owner.Id)
+                {
+                    context.Response.StatusCode = 403;
+                    return;
+                }
 
-            repo = await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
+                repo = await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
+            }
+            else
+            {
+                // Group namespace: any member (or the group's owner) may push a new repo into it.
+                var isGroupOwner = ownerGroup!.OwnerId == authedUser.Id;
+                var isGroupMember = isGroupOwner || await db.GroupMembers
+                    .AnyAsync(m => m.GroupId == ownerGroup.Id && m.UserId == authedUser.Id);
+
+                if (!isGroupMember)
+                {
+                    context.Response.StatusCode = 403;
+                    return;
+                }
+
+                repo = await repoService.CreateForGroupAsync(ownerGroup.Id, ownerGroup.Name, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
+            }
         }
 
         // Authorization check
