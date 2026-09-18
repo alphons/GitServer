@@ -1,7 +1,10 @@
 @model GitServer.Pages.User.ProfileModel
 @{
-    var prevUrl = $"?handler=Search&q={Uri.EscapeDataString(Model.Query)}&p={Model.CurrentPage - 1}";
-    var nextUrl = $"?handler=Search&q={Uri.EscapeDataString(Model.Query)}&p={Model.CurrentPage + 1}";
+    var qParam = Uri.EscapeDataString(Model.Query);
+    var prevUrl = $"?handler=Search&q={qParam}&p={Model.CurrentPage - 1}&gp={Model.GroupCurrentPage}";
+    var nextUrl = $"?handler=Search&q={qParam}&p={Model.CurrentPage + 1}&gp={Model.GroupCurrentPage}";
+    var groupPrevUrl = $"?handler=Search&q={qParam}&p={Model.CurrentPage}&gp={Model.GroupCurrentPage - 1}";
+    var groupNextUrl = $"?handler=Search&q={qParam}&p={Model.CurrentPage}&gp={Model.GroupCurrentPage + 1}";
 }
 @if (!string.IsNullOrEmpty(Model.Query))
 {
@@ -82,7 +85,13 @@
 @if (Model.IsOwner)
 {
     <details class="collapsible-section" open>
-        <summary>@L["profile_group_repos_title"] (@Model.GroupRepos.Count)</summary>
+        <summary>@L["profile_group_repos_title"] (@Model.GroupTotalCount)</summary>
+
+        @if (Model.GroupRepos.Any() && (Model.GroupCurrentPage > 0 || Model.GroupHasNextPage))
+        {
+            @await Html.PartialAsync("_Pagination", (Model.GroupCurrentPage, Model.GroupHasNextPage, groupPrevUrl, groupNextUrl))
+        }
+
         @if (Model.GroupRepos.Any())
         {
             <div class="repo-list">
@@ -117,6 +126,11 @@
         else
         {
             <p class="text-muted">@(string.IsNullOrEmpty(Model.Query) ? L["group_repos_empty"] : L["explore_no_results"])</p>
+        }
+
+        @if (Model.GroupRepos.Any() && (Model.GroupCurrentPage > 0 || Model.GroupHasNextPage))
+        {
+            @await Html.PartialAsync("_Pagination", (Model.GroupCurrentPage, Model.GroupHasNextPage, groupPrevUrl, groupNextUrl))
         }
     </details>
 }

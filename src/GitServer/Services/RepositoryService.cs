@@ -137,14 +137,34 @@ public class RepositoryService(AppDbContext db,
             .ToListAsync();
     }
 
-    /// <summary>Repositories owned by any group the user owns or is a member of.</summary>
-    public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId, string? query = null)
-    {
-        var groupIds = await _db.Groups
+    private async Task<List<int>> GetAccessibleGroupIdsAsync(string userId) =>
+        await _db.Groups
             .Where(g => g.OwnerId == userId || g.Members.Any(m => m.UserId == userId))
             .Select(g => g.Id)
             .ToListAsync();
 
+    private IQueryable<Repository> FilterByQuery(IQueryable<Repository> q, string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return q;
+        var lower = query.Trim().ToLower();
+        return q.Where(r =>
+            r.Name.ToLower().Contains(lower) ||
+            (r.Description != null && r.Description.ToLower().Contains(lower)));
+    }
+
+    public async Task<int> GetAccessibleGroupRepoCountAsync(string userId, string? query = null)
+    {
+        var groupIds = await GetAccessibleGroupIdsAsync(userId);
+        if (groupIds.Count == 0) return 0;
+
+        var q = _db.Repositories.Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
+        return await FilterByQuery(q, query).CountAsync();
+    }
+
+    /// <summary>Repositories owned by any group the user owns or is a member of.</summary>
+    public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId, string? query = null, int skip = 0, int take = int.MaxValue)
+    {
+        var groupIds = await GetAccessibleGroupIdsAsync(userId);
         if (groupIds.Count == 0) return new List<Repository>();
 
         var q = _db.Repositories
@@ -153,16 +173,11 @@ public class RepositoryService(AppDbContext db,
             .Include(r => r.Accesses).ThenInclude(a => a.Group)
             .Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
 
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var lower = query.Trim().ToLower();
-            q = q.Where(r =>
-                r.Name.ToLower().Contains(lower) ||
-                (r.Description != null && r.Description.ToLower().Contains(lower)));
-        }
-
-        return await q.OrderBy(r => r.GroupOwner!.Name)
+        return await FilterByQuery(q, query)
+            .OrderBy(r => r.GroupOwner!.Name)
             .ThenByDescending(r => r.UpdatedAt)
+            .Skip(skip)
+            .Take(take)
             .ToListAsync();
     }
 

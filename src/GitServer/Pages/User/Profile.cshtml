@@ -35,8 +35,8 @@
             var debounceTimer = null;
             var currentQuery = input.value;
 
-            function load(q, p) {
-                var url = window.location.pathname + '?handler=Search&q=' + encodeURIComponent(q) + '&p=' + p;
+            function load(q, p, gp) {
+                var url = window.location.pathname + '?handler=Search&q=' + encodeURIComponent(q) + '&p=' + p + '&gp=' + gp;
                 fetch(url)
                     .then(function (r) { return r.text(); })
                     .then(function (html) { container.innerHTML = html; });
@@ -45,7 +45,7 @@
             input.addEventListener('input', function () {
                 currentQuery = input.value;
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(function () { load(currentQuery, 0); }, 250);
+                debounceTimer = setTimeout(function () { load(currentQuery, 0, 0); }, 250);
             });
 
             container.addEventListener('click', function (e) {
@@ -55,7 +55,11 @@
                 if (url.searchParams.get('handler') !== 'Search') return;
 
                 e.preventDefault();
-                load(url.searchParams.get('q') || '', parseInt(url.searchParams.get('p') || '0', 10));
+                load(
+                    url.searchParams.get('q') || '',
+                    parseInt(url.searchParams.get('p') || '0', 10),
+                    parseInt(url.searchParams.get('gp') || '0', 10)
+                );
             });
         })();
     </script>
