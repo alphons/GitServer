@@ -616,6 +616,10 @@ textarea.form-control { resize: vertical; }
   padding-bottom: 1rem;
 }
 
+.collapsible-section .pagination {
+  justify-content: flex-start;
+}
+
 /* === Generic confirm modal (replaces native confirm()) === */
 .gs-confirm-backdrop {
   position: fixed;
