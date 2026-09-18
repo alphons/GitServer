@@ -3,6 +3,7 @@
 
   "nav_explore": "Explorar",
   "nav_new": "+ Novo",
+  "nav_groups": "Grupos",
   "nav_logout": "Sair",
   "nav_login": "Entrar",
   "nav_register": "Registrar",
@@ -198,6 +199,16 @@
   "admin_new_user_button": "Novo usuário",
   "admin_users_filter_placeholder": "Filtrar por nome de usuário, nome de exibição ou e-mail...",
   "admin_pagination_page_of": "Página {0} de {1}",
+
+  "groups_hint": "Crie grupos de usuários para conceder acesso a um repositório de uma só vez.",
+  "group_name_label": "Nome do grupo",
+  "group_members_count": "Membros",
+  "group_manage": "Gerenciar",
+  "groups_empty": "Ainda não há grupos.",
+  "group_name_placeholder": "Nome do grupo",
+  "group_create": "Criar grupo",
+  "error_group_name_required": "Digite um nome de grupo.",
+  "error_group_name_taken": "Você já tem um grupo com esse nome.",
 
   "commit_files_changed": "arquivos alterados",
 

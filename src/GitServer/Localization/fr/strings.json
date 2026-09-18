@@ -3,6 +3,7 @@
 
   "nav_explore": "Explorer",
   "nav_new": "+ Nouveau",
+  "nav_groups": "Groupes",
   "nav_logout": "Se déconnecter",
   "nav_login": "Se connecter",
   "nav_register": "S'inscrire",
@@ -197,6 +198,16 @@
   "admin_new_user_button": "Nouvel utilisateur",
   "admin_users_filter_placeholder": "Filtrer par nom d'utilisateur, nom d'affichage ou e-mail...",
   "admin_pagination_page_of": "Page {0} sur {1}",
+
+  "groups_hint": "Créez des groupes d'utilisateurs pour leur accorder l'accès à un dépôt en une seule fois.",
+  "group_name_label": "Nom du groupe",
+  "group_members_count": "Membres",
+  "group_manage": "Gérer",
+  "groups_empty": "Aucun groupe pour l'instant.",
+  "group_name_placeholder": "Nom du groupe",
+  "group_create": "Créer un groupe",
+  "error_group_name_required": "Entrez un nom de groupe.",
+  "error_group_name_taken": "Vous avez déjà un groupe avec ce nom.",
 
   "commit_files_changed": "fichiers modifiés",
 

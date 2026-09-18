@@ -3,6 +3,7 @@
 
   "nav_explore": "استكشاف",
   "nav_new": "+ جديد",
+  "nav_groups": "المجموعات",
   "nav_logout": "تسجيل الخروج",
   "nav_login": "تسجيل الدخول",
   "nav_register": "إنشاء حساب",
@@ -198,6 +199,16 @@
   "admin_new_user_button": "مستخدم جديد",
   "admin_users_filter_placeholder": "تصفية حسب اسم المستخدم أو الاسم المعروض أو البريد الإلكتروني...",
   "admin_pagination_page_of": "الصفحة {0} من {1}",
+
+  "groups_hint": "أنشئ مجموعات من المستخدمين حتى تتمكن من منحهم الوصول إلى مستودع دفعة واحدة.",
+  "group_name_label": "اسم المجموعة",
+  "group_members_count": "الأعضاء",
+  "group_manage": "إدارة",
+  "groups_empty": "لا توجد مجموعات بعد.",
+  "group_name_placeholder": "اسم المجموعة",
+  "group_create": "إنشاء مجموعة",
+  "error_group_name_required": "أدخل اسم المجموعة.",
+  "error_group_name_taken": "لديك بالفعل مجموعة بهذا الاسم.",
 
   "commit_files_changed": "ملفات تم تغييرها",
 
