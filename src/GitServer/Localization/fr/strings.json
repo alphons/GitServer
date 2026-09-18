@@ -159,6 +159,7 @@
 
   "profile_repos": "Dépôts",
   "profile_no_repos": "Aucun dépôt public.",
+  "profile_own_repos_title": "Vos dépôts",
   "profile_group_repos_title": "Dépôts de groupe",
   "profile_member_since": "Membre depuis",
   "profile_not_found": "Utilisateur introuvable",

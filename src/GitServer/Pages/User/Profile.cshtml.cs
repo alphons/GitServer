@@ -1,4 +1,4 @@
-﻿using GitServer.Models;
+using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,10 +18,10 @@ public class ProfileModel(UserManager<AppUser> userManager, RepositoryService re
 	public int PageSize { get; } = options.Value.ProfileRepoPageSize;
 	public bool HasNextPage { get; set; }
 
-	public async Task<IActionResult> OnGetAsync(string username, string? q, int p = 0)
+	private async Task<bool> LoadAsync(string username, string? q, int p)
 	{
 		ProfileUser = await userManager.FindByNameAsync(username);
-		if (ProfileUser == null) return NotFound();
+		if (ProfileUser == null) return false;
 
 		var currentUserId = userManager.GetUserId(User);
 		IsOwner = currentUserId == ProfileUser.Id;
@@ -34,8 +34,20 @@ public class ProfileModel(UserManager<AppUser> userManager, RepositoryService re
 		Repos = fetched.Take(PageSize).ToList();
 
 		if (IsOwner)
-			GroupRepos = await repos.GetAccessibleGroupReposAsync(ProfileUser.Id);
+			GroupRepos = await repos.GetAccessibleGroupReposAsync(ProfileUser.Id, Query);
 
+		return true;
+	}
+
+	public async Task<IActionResult> OnGetAsync(string username, string? q, int p = 0)
+	{
+		if (!await LoadAsync(username, q, p)) return NotFound();
 		return Page();
+	}
+
+	public async Task<IActionResult> OnGetSearchAsync(string username, string? q, int p = 0)
+	{
+		if (!await LoadAsync(username, q, p)) return NotFound();
+		return Partial("_ProfileRepos", this);
 	}
 }

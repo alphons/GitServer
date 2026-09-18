@@ -159,6 +159,7 @@
 
   "profile_repos": "Repositórios",
   "profile_no_repos": "Nenhum repositório público.",
+  "profile_own_repos_title": "Seus repositórios",
   "profile_group_repos_title": "Repositórios de grupo",
   "profile_member_since": "Membro desde",
   "profile_not_found": "Usuário não encontrado",

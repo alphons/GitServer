@@ -138,7 +138,7 @@ public class RepositoryService(AppDbContext db,
     }
 
     /// <summary>Repositories owned by any group the user owns or is a member of.</summary>
-    public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId)
+    public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId, string? query = null)
     {
         var groupIds = await _db.Groups
             .Where(g => g.OwnerId == userId || g.Members.Any(m => m.UserId == userId))
@@ -147,12 +147,21 @@ public class RepositoryService(AppDbContext db,
 
         if (groupIds.Count == 0) return new List<Repository>();
 
-        return await _db.Repositories
+        var q = _db.Repositories
             .Include(r => r.GroupOwner)
             .Include(r => r.Accesses).ThenInclude(a => a.User)
             .Include(r => r.Accesses).ThenInclude(a => a.Group)
-            .Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value))
-            .OrderBy(r => r.GroupOwner!.Name)
+            .Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var lower = query.Trim().ToLower();
+            q = q.Where(r =>
+                r.Name.ToLower().Contains(lower) ||
+                (r.Description != null && r.Description.ToLower().Contains(lower)));
+        }
+
+        return await q.OrderBy(r => r.GroupOwner!.Name)
             .ThenByDescending(r => r.UpdatedAt)
             .ToListAsync();
     }

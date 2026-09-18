@@ -184,6 +184,7 @@
 
   "profile_repos": "Repositories",
   "profile_no_repos": "Geen publieke repositories.",
+  "profile_own_repos_title": "Jouw repositories",
   "profile_group_repos_title": "Groepsrepositories",
   "profile_member_since": "Lid sinds",
   "profile_not_found": "Gebruiker niet gevonden",
