@@ -47,7 +47,8 @@
                 <p class="text-muted">@L["settings_delete_warning"]</p>
             </div>
             <form method="post" asp-page-handler="Delete"
-                  onsubmit="return confirm('@L.Format("confirm_delete_repo", Model.RepoName)')">
+                  data-confirm="@L.Format("confirm_delete_repo", Model.RepoName)"
+                  data-confirm-ok="@L["delete_button"]" data-confirm-cancel="@L["cancel"]">
                 <button type="submit" class="btn btn-danger">@L["delete_button"]</button>
             </form>
         </div>

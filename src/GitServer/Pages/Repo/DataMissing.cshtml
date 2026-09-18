@@ -19,7 +19,8 @@
     @if (Model.IsOwnerOrAdmin)
     {
         <form method="post" asp-page-handler="Delete"
-              onsubmit="return confirm('@L.Format("confirm_delete_repo", Model.RepoName)')">
+              data-confirm="@L.Format("confirm_delete_repo", Model.RepoName)"
+              data-confirm-ok="@L["delete_button"]" data-confirm-cancel="@L["cancel"]">
             <button type="submit" class="btn btn-danger">@L["repo_data_missing_delete"]</button>
         </form>
     }

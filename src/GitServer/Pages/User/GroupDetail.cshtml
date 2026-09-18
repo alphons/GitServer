@@ -106,7 +106,8 @@
     <section class="settings-section">
         <h2>@L["settings_danger_zone"]</h2>
         <form method="post" asp-page-handler="Delete"
-              onsubmit="return confirm('@L.Format("confirm_delete_group", Model.Group.Name)')">
+              data-confirm="@L.Format("confirm_delete_group", Model.Group.Name)"
+              data-confirm-ok="@L["group_delete"]" data-confirm-cancel="@L["cancel"]">
             <button type="submit" class="btn btn-danger">@L["group_delete"]</button>
         </form>
     </section>
