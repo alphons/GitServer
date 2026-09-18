@@ -28,7 +28,9 @@ public class ForgotPasswordModel(
 				values: new { email = user.Email, token }, protocol: Request.Scheme)!;
 
 			await emailService.SendEmailAsync(email, L["reset_password_email_subject"],
-				L.Format("reset_password_email_body", link));
+				L.RenderEmail("reset-password", ("link", link),
+					("button_label", L["reset_password_submit"]),
+					("fallback_label", L["email_button_fallback"])));
 		}
 
 		// Always show the same message, whether or not the email is registered.

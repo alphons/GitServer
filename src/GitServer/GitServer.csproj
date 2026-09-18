@@ -31,5 +31,18 @@
 		<None Remove="gitserver.db*" />
 		<None Remove="App_Data\**" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Content Update="appsettings.Development.json">
+	    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+	<!-- Email templates aren't auto-included as Content by the SDK's default globs like the
+	     Localization *.json files are, so they need to be picked up and copied explicitly. -->
+	<ItemGroup>
+		<Content Include="Localization\**\*.html">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
 </Project>

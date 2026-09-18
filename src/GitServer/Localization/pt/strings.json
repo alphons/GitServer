@@ -55,7 +55,6 @@
   "register_submit": "Enviar e-mail de verificação",
   "register_login_link": "Já tem conta? Entre aqui",
   "register_email_subject": "Confirme seu e-mail",
-  "register_email_body": "Clique no link abaixo para criar sua conta. Este link é válido por 20 minutos.<br/><br/><a href=\"{0}\">{0}</a>",
   "register_email_sent": "Verifique seu e-mail para um link de verificação e continue o registro.",
   "error_email_already_registered": "Já existe uma conta com este e-mail. Faça login em vez disso.",
 
@@ -71,7 +70,6 @@
   "forgot_password_intro": "Informe seu e-mail e enviaremos um link para redefinir sua senha.",
   "forgot_password_submit": "Enviar link",
   "reset_password_email_subject": "Redefina sua senha",
-  "reset_password_email_body": "Clique no link abaixo para escolher uma nova senha. Este link é válido por 30 minutos.<br/><br/><a href=\"{0}\">{0}</a>",
   "reset_password_email_sent": "Se este e-mail estiver registrado, um link de redefinição foi enviado.",
 
   "reset_password_page_title": "Redefinir senha",
@@ -210,6 +208,7 @@
   "admin_cannot_delete_self": "Você não pode se excluir.",
   "admin_cannot_disable_self": "Você não pode se desativar.",
   "admin_user_deleted": "Usuário {0} excluído.",
+  "email_button_fallback": "Se o botão não funcionar, copie e cole este link no seu navegador:",
   "error_email_blocked": "Este endereço de e-mail não pode se registrar.",
   "admin_blocked_emails_title": "Padrões de e-mail bloqueados",
   "admin_blocked_emails_hint": "E-mails que correspondam a qualquer um destes padrões curinga não podem se registrar. Use * para quaisquer caracteres, ? para um único caractere, ex. *hacker*.com",
