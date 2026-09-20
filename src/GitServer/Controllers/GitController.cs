@@ -43,6 +43,7 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 		if (HttpContext.Items["GitRepo"] is not Repository) { Response.StatusCode = 404; return; }
 
 		var repoPath = GetCanonicalRepoPath(user, repo);
+		if (!Directory.Exists(repoPath)) { Response.StatusCode = 404; return; }
 		Response.Headers.CacheControl = "no-cache";
 
 		try

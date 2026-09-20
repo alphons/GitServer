@@ -41,6 +41,7 @@ public class NewIssueModel(
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
 		var userId = userManager.GetUserId(User)!;
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();   // same rule as opening the form
 
 		var issue = new Issue
 		{

@@ -25,7 +25,7 @@ public class CommitsModel(
 	public Dictionary<string, List<string>> TagsByCommit { get; set; } = new();
 	public bool ShowCommitAuthorAvatar { get; set; }
 
-	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
+	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, [FromQuery(Name = "page")] int page = 0)
 	{
 		UserName = user;
 		RepoName = repo;

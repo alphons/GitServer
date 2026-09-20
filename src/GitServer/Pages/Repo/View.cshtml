@@ -62,7 +62,7 @@ git push -u origin @Model.DefaultBranch</pre>
                     <input id="cloneUrl" type="text" readonly value="@Model.CloneUrl" class="form-control clone-input" />
                     <button class="btn btn-secondary" onclick="copyCloneUrl()">@L["copy_button"]</button>
                 </div>
-                @{var archiveBranch = Model.CurrentBranch.Replace('/', '-');}
+                @{var archiveBranch = Model.CurrentBranch;}
                 <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/archive/@archiveBranch">
                     ZIP
                 </a>

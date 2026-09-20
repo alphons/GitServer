@@ -23,7 +23,7 @@ public class ArchiveModel(
 		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 
 		Response.ContentType = "application/zip";
-		Response.Headers.ContentDisposition = $"attachment; filename=\"{repo}-{treeish}.zip\"";
+		Response.Headers.ContentDisposition = $"attachment; filename=\"{repo}-{treeish.Replace('/', '-')}.zip\"";
 
 		await git.StreamArchive(repoPath, treeish, Response.Body);
 		return new EmptyResult();

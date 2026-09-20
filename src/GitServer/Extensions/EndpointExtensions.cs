@@ -19,10 +19,14 @@ public static class EndpointExtensions
 					HttpOnly = true
 				});
 			}
-			var redirect = string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl;
-			return Results.Redirect(redirect);
+			return Results.Redirect(IsLocalUrl(returnUrl) ? returnUrl! : "/");
 		});
 
 		return endpoints;
 	}
+
+	/// <summary>True only for a path on this site ("/x", "/x?y"), never for "https://evil", "//evil" or "/\evil" —
+	/// so a crafted link can't bounce a visitor to another domain.</summary>
+	public static bool IsLocalUrl(string? url) =>
+		!string.IsNullOrEmpty(url) && url[0] == '/' && (url.Length == 1 || (url[1] != '/' && url[1] != '\\'));
 }

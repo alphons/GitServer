@@ -58,6 +58,7 @@ public class DetailModel(
 		var (repoObj, issue) = await LoadAsync(user, repo, id);
 		if (repoObj == null || issue == null) return NotFound();
 		if (!User.Identity!.IsAuthenticated) return Challenge();
+		if (!await access.CanReadAsync(repoObj, userManager.GetUserId(User))) return Forbid();
 
 		if (!string.IsNullOrWhiteSpace(CommentBody))
 		{

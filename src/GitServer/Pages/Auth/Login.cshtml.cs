@@ -60,7 +60,7 @@ public class LoginModel(
                 });
             }
 
-            return LocalRedirect(returnUrl ?? "/");
+            return LocalRedirect(GitServer.Extensions.EndpointExtensions.IsLocalUrl(returnUrl) ? returnUrl! : "/");
         }
 
         ErrorMessage = L["error_invalid_credentials"];
