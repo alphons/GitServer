@@ -4,6 +4,9 @@ public class GitServerOptions
 {
     public string RepositoriesPath { get; set; } = "C:\\GitRepos";
 
+    /// <summary>Address shown on the terms page for questions or requests about personal data. Empty = not shown.</summary>
+    public string ContactEmail { get; set; } = "";
+
     /// <summary>Only used to seed SiteSettings.AllowRegistration the first time the app runs.
     /// After that, the live value lives in the database and is managed from /Admin/Settings.</summary>
     public bool AllowRegistration { get; set; } = true;

@@ -1,0 +1,29 @@
+@page "/Terms"
+@model GitServer.Pages.TermsModel
+@{
+    ViewData["Title"] = L["terms_title"];
+}
+<div class="container">
+    <div class="page-header">
+        <h1>@L["terms_title"]</h1>
+    </div>
+    <p>@L["terms_intro"]</p>
+
+    <h2>@L["terms_s1_title"]</h2>
+    <p>@L["terms_s1_text"]</p>
+
+    <h2>@L["terms_s2_title"]</h2>
+    <p>@L["terms_s2_text"]</p>
+
+    <h2>@L["terms_s3_title"]</h2>
+    <p>@L["terms_s3_text"]</p>
+
+    <h2>@L["terms_s4_title"]</h2>
+    <p>@L["terms_s4_text"]</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ContactEmail))
+    {
+        <p>@L["terms_contact"] <a href="mailto:@Model.ContactEmail">@Model.ContactEmail</a></p>
+    }
+    <p class="text-muted">@L["terms_version"] @GitServer.Services.Terms.CurrentVersion</p>
+</div>

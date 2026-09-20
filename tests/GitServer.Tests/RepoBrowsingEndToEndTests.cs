@@ -153,6 +153,31 @@ public class RepoBrowsingEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.True((int)response.StatusCode < 500, $"{path} -> {(int)response.StatusCode}");
 	}
 
+	// IIS request filtering (also on an ARR front-end) blocks these names by default; the application itself must not.
+	[Theory]
+	[InlineData("SqlExpressBackup/App.config")]
+	[InlineData("SqlExpressBackup/DbHelper.cs")]
+	[InlineData("SqlExpressBackup/SqlExpressBackup.csproj")]
+	[InlineData("Web.config")]
+	[InlineData("bin/tool.txt")]
+	public async Task FilesWithNamesIisWouldBlock_AreServedByTheApplication(string path)
+	{
+		var owner = await _f.CreateUserAsync(Unique("owner"));
+		await _f.CreateRepoAsync(owner, "blocked");
+		using (var local = new LocalGit())
+		{
+			local.CommitIn(path, "content of " + path, "Add " + path);
+			local.PushTo(Path.Combine(_f.ReposPath, owner.UserName!, "blocked.git"));
+		}
+
+		var blob = await Anonymous().GetAsync($"/{owner.UserName}/blocked/blob/main/{path}");
+		var raw = await Anonymous().GetAsync($"/{owner.UserName}/blocked/raw/main/{path}");
+
+		Assert.Equal(HttpStatusCode.OK, blob.StatusCode);
+		Assert.Contains("content of", await blob.Content.ReadAsStringAsync());
+		Assert.Equal(HttpStatusCode.OK, raw.StatusCode);
+	}
+
 	// ---- History ---------------------------------------------------------------------------------------
 
 	[Fact]

@@ -33,6 +33,7 @@ public sealed class GitServerFactory : WebApplicationFactory<Program>
 		builder.UseSetting("ConnectionStrings:Default", $"Data Source={Path.Combine(Root, "e2e.db")}");
 		builder.UseSetting("GitServer:RepositoriesPath", ReposPath);
 		builder.UseSetting("GitServer:GitPathPrefix", "/git");
+		builder.UseSetting("GitServer:ContactEmail", "privacy@example.test");
 		builder.UseSetting("Authentication:KeysPath", Path.Combine(Root, "keys"));
 
 		builder.ConfigureTestServices(services =>

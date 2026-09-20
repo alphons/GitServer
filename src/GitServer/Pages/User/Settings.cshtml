@@ -95,4 +95,19 @@
             <button type="submit" class="btn btn-primary">@(Model.HasPassword ? L["settings_change_password"] : L["settings_set_password"])</button>
         </form>
     </section>
+
+    <section class="settings-section">
+        <h2>@L["settings_delete_account_title"]</h2>
+        <p class="text-muted">@L["settings_delete_account_help"]</p>
+        <form method="post" asp-page-handler="DeleteAccount" onsubmit="return confirm('@L["settings_delete_account_confirm"]');">
+            @if (Model.HasPassword)
+            {
+                <div class="form-group">
+                    <label for="deletePassword">@L["settings_current_password"]</label>
+                    <input id="deletePassword" name="CurrentPassword" type="password" class="form-control" required />
+                </div>
+            }
+            <button type="submit" class="btn btn-danger">@L["settings_delete_account_button"]</button>
+        </form>
+    </section>
 </div>

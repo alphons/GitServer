@@ -40,6 +40,7 @@ builder.Services.AddSingleton<GitInstallProgressTracker>();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<AccessPolicy>();
+builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
 builder.Services.AddScoped<GitReleaseService>();

@@ -17,6 +17,10 @@ public class AppUser : IdentityUser
     public DateTime? LastLoginAt { get; set; }
     public bool IsAdmin { get; set; }
 
+    /// <summary>When the user accepted the terms and conditions, and which version of them (Terms.CurrentVersion).</summary>
+    public DateTime? TermsAcceptedAt { get; set; }
+    public string? TermsVersion { get; set; }
+
     public ICollection<Repository> Repositories { get; set; } = new List<Repository>();
     public ICollection<RepositoryAccess> RepositoryAccesses { get; set; } = new List<RepositoryAccess>();
     public ICollection<Group> Groups { get; set; } = new List<Group>();

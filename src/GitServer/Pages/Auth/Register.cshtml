@@ -29,6 +29,12 @@
                         <input id="email" name="Email" type="email" class="form-control"
                                value="@Model.Email" required autofocus />
                     </div>
+                    <div class="form-group">
+                        <label>
+                            <input name="AcceptTerms" type="checkbox" value="true" required />
+                            @L["register_terms_agree"] <a href="/Terms" target="_blank">@L["terms_title"]</a>
+                        </label>
+                    </div>
                     <button type="submit" class="btn btn-primary btn-block">@L["register_submit"]</button>
                 </form>
             }

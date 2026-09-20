@@ -4,11 +4,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationService L) : PageModel
+public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, AccountService accounts, LocalizationService L) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public string DisplayName { get; set; } = "";
@@ -83,6 +84,41 @@ public class UserSettingsModel(UserManager<AppUser> userManager, LocalizationSer
 		LoadFrom(user);
 		HasPassword = await userManager.HasPasswordAsync(user);
 		return Page();
+	}
+
+	public async Task<IActionResult> OnPostDeleteAccountAsync()
+	{
+		var user = await userManager.GetUserAsync(User);
+		if (user == null) return NotFound();
+
+		LoadFrom(user);
+		HasPassword = await userManager.HasPasswordAsync(user);
+
+		// The last administrator must not disappear, or nobody could manage the site any more.
+		if (user.IsAdmin && !await userManager.Users.AnyAsync(u => u.IsAdmin && u.Id != user.Id && u.EmailConfirmed))
+		{
+			Message = L["error_last_admin_cannot_delete"];
+			IsError = true;
+			return Page();
+		}
+
+		if (HasPassword && !await userManager.CheckPasswordAsync(user, CurrentPassword))
+		{
+			Message = L["error_current_password_wrong"];
+			IsError = true;
+			return Page();
+		}
+
+		var failure = await accounts.DeleteAsync(user);
+		if (failure != null)
+		{
+			Message = failure;
+			IsError = true;
+			return Page();
+		}
+
+		await signInManager.SignOutAsync();
+		return Redirect("/");
 	}
 
 	public async Task<IActionResult> OnPostPasswordAsync()

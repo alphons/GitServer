@@ -31,7 +31,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	/// <summary>Registers an address and returns the path+query of the link that was mailed.</summary>
 	private async Task<string> RegisterAsync(string email, WebSession? session = null)
 	{
-		var response = await (session ?? NewSession()).PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email));
+		var response = await (session ?? NewSession()).PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		return _f.Mail.SentTo(email).Last().FirstLinkPathAndQuery();
 	}
@@ -71,7 +71,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task Register_ShowsThatAMailWasSent()
 	{
-		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", Unique("x") + "@example.com"));
+		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", Unique("x") + "@example.com"), ("AcceptTerms", "true"));
 
 		Assert.Contains(En("register_email_sent"), await response.Content.ReadAsStringAsync());
 	}
@@ -111,7 +111,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 
-		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", alice.Email!));
+		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", alice.Email!), ("AcceptTerms", "true"));
 
 		Assert.Contains(En("error_email_already_registered"), await response.Content.ReadAsStringAsync());
 		Assert.Empty(_f.Mail.SentTo(alice.Email!));
@@ -136,7 +136,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		await Db(async db => { db.BlockedEmailPatterns.Add(new BlockedEmailPattern { Pattern = "*@" + domain }); await db.SaveChangesAsync(); return 0; });
 		var email = "someone@" + domain.ToUpperInvariant();
 
-		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email));
+		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 
 		Assert.Contains(En("error_email_blocked"), await response.Content.ReadAsStringAsync());
 		Assert.Empty(_f.Mail.SentTo(email));
@@ -151,7 +151,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		try
 		{
 			var page = await NewSession().GetHtmlAsync("/Auth/Register");
-			var post = await NewSession().PostFormAsync("/Auth/Login", "/Auth/Register", ("Email", email));   // no form is rendered while disabled
+			var post = await NewSession().PostFormAsync("/Auth/Login", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));   // no form is rendered while disabled
 
 			Assert.Contains(En("register_disabled"), page);
 			Assert.Contains(En("register_disabled"), await post.Content.ReadAsStringAsync());
@@ -452,7 +452,7 @@ public class FirstRegistrationTests : IClassFixture<GitServerFactory>
 	private async Task RegisterAndCompleteAsync(string email, string username)
 	{
 		var session = new WebSession(_f);
-		await session.PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email));
+		await session.PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 		var link = _f.Mail.SentTo(email).Single().FirstLinkPathAndQuery();
 		var query = System.Web.HttpUtility.ParseQueryString(new Uri("http://x" + link).Query);
 		var response = await session.PostFormAsync(link, "/Auth/CompleteRegistration", ("Email", query["email"]!), ("Token", query["token"]!),
