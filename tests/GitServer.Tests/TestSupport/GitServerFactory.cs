@@ -19,6 +19,8 @@ public sealed class GitServerFactory : WebApplicationFactory<Program>
 {
 	public const string Password = "Passw0rd!";
 
+	public CapturingEmailService Mail { get; } = new();
+
 	public string Root { get; } = Path.Combine(Path.GetTempPath(), $"gitserver-e2e-{Guid.NewGuid():N}");
 	public string ReposPath => Path.Combine(Root, "repos");
 
@@ -37,6 +39,8 @@ public sealed class GitServerFactory : WebApplicationFactory<Program>
 		{
 			services.RemoveAll<IGitExecutablePathProvider>();
 			services.AddSingleton<IGitExecutablePathProvider>(new TestGitExecutablePathProvider());
+			services.RemoveAll<IEmailService>();
+			services.AddSingleton<IEmailService>(Mail);
 		});
 	}
 
@@ -90,6 +94,33 @@ public sealed class GitServerFactory : WebApplicationFactory<Program>
 			var repo = await sp.GetRequiredService<RepositoryService>().CreateForGroupAsync(group.Id, group.Name, name, null, isPrivate);
 			return await SetReadOnlyAsync(sp, repo, readOnly);
 		});
+
+	public sealed record SeededRepo(string FirstSha, string SecondSha, string LatestSha, string FeatureSha, int CommitsOnMain);
+
+	/// <summary>Creates a repository and fills it with real history: README.md, a nested source file, a PNG,
+	/// <paramref name="extraCommits"/> more commits on main, a tag <c>v1</c> on the first commit and a branch <c>feature</c>.</summary>
+	public async Task<SeededRepo> SeedHistoryAsync(AppUser owner, string name, bool isPrivate = false, int extraCommits = 0, Group? group = null)
+	{
+		if (group == null) await CreateRepoAsync(owner, name, isPrivate);
+		else await CreateGroupRepoAsync(group, name, isPrivate);
+
+		using var local = new LocalGit();
+		var first = local.Commit("README.md", "# Seeded repo\n\nHello **world**.\n", "Add readme");
+		local.Run("tag", "v1");
+		var second = local.CommitIn("src/app.txt", "line one\nline two\n", "Add app source");
+		var third = local.CommitBytes("logo.png", Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="), "Add logo");
+		var latest = third;
+		for (var i = 1; i <= extraCommits; i++)
+			latest = local.Commit("log.txt", $"entry {i}\n", $"Log entry {i:00}");
+		local.Run("checkout", "-q", "-b", "feature", second);
+		var feature = local.CommitIn("src/feature.txt", "only on the feature branch\n", "Feature work");
+		local.Run("checkout", "-q", "main");
+		local.Run("branch", "release/1.0", second);
+
+		var folder = Path.Combine(ReposPath, group?.Name ?? owner.UserName!, name + ".git");
+		local.PushTo(folder);
+		return new SeededRepo(first, second, latest, feature, 3 + extraCommits);
+	}
 
 	/// <summary>Adds many repository rows (no folder on disk) for listing/paging tests. Names are <c>prefix-01</c>, <c>prefix-02</c>, ...</summary>
 	public Task AddRepoRowsAsync(AppUser? owner, Group? group, string prefix, int count, bool isPrivate = false) =>

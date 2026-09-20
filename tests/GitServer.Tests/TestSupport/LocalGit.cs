@@ -60,6 +60,31 @@ public sealed class LocalGit : IDisposable
 		return Run("rev-parse", "HEAD");
 	}
 
+	/// <summary>Like <see cref="Commit"/> but for a binary file (e.g. an image).</summary>
+	public string CommitBytes(string file, byte[] content, string message = "commit")
+	{
+		Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(Dir, file))!);
+		File.WriteAllBytes(Path.Combine(Dir, file), content);
+		Run("add", file);
+		Run("-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "-m", message);
+		return Run("rev-parse", "HEAD");
+	}
+
+	/// <summary>Writes a file in a sub-folder (created as needed), commits it, returns the sha.</summary>
+	public string CommitIn(string relativePath, string content, string message = "commit")
+	{
+		Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(Dir, relativePath))!);
+		return Commit(relativePath, content, message);
+	}
+
+	/// <summary>Pushes all branches and tags straight into a bare repository folder (no HTTP involved) and points its HEAD at main.</summary>
+	public void PushTo(string bareRepoDir)
+	{
+		Run("push", bareRepoDir, "--all");
+		Run("push", bareRepoDir, "--tags");
+		Exec(bareRepoDir, null, "--git-dir", bareRepoDir, "symbolic-ref", "HEAD", "refs/heads/main");
+	}
+
 	/// <summary>The packfile a push of <paramref name="sha"/> would send (all reachable objects).</summary>
 	public byte[] PackFor(string sha)
 	{

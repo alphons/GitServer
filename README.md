@@ -1,6 +1,6 @@
 # GitServer
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/alphons/GitServer/releases)
+[![Version](https://img.shields.io/github/v/tag/alphons/GitServer?label=version&sort=semver&color=blue)](https://github.com/alphons/GitServer/tags)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 [![CI](https://github.com/alphons/GitServer/actions/workflows/ci.yml/badge.svg)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/alphons/348dbf4f9472d6069955373db1ef6670/raw/gitserver-tests.json)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
