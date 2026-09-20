@@ -6,9 +6,19 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
+# A newer push to the same branch/PR makes the older, still-running check pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: windows-latest
+    # The suite takes about a minute; this only stops a hung git process from holding the runner.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
