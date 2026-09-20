@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace GitServer.Pages.Admin;
 
-public class UsersModel(UserManager<AppUser> userManager, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
+public class UsersModel(UserManager<AppUser> userManager, AccountService accounts, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
 {
 	public List<AppUser> Users { get; set; } = new();
     public string? CurrentUserId { get; set; }
@@ -69,15 +69,15 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L,
     }
 
     public async Task<IActionResult> OnPostSaveAsync(
-        string? userId, string userName, string displayName, string email,
+        string? userId, string? userName, string? displayName, string? email,
         bool isDisabled, bool isAdmin, string? newPassword, string? confirmPassword, string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
         if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
 
-        userName = userName.Trim();
-        email = email.Trim();
-        displayName = displayName.Trim();
+        userName = (userName ?? "").Trim();
+        email = (email ?? "").Trim();
+        displayName = (displayName ?? "").Trim();
 
         if (string.IsNullOrEmpty(userId))
         {
@@ -205,9 +205,11 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L,
         var target = await userManager.FindByIdAsync(userId);
         if (target == null) return NotFound();
 
-        await userManager.DeleteAsync(target);
+        var label = target.EmailConfirmed ? target.UserName! : target.Email!;
+        var failure = await accounts.DeleteAsync(target);
+        if (failure == null) Message = L.Format("admin_user_deleted", label);
+        else ErrorMessage = failure;
 
-        Message = L.Format("admin_user_deleted", target.EmailConfirmed ? target.UserName! : target.Email!);
         CurrentUserId = currentUser.Id;
         await LoadUsersAsync(q, p);
         return Page();
