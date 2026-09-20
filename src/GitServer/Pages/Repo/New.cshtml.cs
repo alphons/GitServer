@@ -13,9 +13,9 @@ namespace GitServer.Pages.Repo;
 [Authorize]
 public class NewModel(
 	RepositoryService repos,
+	AccessPolicy access,
 	UserManager<AppUser> userManager,
 	SiteSettingsService siteSettings,
-	AppDbContext db,
 	LocalizationService L) : PageModel
 {
 
@@ -33,7 +33,7 @@ public class NewModel(
 		CurrentUser = await userManager.GetUserAsync(User);
 		CreationDisabled = !(await siteSettings.GetAsync()).AllowUserRepoCreation;
 		if (CurrentUser != null)
-			OwnGroups = await db.Groups.Where(g => g.OwnerId == CurrentUser.Id).OrderBy(g => g.Name).ToListAsync();
+			OwnGroups = await access.GetOwnedGroupsAsync(CurrentUser.Id);
 		return Page();
 	}
 
@@ -49,7 +49,7 @@ public class NewModel(
 		var user = await userManager.GetUserAsync(User);
 		if (user == null) return Challenge();
 		CurrentUser = user;
-		OwnGroups = await db.Groups.Where(g => g.OwnerId == user.Id).OrderBy(g => g.Name).ToListAsync();
+		OwnGroups = await access.GetOwnedGroupsAsync(user.Id);
 
 		if (!Regex.IsMatch(Name, @"^[a-zA-Z0-9_\-\.]+$"))
 		{

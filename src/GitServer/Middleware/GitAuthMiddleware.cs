@@ -15,6 +15,7 @@ public class GitAuthMiddleware(RequestDelegate next)
         UserManager<AppUser> userManager,
         AppDbContext db,
         RepositoryService repoService,
+        AccessPolicy access,
         SiteSettingsService siteSettings,
         Microsoft.Extensions.Options.IOptions<GitServerOptions> options)
     {
@@ -108,87 +109,20 @@ public class GitAuthMiddleware(RequestDelegate next)
 
         var settings = await siteSettings.GetAsync();
 
-        // Auto-create repo on first push if it doesn't exist yet.
+        // Push to a repository that doesn't exist yet: create it on the fly if the policy allows.
         if (repo == null && isPush)
         {
-            if (!settings.AllowPushToCreateRepositories)
-            {
-                context.Response.StatusCode = 404;
-                return;
-            }
+            var createDecision = await access.DecideAutoCreateAsync(
+                authedUser, owner, ownerGroup, settings.AllowPushToCreateRepositories);
+            if (!Respond(context, createDecision)) return;
 
-            if (authedUser == null)
-            {
-                context.Response.Headers.WWWAuthenticate = "Basic realm=\"GitServer\"";
-                context.Response.StatusCode = 401;
-                return;
-            }
-
-            if (owner != null)
-            {
-                if (authedUser.Id != owner.Id)
-                {
-                    context.Response.StatusCode = 403;
-                    return;
-                }
-
-                repo = await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
-            }
-            else
-            {
-                // Group namespace: any member (or the group's owner) may push a new repo into it.
-                var isGroupOwner = ownerGroup!.OwnerId == authedUser.Id;
-                var isGroupMember = isGroupOwner || await db.GroupMembers
-                    .AnyAsync(m => m.GroupId == ownerGroup.Id && m.UserId == authedUser.Id);
-
-                if (!isGroupMember)
-                {
-                    context.Response.StatusCode = 403;
-                    return;
-                }
-
-                repo = await repoService.CreateForGroupAsync(ownerGroup.Id, ownerGroup.Name, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
-            }
+            repo = owner != null
+                ? await repoService.CreateAsync(owner.Id, owner.UserName!, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate)
+                : await repoService.CreateForGroupAsync(ownerGroup!.Id, ownerGroup.Name, repoName, null, isPrivate: options.Value.DefaultPrivateOnAutoCreate);
         }
 
-        // A read-only repository can never be pushed to, regardless of who's asking or how
-        // anonymous/write access is otherwise configured.
-        if (isPush && repo!.IsReadOnly)
-        {
-            context.Response.StatusCode = 403;
-            return;
-        }
-
-        // Authorization check
-        if (repo!.IsPrivate || isPush)
-        {
-            // An unauthenticated push to an existing public repo, allowed only when enabled admin-side.
-            var anonymousPushAllowed = isPush && !repo.IsPrivate && settings.AllowAnonymousPush;
-
-            if (authedUser == null && !anonymousPushAllowed)
-            {
-                context.Response.Headers.WWWAuthenticate = "Basic realm=\"GitServer\"";
-                context.Response.StatusCode = 401;
-                return;
-            }
-
-            if (isPush)
-            {
-                if (!anonymousPushAllowed && !await repoService.CanWriteAsync(repo, authedUser?.Id))
-                {
-                    context.Response.StatusCode = 403;
-                    return;
-                }
-            }
-            else
-            {
-                if (!await repoService.CanReadAsync(repo, authedUser?.Id))
-                {
-                    context.Response.StatusCode = 403;
-                    return;
-                }
-            }
-        }
+        var decision = await access.DecideGitAccessAsync(repo!, authedUser, isPush, settings.AllowAnonymousPush);
+        if (!Respond(context, decision)) return;
 
         context.Items["GitUser"] = authedUser;
         context.Items["GitRepo"] = repo;
@@ -197,8 +131,28 @@ public class GitAuthMiddleware(RequestDelegate next)
         // lookups are case-insensitive. GitController must build the on-disk path from this,
         // not from the raw route values, since the filesystem itself is case-sensitive on Linux.
         context.Items["GitOwnerName"] = owner?.UserName ?? ownerGroup?.Name;
-        context.Items["GitRepoName"] = repo.Name;
+        context.Items["GitRepoName"] = repo!.Name;
 
         await _next(context);
+    }
+
+    /// <summary>Turns a policy decision into the HTTP response. Returns true when the request may continue.</summary>
+    private static bool Respond(HttpContext context, GitAccessDecision decision)
+    {
+        switch (decision)
+        {
+            case GitAccessDecision.Allow:
+                return true;
+            case GitAccessDecision.Unauthorized:
+                context.Response.Headers.WWWAuthenticate = "Basic realm=\"GitServer\"";
+                context.Response.StatusCode = 401;
+                return false;
+            case GitAccessDecision.Forbidden:
+                context.Response.StatusCode = 403;
+                return false;
+            default:
+                context.Response.StatusCode = 404;
+                return false;
+        }
     }
 }

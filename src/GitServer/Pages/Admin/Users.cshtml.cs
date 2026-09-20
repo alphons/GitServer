@@ -51,7 +51,7 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L,
     public async Task<IActionResult> OnGetAsync(string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
-        if (currentUser == null || !currentUser.IsAdmin) return Forbid();
+        if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
 
         CurrentUserId = currentUser.Id;
         await LoadUsersAsync(q, p);
@@ -61,7 +61,7 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L,
     public async Task<IActionResult> OnGetSearchAsync(string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
-        if (currentUser == null || !currentUser.IsAdmin) return Forbid();
+        if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
 
         CurrentUserId = currentUser.Id;
         await LoadUsersAsync(q, p);
@@ -73,7 +73,7 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L,
         bool isDisabled, bool isAdmin, string? newPassword, string? confirmPassword, string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
-        if (currentUser == null || !currentUser.IsAdmin) return Forbid();
+        if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
 
         userName = userName.Trim();
         email = email.Trim();
@@ -199,7 +199,7 @@ public class UsersModel(UserManager<AppUser> userManager, LocalizationService L,
     public async Task<IActionResult> OnPostDeleteAsync(string userId, string? q, int p = 0)
     {
         var currentUser = await userManager.GetUserAsync(User);
-        if (currentUser == null || !currentUser.IsAdmin) return Forbid();
+        if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
         if (userId == currentUser.Id) return BadRequest(L["admin_cannot_delete_self"]);
 
         var target = await userManager.FindByIdAsync(userId);

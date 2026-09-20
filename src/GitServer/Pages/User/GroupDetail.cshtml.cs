@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
+public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public Group? Group { get; set; }
@@ -31,7 +31,7 @@ public class GroupDetailModel(AppDbContext db, UserManager<AppUser> userManager,
 		CurrentUser = await userManager.GetUserAsync(User);
 		if (CurrentUser == null) return false;
 
-		Group = await db.Groups.FirstOrDefaultAsync(g => g.Id == id && g.OwnerId == CurrentUser.Id);
+		Group = await access.GetOwnedGroupAsync(id, CurrentUser.Id);
 		if (Group == null) return false;
 
 		Members = await db.GroupMembers

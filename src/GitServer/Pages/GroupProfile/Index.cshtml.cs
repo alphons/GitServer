@@ -12,7 +12,7 @@ using Repository = GitServer.Models.Repository;
 
 namespace GitServer.Pages.GroupProfile;
 
-public class IndexModel(AppDbContext db, RepositoryService repos, UserManager<AppUser> userManager, IOptions<GitServerOptions> options) : PageModel
+public class IndexModel(AppDbContext db, RepositoryService repos, AccessPolicy access, UserManager<AppUser> userManager, IOptions<GitServerOptions> options) : PageModel
 {
 	public GroupEntity? GroupEntity { get; set; }
 	public List<GroupMember> Members { get; set; } = new();
@@ -38,7 +38,7 @@ public class IndexModel(AppDbContext db, RepositoryService repos, UserManager<Ap
 		var readableRepos = new List<Repository>();
 		foreach (var repo in allRepos)
 		{
-			if (await repos.CanReadAsync(repo, userId))
+			if (await access.CanReadAsync(repo, userId))
 				readableRepos.Add(repo);
 		}
 

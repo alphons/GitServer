@@ -11,7 +11,7 @@ using Regex = System.Text.RegularExpressions.Regex;
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class GroupsModel(AppDbContext db, UserManager<AppUser> userManager, LocalizationService L) : PageModel
+public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager, LocalizationService L) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public List<Group> Groups { get; set; } = new();
@@ -25,11 +25,7 @@ public class GroupsModel(AppDbContext db, UserManager<AppUser> userManager, Loca
 		CurrentUser = await userManager.GetUserAsync(User);
 		if (CurrentUser == null) return;
 
-		Groups = await db.Groups
-			.Include(g => g.Members)
-			.Where(g => g.OwnerId == CurrentUser.Id)
-			.OrderBy(g => g.Name)
-			.ToListAsync();
+		Groups = await access.GetOwnedGroupsAsync(CurrentUser.Id, includeMembers: true);
 	}
 
 	public async Task OnGetAsync()

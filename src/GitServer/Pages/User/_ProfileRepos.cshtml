@@ -12,7 +12,7 @@
 }
 
 <details class="collapsible-section" open>
-    <summary>@L["profile_own_repos_title"] (@Model.TotalCount)</summary>
+    <summary>@(Model.IsOwner ? L["profile_own_repos_title"] : L["profile_repos"]) (@Model.TotalCount)</summary>
 
     @if (Model.Repos.Any() && (Model.CurrentPage > 0 || Model.HasNextPage))
     {

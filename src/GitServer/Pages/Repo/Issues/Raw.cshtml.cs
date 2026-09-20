@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo.Issues;
 
 public class RawModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	AppDbContext db,
 	UserManager<AppUser> userManager) : PageModel
 {
@@ -19,7 +19,7 @@ public class RawModel(
 		if (repoObj == null) return NotFound();
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var body = await db.Issues
 			.Where(i => i.RepositoryId == repoObj.Id && i.Id == id)

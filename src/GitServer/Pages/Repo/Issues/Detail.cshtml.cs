@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo.Issues;
 
 public class DetailModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	AppDbContext db,
 	UserManager<AppUser> userManager) : PageModel
 {
@@ -29,6 +29,8 @@ public class DetailModel(
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return (null, null);
 		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		Issue = await db.Issues
 			.Include(i => i.Author)
@@ -36,7 +38,7 @@ public class DetailModel(
 			.FirstOrDefaultAsync(i => i.RepositoryId == repoObj.Id && i.Id == id);
 
 		var userId = userManager.GetUserId(User);
-		CanManage = userId != null && (Issue?.AuthorId == userId || await repos.CanWriteAsync(repoObj, userId));
+		CanManage = await access.CanManageIssueAsync(repoObj, Issue, userId);
 
 		return (repoObj, Issue);
 	}
@@ -46,7 +48,7 @@ public class DetailModel(
 		var (repoObj, _) = await LoadAsync(user, repo, id);
 		if (repoObj == null) return NotFound();
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 		if (Issue == null) return NotFound();
 		return Page();
 	}

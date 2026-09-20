@@ -10,7 +10,7 @@ namespace GitServer.Pages.Repo;
 
 [Authorize]
 public class SettingsModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	UserManager<AppUser> userManager,
 	AppDbContext db,
 	LocalizationService L) : PageModel
@@ -33,9 +33,11 @@ public class SettingsModel(
 		RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return (null, false);
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		var isOwner = await repos.IsOwnerAsync(repoObj, userId);
+		var isOwner = await access.CanAdministerAsync(repoObj, userId);
 		Repo = repoObj;
 		return (repoObj, isOwner);
 	}

@@ -53,18 +53,6 @@ public class RepositoryService(AppDbContext db,
         return repo;
     }
 
-    /// <summary>True if the user owns the repository outright, or owns the group that owns it.</summary>
-    public async Task<bool> IsOwnerAsync(Repository repo, string? userId)
-    {
-        if (userId == null) return false;
-        if (repo.OwnerId == userId) return true;
-        if (repo.GroupOwnerId == null) return false;
-        return await _db.Groups.AnyAsync(g => g.Id == repo.GroupOwnerId && g.OwnerId == userId);
-    }
-
-    private async Task<bool> IsGroupMemberAsync(int groupId, string userId) =>
-        await _db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId);
-
     public async Task DeleteAsync(Repository repo, string ownerName)
     {
         var path = GetRepoPath(ownerName, repo.Name);
@@ -93,28 +81,6 @@ public class RepositoryService(AppDbContext db,
             .FirstOrDefaultAsync(r => r.Name == repoName &&
                 ((r.Owner != null && r.Owner.NormalizedUserName == normalizedOwner) ||
                  (r.GroupOwner != null && r.GroupOwner.Name == ownerName)));
-    }
-
-    public async Task<bool> CanReadAsync(Repository repo, string? userId)
-    {
-        if (!repo.IsPrivate) return true;
-        if (userId == null) return false;
-        if (await IsOwnerAsync(repo, userId)) return true;
-        if (repo.GroupOwnerId != null && await IsGroupMemberAsync(repo.GroupOwnerId.Value, userId)) return true;
-        return await _db.RepositoryAccesses
-            .AnyAsync(a => a.RepositoryId == repo.Id &&
-                (a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))));
-    }
-
-    public async Task<bool> CanWriteAsync(Repository repo, string? userId)
-    {
-        if (repo.IsReadOnly) return false;
-        if (userId == null) return false;
-        if (await IsOwnerAsync(repo, userId)) return true;
-        if (repo.GroupOwnerId != null && await IsGroupMemberAsync(repo.GroupOwnerId.Value, userId)) return true;
-        return await _db.RepositoryAccesses
-            .AnyAsync(a => a.RepositoryId == repo.Id && a.Level == AccessLevel.Write &&
-                (a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))));
     }
 
     public async Task<List<Repository>> GetPublicReposAsync(int skip = 0, int take = 20)

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo;
 
 public class CommitsModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	GitProcessService git,
 	UserManager<AppUser> userManager,
 	SiteSettingsService siteSettings) : PageModel
@@ -35,9 +35,11 @@ public class CommitsModel(
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
 		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		if (await git.IsEmpty(repoPath)) return Page();

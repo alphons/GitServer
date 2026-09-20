@@ -39,6 +39,7 @@ builder.Services.AddSingleton<IGitExecutablePathProvider, GitExecutablePathProvi
 builder.Services.AddSingleton<GitInstallProgressTracker>();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
+builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
 builder.Services.AddScoped<GitReleaseService>();
@@ -88,3 +89,6 @@ app.MapGroup(gitOptions.NormalizedGitPathPrefix).MapControllers();
 app.MapRazorPages();
 
 app.Run();
+
+// Exposes the entry point to WebApplicationFactory<Program> in the integration tests.
+public partial class Program;

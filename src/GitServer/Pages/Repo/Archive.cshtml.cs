@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace GitServer.Pages.Repo;
 
 public class ArchiveModel(
-	RepositoryService repos, 
+	RepositoryService repos, AccessPolicy access, 
 	GitProcessService git, 
 	UserManager<AppUser> userManager) : PageModel
 {
@@ -18,7 +18,7 @@ public class ArchiveModel(
 		if (repoObj == null) return NotFound();
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 
