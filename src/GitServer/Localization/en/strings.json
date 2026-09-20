@@ -317,5 +317,22 @@
   "settings_delete_account_button": "Delete my account",
   "settings_delete_account_confirm": "Really delete your account? This cannot be undone.",
   "error_last_admin_cannot_delete": "You are the last administrator; make someone else an administrator first.",
-  "error_current_password_wrong": "The current password is incorrect."
+  "error_current_password_wrong": "The current password is incorrect.",
+  "error_account_locked": "Too many failed attempts. Try again later.",
+  "settings_tokens_title": "Access tokens",
+  "settings_tokens_help": "Use a token instead of your password for git over HTTPS: enter your username and the token as the password. A token can be revoked at any time.",
+  "settings_tokens_name": "Name (e.g. laptop)",
+  "settings_tokens_expiry": "Valid for",
+  "settings_tokens_exp_30": "30 days",
+  "settings_tokens_exp_90": "90 days",
+  "settings_tokens_exp_365": "1 year",
+  "settings_tokens_never": "Never",
+  "settings_tokens_create": "Create token",
+  "settings_tokens_created": "Copy this token now; it is shown only once.",
+  "settings_tokens_revoke": "Revoke",
+  "settings_tokens_revoke_confirm": "Revoke this token? Anything using it will stop working.",
+  "settings_tokens_last_used": "Last used",
+  "settings_tokens_expires": "Expires",
+  "settings_tokens_none": "You have no access tokens.",
+  "error_token_name_required": "Give the token a name."
 }

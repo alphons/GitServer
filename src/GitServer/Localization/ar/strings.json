@@ -317,5 +317,22 @@
   "settings_delete_account_button": "حذف حسابي",
   "settings_delete_account_confirm": "هل تريد حقًا حذف حسابك؟ لا يمكن التراجع عن ذلك.",
   "error_last_admin_cannot_delete": "أنت آخر مسؤول؛ عيّن شخصًا آخر مسؤولًا أولًا.",
-  "error_current_password_wrong": "كلمة المرور الحالية غير صحيحة."
+  "error_current_password_wrong": "كلمة المرور الحالية غير صحيحة.",
+  "error_account_locked": "عدد كبير جدًا من المحاولات الفاشلة. حاول مرة أخرى لاحقًا.",
+  "settings_tokens_title": "رموز الوصول",
+  "settings_tokens_help": "استخدم رمزًا بدلًا من كلمة المرور مع git عبر HTTPS: أدخل اسم المستخدم والرمز ككلمة مرور. يمكن إلغاء الرمز في أي وقت.",
+  "settings_tokens_name": "الاسم (مثل: الحاسوب المحمول)",
+  "settings_tokens_expiry": "صالح لمدة",
+  "settings_tokens_exp_30": "30 يومًا",
+  "settings_tokens_exp_90": "90 يومًا",
+  "settings_tokens_exp_365": "سنة واحدة",
+  "settings_tokens_never": "أبدًا",
+  "settings_tokens_create": "إنشاء رمز",
+  "settings_tokens_created": "انسخ هذا الرمز الآن؛ يُعرض مرة واحدة فقط.",
+  "settings_tokens_revoke": "إلغاء",
+  "settings_tokens_revoke_confirm": "إلغاء هذا الرمز؟ سيتوقف كل ما يستخدمه عن العمل.",
+  "settings_tokens_last_used": "آخر استخدام",
+  "settings_tokens_expires": "ينتهي",
+  "settings_tokens_none": "ليس لديك رموز وصول.",
+  "error_token_name_required": "أعطِ الرمز اسمًا."
 }

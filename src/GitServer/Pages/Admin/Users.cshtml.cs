@@ -174,9 +174,11 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
                 await userManager.SetLockoutEnabledAsync(target, true);
                 await userManager.SetLockoutEndDateAsync(target, DateTimeOffset.MaxValue);
             }
-            else if (!isDisabled && target.IsDisabled)
+            else if (!isDisabled && target.LockoutEnd.HasValue)
             {
+                // Re-enables a disabled account and also lifts a temporary lockout after failed logins.
                 await userManager.SetLockoutEndDateAsync(target, null);
+                await userManager.ResetAccessFailedCountAsync(target);
             }
         }
 

@@ -31,7 +31,7 @@ public class LoginModel(
             return Page();
         }
 
-        var result = await signInManager.PasswordSignInAsync(user, Password, RememberMe, lockoutOnFailure: false);
+        var result = await signInManager.PasswordSignInAsync(user, Password, RememberMe, lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
@@ -63,7 +63,10 @@ public class LoginModel(
             return LocalRedirect(GitServer.Extensions.EndpointExtensions.IsLocalUrl(returnUrl) ? returnUrl! : "/");
         }
 
-        ErrorMessage = L["error_invalid_credentials"];
+        // Only a temporary lockout is announced; a disabled account looks like any other failed login.
+        ErrorMessage = result.IsLockedOut && user.IsTemporarilyLocked
+            ? L["error_account_locked"]
+            : L["error_invalid_credentials"];
         return Page();
     }
 }

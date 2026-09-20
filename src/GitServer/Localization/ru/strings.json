@@ -317,5 +317,22 @@
   "settings_delete_account_button": "Удалить мой аккаунт",
   "settings_delete_account_confirm": "Действительно удалить аккаунт? Это нельзя отменить.",
   "error_last_admin_cannot_delete": "Вы последний администратор; сначала назначьте администратором другого пользователя.",
-  "error_current_password_wrong": "Текущий пароль неверен."
+  "error_current_password_wrong": "Текущий пароль неверен.",
+  "error_account_locked": "Слишком много неудачных попыток. Повторите позже.",
+  "settings_tokens_title": "Токены доступа",
+  "settings_tokens_help": "Используйте токен вместо пароля для git по HTTPS: введите имя пользователя, а токен — в качестве пароля. Токен можно отозвать в любой момент.",
+  "settings_tokens_name": "Название (например, ноутбук)",
+  "settings_tokens_expiry": "Действителен",
+  "settings_tokens_exp_30": "30 дней",
+  "settings_tokens_exp_90": "90 дней",
+  "settings_tokens_exp_365": "1 год",
+  "settings_tokens_never": "Никогда",
+  "settings_tokens_create": "Создать токен",
+  "settings_tokens_created": "Скопируйте этот токен сейчас; он показывается только один раз.",
+  "settings_tokens_revoke": "Отозвать",
+  "settings_tokens_revoke_confirm": "Отозвать этот токен? Всё, что его использует, перестанет работать.",
+  "settings_tokens_last_used": "Последнее использование",
+  "settings_tokens_expires": "Истекает",
+  "settings_tokens_none": "У вас нет токенов доступа.",
+  "error_token_name_required": "Задайте название токена."
 }

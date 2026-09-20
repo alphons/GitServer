@@ -7,6 +7,12 @@ public class GitServerOptions
     /// <summary>Address shown on the terms page for questions or requests about personal data. Empty = not shown.</summary>
     public string ContactEmail { get; set; } = "";
 
+    /// <summary>Wrong passwords in a row (web login and git over HTTPS) before the account is locked for LoginLockoutMinutes.</summary>
+    public int MaxFailedLoginAttempts { get; set; } = 5;
+
+    /// <summary>How long an account stays locked after too many failed logins.</summary>
+    public int LoginLockoutMinutes { get; set; } = 15;
+
     /// <summary>Only used to seed SiteSettings.AllowRegistration the first time the app runs.
     /// After that, the live value lives in the database and is managed from /Admin/Settings.</summary>
     public bool AllowRegistration { get; set; } = true;

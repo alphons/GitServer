@@ -13,10 +13,12 @@ public class GitAuthMiddleware(RequestDelegate next)
 
 	public async Task InvokeAsync(HttpContext context,
         UserManager<AppUser> userManager,
+        SignInManager<AppUser> signInManager,
         AppDbContext db,
         RepositoryService repoService,
         AccessPolicy access,
         SiteSettingsService siteSettings,
+        AccessTokenService tokens,
         Microsoft.Extensions.Options.IOptions<GitServerOptions> options)
     {
         var prefix = options.Value.NormalizedGitPathPrefix; // "" or "/segment"
@@ -100,8 +102,18 @@ public class GitAuthMiddleware(RequestDelegate next)
                     var pass = decoded[(colonIdx + 1)..];
                     var found = await userManager.FindByNameAsync(user)
                                 ?? await userManager.FindByEmailAsync(user);
-                    if (found != null && !found.IsDisabled && await userManager.CheckPasswordAsync(found, pass))
-                        authedUser = found;
+                    if (found != null && !found.IsDisabled)
+                    {
+                        // A personal access token stands in for the password. It is 256 random bits, so it
+                        // cannot be guessed and does not take part in the password lockout.
+                        if (AccessTokenService.LooksLikeToken(pass))
+                        {
+                            if (await tokens.ValidateAsync(found.Id, pass)) authedUser = found;
+                        }
+                        // Counts wrong passwords like the web login does, so git over HTTPS cannot be used to guess passwords.
+                        else if ((await signInManager.CheckPasswordSignInAsync(found, pass, lockoutOnFailure: true)).Succeeded)
+                            authedUser = found;
+                    }
                 }
             }
             catch { /* invalid base64 */ }

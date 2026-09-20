@@ -317,5 +317,22 @@
   "settings_delete_account_button": "删除我的账户",
   "settings_delete_account_confirm": "确定要删除您的账户吗？此操作无法撤销。",
   "error_last_admin_cannot_delete": "您是最后一位管理员；请先指定其他人为管理员。",
-  "error_current_password_wrong": "当前密码不正确。"
+  "error_current_password_wrong": "当前密码不正确。",
+  "error_account_locked": "失败尝试次数过多，请稍后再试。",
+  "settings_tokens_title": "访问令牌",
+  "settings_tokens_help": "通过 HTTPS 使用 git 时，可用令牌代替密码：输入用户名，并将令牌作为密码。令牌可随时撤销。",
+  "settings_tokens_name": "名称（例如：笔记本）",
+  "settings_tokens_expiry": "有效期",
+  "settings_tokens_exp_30": "30 天",
+  "settings_tokens_exp_90": "90 天",
+  "settings_tokens_exp_365": "1 年",
+  "settings_tokens_never": "永不",
+  "settings_tokens_create": "创建令牌",
+  "settings_tokens_created": "请立即复制此令牌；它只显示一次。",
+  "settings_tokens_revoke": "撤销",
+  "settings_tokens_revoke_confirm": "撤销此令牌？使用它的一切都将停止工作。",
+  "settings_tokens_last_used": "最后使用",
+  "settings_tokens_expires": "过期",
+  "settings_tokens_none": "您没有访问令牌。",
+  "error_token_name_required": "请为令牌命名。"
 }

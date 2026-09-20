@@ -318,5 +318,22 @@
   "settings_delete_account_button": "Mijn account verwijderen",
   "settings_delete_account_confirm": "Je account echt verwijderen? Dit kan niet ongedaan worden gemaakt.",
   "error_last_admin_cannot_delete": "Je bent de laatste beheerder; maak eerst iemand anders beheerder.",
-  "error_current_password_wrong": "Het huidige wachtwoord is onjuist."
+  "error_current_password_wrong": "Het huidige wachtwoord is onjuist.",
+  "error_account_locked": "Te veel mislukte pogingen. Probeer het later opnieuw.",
+  "settings_tokens_title": "Toegangstokens",
+  "settings_tokens_help": "Gebruik een token in plaats van je wachtwoord voor git via HTTPS: vul je gebruikersnaam in en het token als wachtwoord. Een token kun je op elk moment intrekken.",
+  "settings_tokens_name": "Naam (bijv. laptop)",
+  "settings_tokens_expiry": "Geldig voor",
+  "settings_tokens_exp_30": "30 dagen",
+  "settings_tokens_exp_90": "90 dagen",
+  "settings_tokens_exp_365": "1 jaar",
+  "settings_tokens_never": "Nooit",
+  "settings_tokens_create": "Token aanmaken",
+  "settings_tokens_created": "Kopieer dit token nu; het wordt maar één keer getoond.",
+  "settings_tokens_revoke": "Intrekken",
+  "settings_tokens_revoke_confirm": "Dit token intrekken? Alles wat het gebruikt stopt met werken.",
+  "settings_tokens_last_used": "Laatst gebruikt",
+  "settings_tokens_expires": "Verloopt",
+  "settings_tokens_none": "Je hebt geen toegangstokens.",
+  "error_token_name_required": "Geef het token een naam."
 }

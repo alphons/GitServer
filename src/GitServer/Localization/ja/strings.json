@@ -317,5 +317,22 @@
   "settings_delete_account_button": "アカウントを削除する",
   "settings_delete_account_confirm": "本当にアカウントを削除しますか？この操作は元に戻せません。",
   "error_last_admin_cannot_delete": "あなたは最後の管理者です。先に他のユーザーを管理者にしてください。",
-  "error_current_password_wrong": "現在のパスワードが正しくありません。"
+  "error_current_password_wrong": "現在のパスワードが正しくありません。",
+  "error_account_locked": "失敗した試行が多すぎます。しばらくしてからもう一度お試しください。",
+  "settings_tokens_title": "アクセストークン",
+  "settings_tokens_help": "HTTPS 経由の Git では、パスワードの代わりにトークンを使えます：ユーザー名を入力し、パスワードとしてトークンを入力してください。トークンはいつでも失効できます。",
+  "settings_tokens_name": "名前（例：ノートPC）",
+  "settings_tokens_expiry": "有効期間",
+  "settings_tokens_exp_30": "30日",
+  "settings_tokens_exp_90": "90日",
+  "settings_tokens_exp_365": "1年",
+  "settings_tokens_never": "なし",
+  "settings_tokens_create": "トークンを作成",
+  "settings_tokens_created": "このトークンを今すぐコピーしてください。表示されるのは一度だけです。",
+  "settings_tokens_revoke": "失効",
+  "settings_tokens_revoke_confirm": "このトークンを失効しますか？使用しているものはすべて動作しなくなります。",
+  "settings_tokens_last_used": "最終使用",
+  "settings_tokens_expires": "有効期限",
+  "settings_tokens_none": "アクセストークンはありません。",
+  "error_token_name_required": "トークンに名前を付けてください。"
 }

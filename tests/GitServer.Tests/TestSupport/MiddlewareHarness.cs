@@ -20,6 +20,8 @@ public sealed class MiddlewareHarness : IDisposable
 
 	public TestWorld World { get; } = new();
 	public UserManager<AppUser> Users { get; }
+	public SignInManager<AppUser> SignIn { get; }
+	public GitServer.Services.AccessTokenService Tokens { get; }
 	public SiteSettingsService Settings { get; }
 	public bool NextWasCalled { get; private set; }
 
@@ -28,6 +30,8 @@ public sealed class MiddlewareHarness : IDisposable
 		var services = new ServiceCollection();
 		services.AddLogging();
 		services.AddSingleton(World.Db);
+		services.AddHttpContextAccessor();
+		services.AddAuthentication();
 		services.AddIdentityCore<AppUser>(o =>
 		{
 			o.Password.RequireDigit = false;
@@ -36,10 +40,14 @@ public sealed class MiddlewareHarness : IDisposable
 			o.Password.RequireNonAlphanumeric = false;
 			o.Password.RequiredLength = 6;
 			o.User.RequireUniqueEmail = true;
-		}).AddEntityFrameworkStores<AppDbContext>();
+			o.Lockout.MaxFailedAccessAttempts = 3;
+			o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+		}).AddEntityFrameworkStores<AppDbContext>().AddSignInManager();
 		_services = services.BuildServiceProvider();
 
 		Users = _services.GetRequiredService<UserManager<AppUser>>();
+		SignIn = _services.GetRequiredService<SignInManager<AppUser>>();
+		Tokens = new GitServer.Services.AccessTokenService(World.Db);
 		Settings = new SiteSettingsService(World.Db, Options.Create(World.Options));
 	}
 
@@ -77,7 +85,7 @@ public sealed class MiddlewareHarness : IDisposable
 
 		NextWasCalled = false;
 		var middleware = new GitAuthMiddleware(_ => { NextWasCalled = true; return Task.CompletedTask; });
-		await middleware.InvokeAsync(context, Users, World.Db, World.Repos, World.Access, Settings, Options.Create(World.Options));
+		await middleware.InvokeAsync(context, Users, SignIn, World.Db, World.Repos, World.Access, Settings, Tokens, Options.Create(World.Options));
 		return context;
 	}
 

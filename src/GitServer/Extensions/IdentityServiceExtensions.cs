@@ -14,6 +14,13 @@ public static class IdentityServiceExtensions
 		services.Configure<PasswordResetTokenProviderOptions>(opt =>
 			opt.TokenLifespan = TimeSpan.FromMinutes(30));
 
+		services.AddOptions<IdentityOptions>().Configure<Microsoft.Extensions.Options.IOptions<GitServerOptions>>((identity, gitServer) =>
+		{
+			identity.Lockout.AllowedForNewUsers = true;
+			identity.Lockout.MaxFailedAccessAttempts = Math.Max(1, gitServer.Value.MaxFailedLoginAttempts);
+			identity.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(Math.Max(1, gitServer.Value.LoginLockoutMinutes));
+		});
+
 		services.AddIdentity<AppUser, IdentityRole>(opt =>
 		{
 			opt.Password.RequireDigit = false;

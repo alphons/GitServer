@@ -316,5 +316,22 @@
   "settings_delete_account_button": "Mein Konto löschen",
   "settings_delete_account_confirm": "Konto wirklich löschen? Das kann nicht rückgängig gemacht werden.",
   "error_last_admin_cannot_delete": "Du bist der letzte Administrator; mache zuerst jemand anderen zum Administrator.",
-  "error_current_password_wrong": "Das aktuelle Passwort ist falsch."
+  "error_current_password_wrong": "Das aktuelle Passwort ist falsch.",
+  "error_account_locked": "Zu viele fehlgeschlagene Versuche. Bitte versuche es später erneut.",
+  "settings_tokens_title": "Zugriffstoken",
+  "settings_tokens_help": "Verwende ein Token statt deines Passworts für Git über HTTPS: Gib deinen Benutzernamen und das Token als Passwort ein. Ein Token kann jederzeit widerrufen werden.",
+  "settings_tokens_name": "Name (z. B. Laptop)",
+  "settings_tokens_expiry": "Gültig für",
+  "settings_tokens_exp_30": "30 Tage",
+  "settings_tokens_exp_90": "90 Tage",
+  "settings_tokens_exp_365": "1 Jahr",
+  "settings_tokens_never": "Nie",
+  "settings_tokens_create": "Token erstellen",
+  "settings_tokens_created": "Kopiere dieses Token jetzt; es wird nur einmal angezeigt.",
+  "settings_tokens_revoke": "Widerrufen",
+  "settings_tokens_revoke_confirm": "Dieses Token widerrufen? Alles, was es verwendet, funktioniert dann nicht mehr.",
+  "settings_tokens_last_used": "Zuletzt verwendet",
+  "settings_tokens_expires": "Läuft ab",
+  "settings_tokens_none": "Du hast keine Zugriffstoken.",
+  "error_token_name_required": "Gib dem Token einen Namen."
 }

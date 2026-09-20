@@ -316,5 +316,22 @@
   "settings_delete_account_button": "Supprimer mon compte",
   "settings_delete_account_confirm": "Supprimer vraiment votre compte ? Cette action est irréversible.",
   "error_last_admin_cannot_delete": "Vous êtes le dernier administrateur ; nommez d'abord quelqu'un d'autre administrateur.",
-  "error_current_password_wrong": "Le mot de passe actuel est incorrect."
+  "error_current_password_wrong": "Le mot de passe actuel est incorrect.",
+  "error_account_locked": "Trop de tentatives échouées. Réessayez plus tard.",
+  "settings_tokens_title": "Jetons d'accès",
+  "settings_tokens_help": "Utilisez un jeton à la place de votre mot de passe pour git via HTTPS : saisissez votre nom d'utilisateur et le jeton comme mot de passe. Un jeton peut être révoqué à tout moment.",
+  "settings_tokens_name": "Nom (par ex. portable)",
+  "settings_tokens_expiry": "Valide pendant",
+  "settings_tokens_exp_30": "30 jours",
+  "settings_tokens_exp_90": "90 jours",
+  "settings_tokens_exp_365": "1 an",
+  "settings_tokens_never": "Jamais",
+  "settings_tokens_create": "Créer un jeton",
+  "settings_tokens_created": "Copiez ce jeton maintenant ; il n'est affiché qu'une seule fois.",
+  "settings_tokens_revoke": "Révoquer",
+  "settings_tokens_revoke_confirm": "Révoquer ce jeton ? Ses utilisations cesseront de fonctionner.",
+  "settings_tokens_last_used": "Dernière utilisation",
+  "settings_tokens_expires": "Expire",
+  "settings_tokens_none": "Vous n'avez aucun jeton d'accès.",
+  "error_token_name_required": "Donnez un nom au jeton."
 }

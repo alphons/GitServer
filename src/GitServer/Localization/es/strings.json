@@ -316,5 +316,22 @@
   "settings_delete_account_button": "Eliminar mi cuenta",
   "settings_delete_account_confirm": "¿Eliminar realmente tu cuenta? No se puede deshacer.",
   "error_last_admin_cannot_delete": "Eres el último administrador; primero nombra administrador a otra persona.",
-  "error_current_password_wrong": "La contraseña actual es incorrecta."
+  "error_current_password_wrong": "La contraseña actual es incorrecta.",
+  "error_account_locked": "Demasiados intentos fallidos. Inténtalo de nuevo más tarde.",
+  "settings_tokens_title": "Tokens de acceso",
+  "settings_tokens_help": "Usa un token en lugar de tu contraseña para git por HTTPS: introduce tu nombre de usuario y el token como contraseña. Un token se puede revocar en cualquier momento.",
+  "settings_tokens_name": "Nombre (p. ej. portátil)",
+  "settings_tokens_expiry": "Válido durante",
+  "settings_tokens_exp_30": "30 días",
+  "settings_tokens_exp_90": "90 días",
+  "settings_tokens_exp_365": "1 año",
+  "settings_tokens_never": "Nunca",
+  "settings_tokens_create": "Crear token",
+  "settings_tokens_created": "Copia este token ahora; solo se muestra una vez.",
+  "settings_tokens_revoke": "Revocar",
+  "settings_tokens_revoke_confirm": "¿Revocar este token? Todo lo que lo use dejará de funcionar.",
+  "settings_tokens_last_used": "Último uso",
+  "settings_tokens_expires": "Caduca",
+  "settings_tokens_none": "No tienes tokens de acceso.",
+  "error_token_name_required": "Ponle un nombre al token."
 }

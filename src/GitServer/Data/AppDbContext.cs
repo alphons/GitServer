@@ -15,10 +15,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<GitInstallation> GitInstallations => Set<GitInstallation>();
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
+    public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<AccessToken>(e =>
+        {
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasOne(t => t.User)
+             .WithMany()
+             .HasForeignKey(t => t.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
 
         builder.Entity<Repository>(e =>
         {

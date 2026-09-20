@@ -8,7 +8,7 @@ namespace GitServer.Services;
 /// <summary>Ends an account. "Deleting" a user anonymizes them: everything they made (repositories, issues,
 /// comments, group memberships) stays visible, but under an anonymous-NNNN name, without password, email or
 /// profile, and with the account locked, so nobody can sign in as them again.</summary>
-public class AccountService(UserManager<AppUser> userManager, AppDbContext db, IOptions<GitServerOptions> options)
+public class AccountService(UserManager<AppUser> userManager, AppDbContext db, AccessTokenService tokens, IOptions<GitServerOptions> options)
 {
 	/// <summary>Returns null on success, otherwise an error message; on failure nothing has changed.</summary>
 	public async Task<string?> DeleteAsync(AppUser user)
@@ -90,6 +90,7 @@ public class AccountService(UserManager<AppUser> userManager, AppDbContext db, I
 		if (!updated.Succeeded) return Describe(updated);
 
 		await userManager.UpdateSecurityStampAsync(user);
+		await tokens.RevokeAllAsync(user.Id);
 		return null;
 	}
 

@@ -175,6 +175,34 @@ public class GitAuthMiddlewareTests : IDisposable
 	}
 
 	[Fact]
+	public async Task TooManyWrongPasswords_LockTheAccount_EvenForTheRightPassword()
+	{
+		var alice = await _h.AddUserAsync("alice");
+		_h.World.AddRepo(alice, "secret", isPrivate: true);
+
+		for (var i = 0; i < 3; i++) await _h.CloneAsync("alice", "secret", BasicHeader("alice", "wrong-password"));
+		var context = await _h.CloneAsync("alice", "secret", BasicHeader("alice"));
+
+		Assert.Equal(401, context.Response.StatusCode);
+		Assert.False(_h.NextWasCalled);
+	}
+
+	[Fact]
+	public async Task ASuccessfulLogin_ResetsTheCountOfWrongPasswords()
+	{
+		var alice = await _h.AddUserAsync("alice");
+		_h.World.AddRepo(alice, "secret", isPrivate: true);
+
+		for (var round = 0; round < 3; round++)
+		{
+			await _h.CloneAsync("alice", "secret", BasicHeader("alice", "wrong-password"));
+			await _h.CloneAsync("alice", "secret", BasicHeader("alice", "wrong-password"));
+			await _h.CloneAsync("alice", "secret", BasicHeader("alice"));
+			Assert.True(_h.NextWasCalled, $"round {round}");
+		}
+	}
+
+	[Fact]
 	public async Task ADisabledAccount_CannotAuthenticate_EvenWithTheRightPassword()
 	{
 		var alice = await _h.AddUserAsync("alice");
