@@ -4,6 +4,17 @@
     ViewData["Title"] = "Home";
 }
 <div class="container">
+    @if (Model.CurrentUserName == null)
+    {
+        <section class="intro">
+            <h1>@L["home_intro_title"]</h1>
+            <p>@L["home_intro_text"]</p>
+            <p>
+                <a class="btn btn-primary" href="/Auth/Register">@L["home_intro_register"]</a>
+                <a href="/Terms">@L["terms_title"]</a>
+            </p>
+        </section>
+    }
     <div class="page-header">
         <h1>@L["index_recent_repos"]</h1>
         <div class="header-actions">
@@ -27,12 +38,16 @@
             {
                 <div class="repo-card">
                     <div class="repo-card-header">
-                        <a class="repo-name" href="/@repo.Owner.UserName/@repo.Name">
-                            @repo.Owner.UserName / @repo.Name
+                        <a class="repo-name" href="/@repo.OwnerName/@repo.Name">
+                            @repo.OwnerName / @repo.Name
                         </a>
                         <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
                             @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
                         </span>
+                        @if (repo.IsReadOnly)
+                        {
+                            <span class="badge badge-warning">@L["settings_readonly_label"]</span>
+                        }
                     </div>
                     @if (!string.IsNullOrEmpty(repo.Description))
                     {

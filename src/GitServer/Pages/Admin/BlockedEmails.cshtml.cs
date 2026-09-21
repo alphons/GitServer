@@ -22,7 +22,7 @@ public class BlockedEmailsModel(
 	private async Task<bool> RequireAdminAsync()
 	{
 		var currentUser = await userManager.GetUserAsync(User);
-		return currentUser != null && currentUser.IsAdmin;
+		return AccessPolicy.IsSiteAdmin(currentUser);
 	}
 
 	private async Task ReloadAsync()

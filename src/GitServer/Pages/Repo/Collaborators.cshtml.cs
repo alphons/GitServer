@@ -11,7 +11,7 @@ namespace GitServer.Pages.Repo;
 
 [Authorize]
 public class CollaboratorsModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	UserManager<AppUser> userManager,
 	AppDbContext db,
 	LocalizationService L) : PageModel
@@ -35,9 +35,11 @@ public class CollaboratorsModel(
 		RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return (null, false);
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		var isOwner = repoObj.OwnerId == userId;
+		var isOwner = await access.CanAdministerAsync(repoObj, userId);
 		Repo = repoObj;
 		return (repoObj, isOwner);
 	}
@@ -52,12 +54,9 @@ public class CollaboratorsModel(
 			.ToListAsync();
 	}
 
-	private async Task LoadOwnGroupsAsync(string ownerId)
+	private async Task LoadOwnGroupsAsync(string userId)
 	{
-		OwnGroups = await db.Groups
-			.Where(g => g.OwnerId == ownerId)
-			.OrderBy(g => g.Name)
-			.ToListAsync();
+		OwnGroups = await access.GetOwnedGroupsAsync(userId);
 	}
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo)
@@ -67,7 +66,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
-		await LoadOwnGroupsAsync(repoObj.OwnerId);
+		await LoadOwnGroupsAsync(userManager.GetUserId(User)!);
 		return Page();
 	}
 
@@ -101,7 +100,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
-		await LoadOwnGroupsAsync(repoObj.OwnerId);
+		await LoadOwnGroupsAsync(userManager.GetUserId(User)!);
 
 		var name = CollaboratorName?.Trim();
 		if (string.IsNullOrEmpty(name))
@@ -153,7 +152,7 @@ public class CollaboratorsModel(
 		if (!isOwner) return Forbid();
 
 		await LoadCollaboratorsAsync(repoObj.Id);
-		await LoadOwnGroupsAsync(repoObj.OwnerId);
+		await LoadOwnGroupsAsync(userManager.GetUserId(User)!);
 
 		var group = OwnGroups.FirstOrDefault(g => g.Id == GroupId);
 		if (group == null)
@@ -189,11 +188,11 @@ public class CollaboratorsModel(
 		if (repoObj == null) return NotFound();
 		if (!isOwner) return Forbid();
 
-		var access = await db.RepositoryAccesses
+		var grant = await db.RepositoryAccesses
 			.FirstOrDefaultAsync(a => a.Id == accessId && a.RepositoryId == repoObj.Id);
-		if (access != null)
+		if (grant != null)
 		{
-			db.RepositoryAccesses.Remove(access);
+			db.RepositoryAccesses.Remove(grant);
 			await db.SaveChangesAsync();
 		}
 

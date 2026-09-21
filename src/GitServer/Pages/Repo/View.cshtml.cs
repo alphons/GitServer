@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Pages.Repo;
 
 public class ViewModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	GitProcessService git,
 	UserManager<AppUser> userManager,
 	IOptions<GitServerOptions> options) : PageModel
@@ -34,12 +34,14 @@ public class ViewModel(
 
 		Repo = await repos.GetAsync(user, repo);
 		if (Repo == null) return NotFound();
+		UserName = Repo.OwnerName;
+		RepoName = Repo.Name;
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(Repo, userId)) return Forbid();
+		if (!await access.CanReadAsync(Repo, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
-		CloneUrl = $"{Request.Scheme}://{Request.Host}{_options.NormalizedGitPathPrefix}/{user}/{repo}.git";
+		var repoPath = repos.GetRepoPath(Repo.OwnerName, Repo.Name);
+		CloneUrl = $"{Request.Scheme}://{Request.Host}{_options.NormalizedGitPathPrefix}/{Repo.OwnerName}/{Repo.Name}.git";
 
 		IsEmpty = await git.IsEmpty(repoPath);
 		if (IsEmpty) { DefaultBranch = Repo.DefaultBranch; return Page(); }

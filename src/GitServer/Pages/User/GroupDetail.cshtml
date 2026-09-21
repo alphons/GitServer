@@ -73,9 +73,17 @@
     </section>
 
     <section class="settings-section">
+        <h2>@L["nav_groups"] — @L["group_repos_title"] (@Model.RepoTotalCount)</h2>
+        <div id="group-repos-container">
+            @await Html.PartialAsync("_GroupDetailRepos", Model)
+        </div>
+    </section>
+
+    <section class="settings-section">
         <h2>@L["settings_danger_zone"]</h2>
         <form method="post" asp-page-handler="Delete"
-              onsubmit="return confirm('@L.Format("confirm_delete_group", Model.Group.Name)')">
+              data-confirm="@L.Format("confirm_delete_group", Model.Group.Name)"
+              data-confirm-ok="@L["group_delete"]" data-confirm-cancel="@L["cancel"]">
             <button type="submit" class="btn btn-danger">@L["group_delete"]</button>
         </form>
     </section>
@@ -131,6 +139,23 @@
 
             document.addEventListener('click', function (e) {
                 if (e.target !== input && !results.contains(e.target)) hideResults();
+            });
+        })();
+
+        (function () {
+            var container = document.getElementById('group-repos-container');
+            if (!container) return;
+
+            container.addEventListener('click', function (e) {
+                var link = e.target.closest('a');
+                if (!link) return;
+                var url = new URL(link.href, window.location.href);
+                if (url.searchParams.get('handler') !== 'Repos') return;
+
+                e.preventDefault();
+                fetch(url)
+                    .then(function (r) { return r.text(); })
+                    .then(function (html) { container.innerHTML = html; });
             });
         })();
     </script>

@@ -6,12 +6,19 @@
 <div class="container">
     <div class="repo-header">
         <div class="repo-title">
-            <a href="/User/@Model.UserName">@Model.UserName</a>
+            <a href="/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a>
             <span class="separator">/</span>
             <strong>@Model.RepoName</strong>
             <span class="badge @(Model.Repo!.IsPrivate ? "badge-warning" : "badge-muted")">
                 @(Model.Repo.IsPrivate ? L["badge_private"] : L["badge_public"])
             </span>
+            <span class="badge @(Model.Repo.GroupOwnerId != null ? "badge-group" : "badge-muted")">
+                @(Model.Repo.GroupOwnerId != null ? L["group_label"] : L["user_label"])
+            </span>
+            @if (Model.Repo.IsReadOnly)
+            {
+                <span class="badge badge-warning">@L["settings_readonly_label"]</span>
+            }
         </div>
         @if (!string.IsNullOrEmpty(Model.Repo.Description))
         {
@@ -55,7 +62,7 @@ git push -u origin @Model.DefaultBranch</pre>
                     <input id="cloneUrl" type="text" readonly value="@Model.CloneUrl" class="form-control clone-input" />
                     <button class="btn btn-secondary" onclick="copyCloneUrl()">@L["copy_button"]</button>
                 </div>
-                @{var archiveBranch = Model.CurrentBranch.Replace('/', '-');}
+                @{var archiveBranch = Model.CurrentBranch;}
                 <a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/archive/@archiveBranch">
                     ZIP
                 </a>

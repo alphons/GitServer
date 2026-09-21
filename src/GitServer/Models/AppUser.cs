@@ -17,6 +17,10 @@ public class AppUser : IdentityUser
     public DateTime? LastLoginAt { get; set; }
     public bool IsAdmin { get; set; }
 
+    /// <summary>When the user accepted the terms and conditions, and which version of them (Terms.CurrentVersion).</summary>
+    public DateTime? TermsAcceptedAt { get; set; }
+    public string? TermsVersion { get; set; }
+
     public ICollection<Repository> Repositories { get; set; } = new List<Repository>();
     public ICollection<RepositoryAccess> RepositoryAccesses { get; set; } = new List<RepositoryAccess>();
     public ICollection<Group> Groups { get; set; } = new List<Group>();
@@ -25,7 +29,12 @@ public class AppUser : IdentityUser
     [NotMapped]
     public string EffectiveAvatarUrl => !string.IsNullOrEmpty(AvatarUrl) ? AvatarUrl : GravatarService.GetUrl(Email);
 
-    /// <summary>An admin-disabled account: LockoutEnd set far into the future (see UsersModel.OnPostToggleEnabledAsync).</summary>
+    /// <summary>An admin-disabled (or anonymized) account: LockoutEnd set far into the future. A temporary lockout
+    /// after too many wrong passwords ends within minutes and does not count as disabled.</summary>
     [NotMapped]
-    public bool IsDisabled => LockoutEnd.HasValue && LockoutEnd > DateTimeOffset.UtcNow;
+    public bool IsDisabled => LockoutEnd.HasValue && LockoutEnd > DateTimeOffset.UtcNow.AddYears(50);
+
+    /// <summary>Locked for a while after too many failed logins.</summary>
+    [NotMapped]
+    public bool IsTemporarilyLocked => LockoutEnd.HasValue && LockoutEnd > DateTimeOffset.UtcNow && !IsDisabled;
 }

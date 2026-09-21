@@ -18,7 +18,7 @@
 <body>
 	@{
 		var layoutCurrentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
-		var layoutIsAdmin = layoutCurrentUser?.IsAdmin ?? false;
+		var layoutIsAdmin = AccessPolicy.IsSiteAdmin(layoutCurrentUser);
 	}
 	<nav class="navbar">
 		<div class="navbar-inner">
@@ -53,7 +53,7 @@
 				{
 					var currentUser = layoutCurrentUser;
 					<a class="nav-link" href="/User/@currentUser.UserName">@currentUser.UserName</a>
-					@if (currentUser.IsAdmin)
+					@if (AccessPolicy.IsSiteAdmin(currentUser))
 					{
 						<a class="nav-link" href="/Admin/Users">@L["nav_admin"]</a>
 					}
@@ -90,6 +90,7 @@
 	<footer class="site-footer">
 		<div class="container">
 			<span>GitServer &mdash; @L["footer_tagline"]</span>
+			<span> &middot; <a href="/Terms">@L["terms_title"]</a></span>
 		</div>
 	</footer>
 	<script src="~/js/app.js" asp-append-version="true"></script>

@@ -27,6 +27,9 @@ public class LocalizationService(IHttpContextAccessor httpContextAccessor, IWebH
             .GroupBy(x => x.Region!)
             .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Culture, StringComparer.Ordinal).First().Culture!));
 
+	/// <summary>Culture matching the current UI language, used to format dates/numbers per locale.</summary>
+	public CultureInfo CurrentCulture => GetCultureOrDefault(CurrentLanguage);
+
 	public string CurrentLanguage
     {
         get

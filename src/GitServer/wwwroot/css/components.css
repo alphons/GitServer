@@ -583,6 +583,74 @@ textarea.form-control { resize: vertical; }
   font-size: 0.8125rem;
 }
 
+/* === Collapsible section (native <details>/<summary>) === */
+.collapsible-section {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 1rem;
+}
+
+.collapsible-section summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.875rem 0;
+  list-style: none;
+}
+
+.collapsible-section summary::-webkit-details-marker { display: none; }
+
+.collapsible-section summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 0.7em;
+  transition: transform 0.15s;
+}
+
+.collapsible-section[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.collapsible-section > .repo-list {
+  padding-bottom: 1rem;
+}
+
+.collapsible-section .pagination,
+.settings-section .pagination {
+  justify-content: flex-start;
+}
+
+/* === Generic confirm modal (replaces native confirm()) === */
+.gs-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.gs-confirm-backdrop:not([hidden]) { display: flex; }
+
+.gs-confirm-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: min(420px, 90vw);
+}
+
+.gs-confirm-text {
+  padding: 1.25rem 1rem 0.5rem;
+}
+
+.gs-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
 /* === Mobile responsive === */
 @media (max-width: 600px) {
   .auth-card { padding: 1.25rem; }

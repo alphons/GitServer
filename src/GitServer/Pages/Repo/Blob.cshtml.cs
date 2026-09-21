@@ -7,12 +7,13 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace GitServer.Pages.Repo;
 
 public class BlobModel(
-	RepositoryService repos, 
+	RepositoryService repos, AccessPolicy access, 
 	GitProcessService git, 
 	UserManager<AppUser> userManager) : PageModel
 {
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public string Branch { get; set; } = "";
 	public string FilePath { get; set; } = "";
 	public new string Content { get; set; } = "";
@@ -28,11 +29,14 @@ public class BlobModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		FileSize = await git.GetFileSize(repoPath, branch, path);
 
 		// Treat files >1MB or detected binary as binary

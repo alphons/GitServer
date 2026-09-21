@@ -10,13 +10,14 @@ namespace GitServer.Pages.Repo.Issues;
 
 [Authorize]
 public class NewIssueModel(
-	RepositoryService repos, 
+	RepositoryService repos, AccessPolicy access, 
 	AppDbContext db, 
 	UserManager<AppUser> userManager) : PageModel
 {
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	[BindProperty] public string Title { get; set; } = "";
 	[BindProperty] public string Body { get; set; } = "";
 	public string? ErrorMessage { get; set; }
@@ -26,8 +27,11 @@ public class NewIssueModel(
 		UserName = user; RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 		return Page();
 	}
 
@@ -37,6 +41,7 @@ public class NewIssueModel(
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
 		var userId = userManager.GetUserId(User)!;
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();   // same rule as opening the form
 
 		var issue = new Issue
 		{

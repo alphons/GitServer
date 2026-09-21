@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace GitServer.Pages.Repo;
 
 public class DataMissingModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	UserManager<AppUser> userManager) : PageModel
 {
 	public string UserName { get; set; } = "";
@@ -22,9 +22,11 @@ public class DataMissingModel(
 
 		Repo = await repos.GetAsync(user, repo);
 		if (Repo == null) return NotFound();
+		UserName = Repo.OwnerName;
+		RepoName = Repo.Name;
 
 		var currentUser = await userManager.GetUserAsync(User);
-		IsOwnerOrAdmin = currentUser != null && (currentUser.Id == Repo.OwnerId || currentUser.IsAdmin);
+		IsOwnerOrAdmin = await access.CanDeleteAsync(Repo, currentUser);
 
 		return Page();
 	}
@@ -35,10 +37,10 @@ public class DataMissingModel(
 		if (repoObj == null) return NotFound();
 
 		var currentUser = await userManager.GetUserAsync(User);
-		if (currentUser == null || (currentUser.Id != repoObj.OwnerId && !currentUser.IsAdmin))
+		if (!await access.CanDeleteAsync(repoObj, currentUser))
 			return Forbid();
 
-		await repos.DeleteAsync(repoObj, user);
+		await repos.DeleteAsync(repoObj, repoObj.OwnerName);
 		return Redirect("/");
 	}
 }

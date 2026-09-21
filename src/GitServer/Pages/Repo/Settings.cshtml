@@ -6,7 +6,7 @@
 <div class="container">
     <div class="repo-header">
         <div class="repo-title">
-            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
             <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
         </div>
     </div>
@@ -32,6 +32,13 @@
                 </label>
             </div>
             <div class="form-group">
+                <label class="checkbox-label">
+                    <input asp-for="IsReadOnly" type="checkbox" />
+                    @L["settings_readonly_label"]
+                </label>
+                <span class="form-hint">@L["settings_readonly_hint"]</span>
+            </div>
+            <div class="form-group">
                 <label for="defaultBranch">@L["settings_default_branch"]</label>
                 <input asp-for="DefaultBranch" id="defaultBranch" type="text" class="form-control" />
             </div>
@@ -47,7 +54,8 @@
                 <p class="text-muted">@L["settings_delete_warning"]</p>
             </div>
             <form method="post" asp-page-handler="Delete"
-                  onsubmit="return confirm('@L.Format("confirm_delete_repo", Model.RepoName)')">
+                  data-confirm="@L.Format("confirm_delete_repo", Model.RepoName)"
+                  data-confirm-ok="@L["delete_button"]" data-confirm-cancel="@L["cancel"]">
                 <button type="submit" class="btn btn-danger">@L["delete_button"]</button>
             </form>
         </div>

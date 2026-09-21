@@ -10,7 +10,7 @@ namespace GitServer.Pages.Repo;
 
 [Authorize]
 public class SettingsModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	UserManager<AppUser> userManager,
 	AppDbContext db,
 	LocalizationService L) : PageModel
@@ -24,6 +24,7 @@ public class SettingsModel(
 
 	[BindProperty] public string? Description { get; set; }
 	[BindProperty] public bool IsPrivate { get; set; }
+	[BindProperty] public bool IsReadOnly { get; set; }
 	[BindProperty] public string DefaultBranch { get; set; } = "main";
 
 	private async Task<(Repository? repo, bool isOwner)> LoadAsync(string user, string repo)
@@ -32,9 +33,11 @@ public class SettingsModel(
 		RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return (null, false);
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		var isOwner = repoObj.OwnerId == userId;
+		var isOwner = await access.CanAdministerAsync(repoObj, userId);
 		Repo = repoObj;
 		return (repoObj, isOwner);
 	}
@@ -47,6 +50,7 @@ public class SettingsModel(
 
 		Description = repoObj.Description;
 		IsPrivate = repoObj.IsPrivate;
+		IsReadOnly = repoObj.IsReadOnly;
 		DefaultBranch = repoObj.DefaultBranch;
 
 		return Page();
@@ -60,6 +64,7 @@ public class SettingsModel(
 
 		repoObj.Description = Description;
 		repoObj.IsPrivate = IsPrivate;
+		repoObj.IsReadOnly = IsReadOnly;
 		repoObj.DefaultBranch = string.IsNullOrEmpty(DefaultBranch) ? "main" : DefaultBranch;
 		repoObj.UpdatedAt = DateTime.UtcNow;
 
@@ -75,7 +80,7 @@ public class SettingsModel(
 		if (repoObj == null) return NotFound();
 		if (!isOwner) return Forbid();
 
-		await repos.DeleteAsync(repoObj, user);
+		await repos.DeleteAsync(repoObj, repoObj.OwnerName);
 		return Redirect("/");
 	}
 }

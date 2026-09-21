@@ -9,13 +9,14 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo.Issues;
 
 public class IssueIndexModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	AppDbContext db,
 	UserManager<AppUser> userManager) : PageModel
 {
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public bool ShowClosed { get; set; }
 	public List<Issue> Issues { get; set; } = new();
 
@@ -27,9 +28,12 @@ public class IssueIndexModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
 		Issues = await db.Issues
 			.Include(i => i.Author)

@@ -22,6 +22,16 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 		!string.IsNullOrEmpty(name) &&
 		System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9_\-\.]+$");
 
+	// Owner/repo lookups are case-insensitive, but the filesystem (on Linux) is not, so the path
+	// must always be built from the canonical casing GitAuthMiddleware resolved, not from
+	// whatever casing the git client happened to use in the URL.
+	private string GetCanonicalRepoPath(string routeUser, string routeRepo)
+	{
+		var owner = HttpContext.Items["GitOwnerName"] as string ?? routeUser;
+		var repoName = HttpContext.Items["GitRepoName"] as string ?? routeRepo;
+		return GetRepoPath(owner, repoName);
+	}
+
 	[HttpGet("{user}/{repo}.git")]
 	[HttpHead("{user}/{repo}.git")]
 	public IActionResult RedirectBareGitUrl(string user, string repo) =>
@@ -32,7 +42,8 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 	{
 		if (HttpContext.Items["GitRepo"] is not Repository) { Response.StatusCode = 404; return; }
 
-		var repoPath = GetRepoPath(user, repo);
+		var repoPath = GetCanonicalRepoPath(user, repo);
+		if (!Directory.Exists(repoPath)) { Response.StatusCode = 404; return; }
 		Response.Headers.CacheControl = "no-cache";
 
 		try
@@ -69,7 +80,7 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 	{
 		if (HttpContext.Items["GitRepo"] is not Repository) { Response.StatusCode = 404; return; }
 
-		var repoPath = GetRepoPath(user, repo);
+		var repoPath = GetCanonicalRepoPath(user, repo);
 		Response.ContentType = "application/x-git-upload-pack-result";
 		Response.Headers.CacheControl = "no-cache";
 
@@ -90,7 +101,7 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 	{
 		if (HttpContext.Items["GitRepo"] is not Repository repoObj) { Response.StatusCode = 404; return; }
 
-		var repoPath = GetRepoPath(user, repo);
+		var repoPath = GetCanonicalRepoPath(user, repo);
 		Response.ContentType = "application/x-git-receive-pack-result";
 		Response.Headers.CacheControl = "no-cache";
 

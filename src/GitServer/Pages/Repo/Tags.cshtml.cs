@@ -7,12 +7,13 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace GitServer.Pages.Repo;
 
 public class TagsModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	GitProcessService git,
 	UserManager<AppUser> userManager) : PageModel
 {
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public List<TagInfo> Tags { get; set; } = new();
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo)
@@ -22,11 +23,14 @@ public class TagsModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		if (await git.IsEmpty(repoPath)) return Page();
 
 		Tags = await git.GetTagInfos(repoPath);

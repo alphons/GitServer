@@ -1,16 +1,19 @@
+using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using Regex = System.Text.RegularExpressions.Regex;
 
 namespace GitServer.Pages.Repo;
 
 [Authorize]
 public class NewModel(
 	RepositoryService repos,
+	AccessPolicy access,
 	UserManager<AppUser> userManager,
 	SiteSettingsService siteSettings,
 	LocalizationService L) : PageModel
@@ -19,14 +22,18 @@ public class NewModel(
 	[BindProperty] public string Name { get; set; } = "";
 	[BindProperty] public string? Description { get; set; }
 	[BindProperty] public bool IsPrivate { get; set; }
+	[BindProperty] public int? GroupOwnerId { get; set; }
 	public string? ErrorMessage { get; set; }
 	public AppUser? CurrentUser { get; set; }
 	public bool CreationDisabled { get; set; }
+	public List<Group> OwnGroups { get; set; } = new();
 
 	public async Task<IActionResult> OnGetAsync()
 	{
 		CurrentUser = await userManager.GetUserAsync(User);
 		CreationDisabled = !(await siteSettings.GetAsync()).AllowUserRepoCreation;
+		if (CurrentUser != null)
+			OwnGroups = await access.GetOwnedGroupsAsync(CurrentUser.Id);
 		return Page();
 	}
 
@@ -42,6 +49,7 @@ public class NewModel(
 		var user = await userManager.GetUserAsync(User);
 		if (user == null) return Challenge();
 		CurrentUser = user;
+		OwnGroups = await access.GetOwnedGroupsAsync(user.Id);
 
 		if (!Regex.IsMatch(Name, @"^[a-zA-Z0-9_\-\.]+$"))
 		{
@@ -49,9 +57,33 @@ public class NewModel(
 			return Page();
 		}
 
+		Group? group = null;
+		if (GroupOwnerId.HasValue)
+		{
+			group = OwnGroups.FirstOrDefault(g => g.Id == GroupOwnerId.Value);
+			if (group == null)
+			{
+				ErrorMessage = L["error_group_not_found"];
+				return Page();
+			}
+		}
+
+		var ownerName = group?.Name ?? user.UserName!;
+		if (await repos.GetAsync(ownerName, Name) != null)
+		{
+			ErrorMessage = L["error_repo_name_taken"];
+			return Page();
+		}
+
 		try
 		{
-			var repo = await repos.CreateAsync(user.Id, user.UserName!, Name, Description, IsPrivate);
+			if (group != null)
+			{
+				await repos.CreateForGroupAsync(group.Id, group.Name, Name, Description, IsPrivate);
+				return RedirectToPage("/Repo/View", new { user = group.Name, repo = Name });
+			}
+
+			await repos.CreateAsync(user.Id, user.UserName!, Name, Description, IsPrivate);
 			return RedirectToPage("/Repo/View", new { user = user.UserName, repo = Name });
 		}
 		catch (Exception ex)

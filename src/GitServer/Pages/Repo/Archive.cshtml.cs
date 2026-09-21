@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace GitServer.Pages.Repo;
 
 public class ArchiveModel(
-	RepositoryService repos, 
+	RepositoryService repos, AccessPolicy access, 
 	GitProcessService git, 
 	UserManager<AppUser> userManager) : PageModel
 {
@@ -18,12 +18,12 @@ public class ArchiveModel(
 		if (repoObj == null) return NotFound();
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 
 		Response.ContentType = "application/zip";
-		Response.Headers.ContentDisposition = $"attachment; filename=\"{repo}-{treeish}.zip\"";
+		Response.Headers.ContentDisposition = $"attachment; filename=\"{repo}-{treeish.Replace('/', '-')}.zip\"";
 
 		await git.StreamArchive(repoPath, treeish, Response.Body);
 		return new EmptyResult();

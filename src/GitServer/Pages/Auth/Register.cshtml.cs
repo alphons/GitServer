@@ -16,6 +16,7 @@ public class RegisterModel(
 	LocalizationService L) : PageModel
 {
 	[BindProperty] public string Email { get; set; } = "";
+	[BindProperty] public bool AcceptTerms { get; set; }
 	public string? ErrorMessage { get; set; }
 	public string? SuccessMessage { get; set; }
 	public bool RegistrationDisabled { get; set; }
@@ -31,6 +32,12 @@ public class RegisterModel(
 		if (!(await siteSettings.GetAsync()).AllowRegistration)
 		{
 			RegistrationDisabled = true;
+			return Page();
+		}
+
+		if (!AcceptTerms)
+		{
+			ErrorMessage = L["error_terms_required"];
 			return Page();
 		}
 
@@ -62,6 +69,7 @@ public class RegisterModel(
 				DisplayName = "",
 			};
 
+
 			var createResult = await userManager.CreateAsync(user);
 			if (!createResult.Succeeded)
 			{
@@ -69,6 +77,10 @@ public class RegisterModel(
 				return Page();
 			}
 		}
+
+		user.TermsAcceptedAt = DateTime.UtcNow;
+		user.TermsVersion = Terms.CurrentVersion;
+		await userManager.UpdateAsync(user);
 
 		var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
 		var link = Url.Page("/Auth/CompleteRegistration", pageHandler: null,

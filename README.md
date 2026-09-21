@@ -1,6 +1,6 @@
 # GitServer
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue)](https://github.com/alphons/GitServer/releases)
+[![Version](https://img.shields.io/github/v/tag/alphons/GitServer?label=version&sort=semver&color=blue)](https://github.com/alphons/GitServer/tags)
 [![License](https://img.shields.io/badge/license-MIT-orange)](LICENSE)
 [![CI](https://github.com/alphons/GitServer/actions/workflows/ci.yml/badge.svg)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/alphons/348dbf4f9472d6069955373db1ef6670/raw/gitserver-tests.json)](https://github.com/alphons/GitServer/actions/workflows/ci.yml)
@@ -225,7 +225,16 @@ Until an admin installs a version, Git operations simply report "not installed" 
 dotnet test
 ```
 
-`tests/GitServer.Tests` covers the Git process wrapper (init, log, tree, upload-pack/receive-pack) against a real temporary repository, and the repository read/write access-control logic (owner, direct user access, group access) against a real SQLite database. CI runs the full suite on every push and pull request — see the badge at the top of this file.
+The suite in `tests/GitServer.Tests` needs `git` on the PATH (or `GIT_TEST_EXECUTABLE` pointing at one) and nothing else — every test runs against a real temporary SQLite database and real bare repositories, never mocks. It has four layers:
+
+| Layer | What it proves |
+|---|---|
+| **Policy** (`AccessPolicyTests`, `GitAccessDecisionTests`) | Every read / write / administer / delete rule, the read-only override, group ownership, and the full clone-and-push decision matrix, as pure questions to `AccessPolicy` |
+| **Services & data** (`RepositoryServiceTests`, `NamingConstraintTests`, `MigrationTests`, `GitProcessServiceTests`) | Case-insensitive lookup with canonical names, paging/search/counts, the NOCASE unique indexes, and that all EF migrations apply (also on top of existing data) and match the model |
+| **Localization** (`LocalizationFilesTests`, `LocalizationServiceTests`) | Every language has every key English has (and no extras), placeholders match, every `L["key"]` used in code exists, no dead strings, cultures and countries |
+| **End to end** (`GitAuthMiddlewareTests`, `GitSmartHttpEndToEndTests`, `WebPagesEndToEndTests`, `HostSmokeTests`) | The real app hosted in-process: HTTP Basic auth, real `git` pack negotiation for push and clone, sign-in through the real login form, and what each kind of visitor (anonymous, owner, group member, stranger, admin) can see and do |
+
+All authorization decisions live in `Services/AccessPolicy.cs`; pages and middleware ask it instead of comparing `OwnerId` or `IsAdmin` themselves. CI runs the full suite on every push and pull request — see the badges at the top of this file.
 
 ---
 
@@ -238,7 +247,7 @@ Each language is a folder under `src/GitServer/Localization/`. To add a new one:
 3. Translate the HTML files under `ko/emails/` (registration and password-reset emails); they share the layout in `Localization/_email-layout.html` and use `{{placeholder}}` tokens
 4. Restart the server — your language appears in the navbar dropdown automatically
 
-To pin a language to a specific position in the dropdown, add `"__order__": "3"` (lower numbers appear first; English is `1`, Dutch is `2`). A key missing from a translation falls back to English automatically, so a partial translation still works.
+To pin a language to a specific position in the dropdown, add `"__order__": "3"` (lower numbers appear first; English is `1`, Dutch is `2`). A key missing from a translation falls back to English at runtime, but the test suite (`LocalizationFilesTests`) fails on any missing or extra key, so new UI text must be added to every language.
 
 ---
 
@@ -253,14 +262,14 @@ src/GitServer/
 ├── Localization/       # One folder per language: strings.json + emails/*.html
 ├── Middleware/         # Git Basic Auth middleware, site-settings enforcement
 ├── Models/             # Domain models (User, Repository, Issue, Comment, Group, SiteSettings)
-├── Services/           # Business logic (Git, Repository, Markdown, Localization, SiteSettings)
+├── Services/           # Business logic (Git, Repository, AccessPolicy, Localization, SiteSettings)
 ├── Pages/              # Razor Pages
 │   ├── Auth/           # Login, Register, password reset
 │   ├── Repo/           # Repository browser, commits, branches, tags, issues
 │   ├── User/           # Profile, settings, groups
 │   └── Admin/          # Users, blocked emails, Git version updater, site settings
 └── wwwroot/            # Static assets only (css, js, favicon)
-tests/GitServer.Tests/   # Integration tests (xUnit)
+tests/GitServer.Tests/   # xUnit: policy, services, migrations, localization, and in-process end-to-end tests
 ```
 
 **Stack:**

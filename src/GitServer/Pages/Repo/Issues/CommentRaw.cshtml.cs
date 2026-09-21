@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo.Issues;
 
 public class CommentRawModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	AppDbContext db,
 	UserManager<AppUser> userManager) : PageModel
 {
@@ -19,7 +19,7 @@ public class CommentRawModel(
 		if (repoObj == null) return NotFound();
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var body = await db.IssueComments
 			.Where(c => c.Id == commentId && c.IssueId == id && c.Issue.RepositoryId == repoObj.Id)

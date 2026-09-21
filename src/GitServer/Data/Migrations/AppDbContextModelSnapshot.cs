@@ -17,6 +17,43 @@ namespace GitServer.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
 
+            modelBuilder.Entity("GitServer.Models.AccessToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AccessTokens");
+                });
+
             modelBuilder.Entity("GitServer.Models.AppUser", b =>
                 {
                     b.Property<string>("Id")
@@ -88,6 +125,12 @@ namespace GitServer.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SecurityStamp")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("TermsAcceptedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TermsVersion")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TimeZoneId")
@@ -170,7 +213,8 @@ namespace GitServer.Data.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
 
                     b.Property<string>("OwnerId")
                         .IsRequired()
@@ -178,8 +222,10 @@ namespace GitServer.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerId", "Name")
+                    b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("OwnerId");
 
                     b.ToTable("Groups");
                 });
@@ -291,15 +337,21 @@ namespace GitServer.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("GroupOwnerId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsPrivate")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsReadOnly")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
 
                     b.Property<string>("OwnerId")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -307,8 +359,13 @@ namespace GitServer.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("GroupOwnerId", "Name")
+                        .IsUnique()
+                        .HasFilter("[GroupOwnerId] IS NOT NULL");
+
                     b.HasIndex("OwnerId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[OwnerId] IS NOT NULL");
 
                     b.ToTable("Repositories");
                 });
@@ -502,6 +559,17 @@ namespace GitServer.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("GitServer.Models.AccessToken", b =>
+                {
+                    b.HasOne("GitServer.Models.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("GitServer.Models.Group", b =>
                 {
                     b.HasOne("GitServer.Models.AppUser", "Owner")
@@ -572,11 +640,17 @@ namespace GitServer.Data.Migrations
 
             modelBuilder.Entity("GitServer.Models.Repository", b =>
                 {
+                    b.HasOne("GitServer.Models.Group", "GroupOwner")
+                        .WithMany("Repositories")
+                        .HasForeignKey("GroupOwnerId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("GitServer.Models.AppUser", "Owner")
                         .WithMany("Repositories")
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("GroupOwner");
 
                     b.Navigation("Owner");
                 });
@@ -671,6 +745,8 @@ namespace GitServer.Data.Migrations
                     b.Navigation("Accesses");
 
                     b.Navigation("Members");
+
+                    b.Navigation("Repositories");
                 });
 
             modelBuilder.Entity("GitServer.Models.Issue", b =>

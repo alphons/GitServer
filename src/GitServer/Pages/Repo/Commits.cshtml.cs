@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo;
 
 public class CommitsModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	GitProcessService git,
 	UserManager<AppUser> userManager,
 	SiteSettingsService siteSettings) : PageModel
@@ -16,6 +16,7 @@ public class CommitsModel(
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public string Branch { get; set; } = "main";
 	public new int Page { get; set; }
 	public int TotalCount { get; set; }
@@ -24,7 +25,7 @@ public class CommitsModel(
 	public Dictionary<string, List<string>> TagsByCommit { get; set; } = new();
 	public bool ShowCommitAuthorAvatar { get; set; }
 
-	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, int page = 0)
+	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, [FromQuery(Name = "page")] int page = 0)
 	{
 		UserName = user;
 		RepoName = repo;
@@ -33,11 +34,14 @@ public class CommitsModel(
 
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return NotFound();
+		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
-		var repoPath = repos.GetRepoPath(user, repo);
+		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		if (await git.IsEmpty(repoPath)) return Page();
 
 		var defaultBranch = await git.GetDefaultBranch(repoPath);

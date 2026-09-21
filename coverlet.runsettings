@@ -6,14 +6,12 @@
         <Configuration>
           <Format>cobertura</Format>
           <!--
-            The test suite (tests/GitServer.Tests) only exercises GitProcessService and
-            RepositoryService's access-control logic — it never touches Razor Pages, MVC
-            controllers, EF Core migrations, or app startup wiring. Measuring line-rate
-            across the whole assembly (including all of that untested UI/wiring code)
-            makes the coverage number meaningless; scope it to the layer that actually
-            has tests instead.
+            Measured across the whole application (pages, controllers, middleware, startup):
+            the end-to-end tests host the real app in-process, so those layers are exercised
+            too. Only EF Core's generated migration code is left out; it is not hand-written
+            logic, and MigrationTests already prove it applies and matches the model.
           -->
-          <Exclude>[GitServer]GitServer.Pages.*,[GitServer]GitServer.Controllers.*,[GitServer]GitServer.Data.Migrations.*,[GitServer]GitServer.Program,[GitServer]GitServer.Middleware.*</Exclude>
+          <Exclude>[GitServer]GitServer.Data.Migrations.*</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>

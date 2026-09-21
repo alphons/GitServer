@@ -15,17 +15,35 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<GitInstallation> GitInstallations => Set<GitInstallation>();
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
+    public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<AccessToken>(e =>
+        {
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasOne(t => t.User)
+             .WithMany()
+             .HasForeignKey(t => t.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<Repository>(e =>
         {
-            e.HasIndex(r => new { r.OwnerId, r.Name }).IsUnique();
+            // Case-preserving but case-insensitive, like GitHub: "Foo" and "foo" can't both
+            // exist, and pushing/pulling/browsing works regardless of the casing used.
+            e.Property(r => r.Name).UseCollation("NOCASE");
+            e.HasIndex(r => new { r.OwnerId, r.Name }).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
+            e.HasIndex(r => new { r.GroupOwnerId, r.Name }).IsUnique().HasFilter("[GroupOwnerId] IS NOT NULL");
             e.HasOne(r => r.Owner)
              .WithMany(u => u.Repositories)
              .HasForeignKey(r => r.OwnerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.GroupOwner)
+             .WithMany(g => g.Repositories)
+             .HasForeignKey(r => r.GroupOwnerId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -49,7 +67,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
         builder.Entity<Group>(e =>
         {
-            e.HasIndex(g => new { g.OwnerId, g.Name }).IsUnique();
+            // Group names double as a URL namespace segment (like a username), so they must be
+            // globally unique rather than just unique per owner. NOCASE keeps that uniqueness
+            // (and lookups) case-insensitive while preserving the casing it was created with.
+            e.Property(g => g.Name).UseCollation("NOCASE");
+            e.HasIndex(g => g.Name).IsUnique();
             e.HasOne(g => g.Owner)
              .WithMany(u => u.Groups)
              .HasForeignKey(g => g.OwnerId)

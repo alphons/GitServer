@@ -6,7 +6,7 @@
 <div class="container">
     <div class="repo-header">
         <div class="repo-title">
-            <a href="/User/@Model.UserName">@Model.UserName</a> /
+            <a href="/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
             <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
         </div>
     </div>
@@ -65,7 +65,8 @@
                             </td>
                             <td>
                                 <form method="post" asp-page-handler="RemoveCollaborator"
-                                      onsubmit="return confirm('@L["settings_remove_collaborator_confirm"]')">
+                                      data-confirm="@L["settings_remove_collaborator_confirm"]"
+                                      data-confirm-ok="@L["delete_button"]" data-confirm-cancel="@L["cancel"]">
                                     <input type="hidden" name="accessId" value="@access.Id" />
                                     <button type="submit" class="btn btn-danger btn-sm">@L["delete_button"]</button>
                                 </form>

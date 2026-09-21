@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.Repo.Issues;
 
 public class DetailModel(
-	RepositoryService repos,
+	RepositoryService repos, AccessPolicy access,
 	AppDbContext db,
 	UserManager<AppUser> userManager) : PageModel
 {
@@ -17,6 +17,7 @@ public class DetailModel(
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
+	public bool IsGroupOwner { get; set; }
 	public Issue? Issue { get; set; }
 	public bool CanManage { get; set; }
 	[BindProperty] public string CommentBody { get; set; } = "";
@@ -27,6 +28,9 @@ public class DetailModel(
 		UserName = user; RepoName = repo;
 		var repoObj = await repos.GetAsync(user, repo);
 		if (repoObj == null) return (null, null);
+		IsGroupOwner = repoObj.GroupOwnerId != null;
+		UserName = repoObj.OwnerName;
+		RepoName = repoObj.Name;
 
 		Issue = await db.Issues
 			.Include(i => i.Author)
@@ -34,7 +38,7 @@ public class DetailModel(
 			.FirstOrDefaultAsync(i => i.RepositoryId == repoObj.Id && i.Id == id);
 
 		var userId = userManager.GetUserId(User);
-		CanManage = userId != null && (Issue?.AuthorId == userId || await repos.CanWriteAsync(repoObj, userId));
+		CanManage = await access.CanManageIssueAsync(repoObj, Issue, userId);
 
 		return (repoObj, Issue);
 	}
@@ -44,7 +48,7 @@ public class DetailModel(
 		var (repoObj, _) = await LoadAsync(user, repo, id);
 		if (repoObj == null) return NotFound();
 		var userId = userManager.GetUserId(User);
-		if (!await repos.CanReadAsync(repoObj, userId)) return Forbid();
+		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 		if (Issue == null) return NotFound();
 		return Page();
 	}
@@ -54,6 +58,7 @@ public class DetailModel(
 		var (repoObj, issue) = await LoadAsync(user, repo, id);
 		if (repoObj == null || issue == null) return NotFound();
 		if (!User.Identity!.IsAuthenticated) return Challenge();
+		if (!await access.CanReadAsync(repoObj, userManager.GetUserId(User))) return Forbid();
 
 		if (!string.IsNullOrWhiteSpace(CommentBody))
 		{
