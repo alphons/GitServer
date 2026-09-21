@@ -10,13 +10,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Controllers.Api;
 
-public record ReservedNameRequest(string? Pattern);
-
 /// <summary>The reserved user/group names (site admins only): the read-only built-in names plus editable wildcard patterns.</summary>
 [ApiController]
 [Authorize]
 [ApiAntiforgery]
 [Route("api/admin/reserved-names")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
 public partial class AdminReservedNamesApiController(
 	UserManager<AppUser> userManager, AppDbContext db, ReservedNames reserved, LocalizationService L) : ControllerBase
 {
@@ -30,23 +30,27 @@ public partial class AdminReservedNamesApiController(
 	private static bool IsValid(string pattern) =>
 		AllowedPattern().IsMatch(pattern) && pattern.Any(char.IsLetterOrDigit);
 
+	/// <summary>Lists the built-in (read-only) names and the editable patterns.</summary>
 	[HttpGet]
-	public async Task<IActionResult> List()
+	[ProducesResponseType<ReservedNamesResponse>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<ReservedNamesResponse>> List()
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
-		return Ok(new
-		{
-			builtIn = reserved.BuiltIn(),
-			patterns = await db.ReservedNamePatterns
+		return new ReservedNamesResponse(
+			reserved.BuiltIn(),
+			await db.ReservedNamePatterns
 				.OrderBy(p => p.Pattern)
-				.Select(p => new { id = p.Id, pattern = p.Pattern })
-				.ToListAsync(),
-		});
+				.Select(p => new ReservedPatternDto(p.Id, p.Pattern))
+				.ToListAsync());
 	}
 
+	/// <summary>Adds a pattern. Letters, digits, - and _ plus the wildcards * and ?, at least one letter or digit, 64 characters at most.</summary>
 	[HttpPost]
-	public async Task<IActionResult> Add([FromBody] ReservedNameRequest request)
+	[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+	[ProducesResponseType<ReservedPatternDto>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<ReservedPatternDto>> Add([FromBody] ReservedNameRequest request)
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
@@ -57,11 +61,15 @@ public partial class AdminReservedNamesApiController(
 		var entity = new ReservedNamePattern { Pattern = pattern };
 		db.ReservedNamePatterns.Add(entity);
 		await db.SaveChangesAsync();
-		return Ok(new { id = entity.Id, pattern = entity.Pattern });
+		return new ReservedPatternDto(entity.Id, entity.Pattern);
 	}
 
+	/// <summary>Changes a pattern.</summary>
 	[HttpPost("{id:int}/update")]
-	public async Task<IActionResult> Update(int id, [FromBody] ReservedNameRequest request)
+	[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+	[ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+	[ProducesResponseType<ReservedPatternDto>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<ReservedPatternDto>> Update(int id, [FromBody] ReservedNameRequest request)
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
@@ -74,9 +82,10 @@ public partial class AdminReservedNamesApiController(
 
 		entity.Pattern = pattern;
 		await db.SaveChangesAsync();
-		return Ok(new { id = entity.Id, pattern = entity.Pattern });
+		return new ReservedPatternDto(entity.Id, entity.Pattern);
 	}
 
+	/// <summary>Deletes a pattern.</summary>
 	[HttpPost("{id:int}/delete")]
 	public async Task<IActionResult> Delete(int id)
 	{
@@ -90,14 +99,14 @@ public partial class AdminReservedNamesApiController(
 		return NoContent();
 	}
 
-	private async Task<IActionResult?> ValidateAsync(string pattern, int? exceptId)
+	private async Task<ActionResult?> ValidateAsync(string pattern, int? exceptId)
 	{
-		if (pattern.Length == 0) return BadRequest(new { error = L["error_pattern_required"] });
-		if (!IsValid(pattern)) return BadRequest(new { error = L["error_reserved_pattern_invalid"] });
+		if (pattern.Length == 0) return BadRequest(new ErrorResponse(L["error_pattern_required"]));
+		if (!IsValid(pattern)) return BadRequest(new ErrorResponse(L["error_reserved_pattern_invalid"]));
 
 		var lower = pattern.ToLower();
 		if (await db.ReservedNamePatterns.AnyAsync(p => p.Pattern.ToLower() == lower && p.Id != exceptId))
-			return Conflict(new { error = L["error_reserved_pattern_exists"] });
+			return Conflict(new ErrorResponse(L["error_reserved_pattern_exists"]));
 
 		return null;
 	}

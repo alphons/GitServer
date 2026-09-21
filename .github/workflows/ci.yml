@@ -33,6 +33,10 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      - name: Install browser for the UI tests
+        shell: pwsh
+        run: pwsh tests/GitServer.Tests/bin/Release/net10.0/playwright.ps1 install chromium
+
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 

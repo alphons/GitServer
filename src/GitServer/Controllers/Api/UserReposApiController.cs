@@ -13,8 +13,15 @@ public class UserReposApiController(
 	UserManager<AppUser> userManager, RepositoryService repos,
 	IOptions<GitServerOptions> options, TimeZoneService tz, LocalizationService L) : ControllerBase
 {
+	/// <summary>Lists a user's repositories. Private repositories and group repositories are only included for the user themself.</summary>
+	/// <param name="username">The profile's user name.</param>
+	/// <param name="q">Optional search text.</param>
+	/// <param name="p">Page of the user's own repositories, starting at 0.</param>
+	/// <param name="gp">Page of the group repositories, starting at 0.</param>
 	[HttpGet]
-	public async Task<IActionResult> Get(string username, string? q, int p = 0, int gp = 0)
+	[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+	[ProducesResponseType<UserReposResponse>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<UserReposResponse>> Get(string username, string? q, int p = 0, int gp = 0)
 	{
 		var profileUser = await userManager.FindByNameAsync(username);
 		if (profileUser == null) return NotFound();
@@ -42,45 +49,22 @@ public class UserReposApiController(
 			groupTotal = await repos.GetAccessibleGroupRepoCountAsync(profileUser.Id, query);
 		}
 
-		return Ok(new
-		{
-			query,
-			isOwner,
-			resultCount = own.Count,
-			totalCount,
-			page = p,
-			hasNext = fetched.Count > pageSize,
-			repos = own.Select(r => new
-			{
-				displayName = r.Name,
-				href = $"/{profileUser.UserName}/{r.Name}",
-				isPrivate = r.IsPrivate,
-				isReadOnly = r.IsReadOnly,
-				description = r.Description,
-				collaborators = r.IsPrivate
-					? r.Accesses
-						.Select(a => new { userName = a.User?.UserName, groupName = a.User == null ? a.Group?.Name : null })
-						.Where(a => a.userName != null || a.groupName != null)
-						.ToList()
-					: null,
-				updated = Format(r.UpdatedAt),
-				created = Format(r.CreatedAt),
-			}),
-			groupTotalCount = groupTotal,
-			groupPage = gp,
-			groupHasNext,
-			groupRepos = groupRepos.Select(r => new
-			{
-				displayName = $"{r.GroupOwner!.Name} / {r.Name}",
-				href = $"/{r.GroupOwner!.Name}/{r.Name}",
-				isPrivate = r.IsPrivate,
-				isReadOnly = r.IsReadOnly,
-				description = r.Description,
-				updated = Format(r.UpdatedAt),
-				created = Format(r.CreatedAt),
-			}),
-		});
+		return new UserReposResponse(
+			query, isOwner, own.Count, totalCount, p, fetched.Count > pageSize,
+			own.Select(r => Card(r, $"/{profileUser.UserName}/{r.Name}", r.Name, withCollaborators: true)).ToList(),
+			groupTotal, gp, groupHasNext,
+			groupRepos.Select(r => Card(r, $"/{r.GroupOwner!.Name}/{r.Name}", $"{r.GroupOwner!.Name} / {r.Name}", withCollaborators: false)).ToList());
 	}
+
+	private RepoCardDto Card(Repository r, string href, string displayName, bool withCollaborators) => new(
+		displayName, href, r.IsPrivate, r.IsReadOnly, r.Description,
+		Format(r.UpdatedAt), Format(r.CreatedAt),
+		withCollaborators && r.IsPrivate
+			? r.Accesses
+				.Select(a => new CollaboratorDto(a.User?.UserName, a.User == null ? a.Group?.Name : null))
+				.Where(a => a.UserName != null || a.GroupName != null)
+				.ToList()
+			: null);
 
 	private string Format(DateTime utc) => tz.ToLocal(utc).ToString("d MMM yyyy HH:mm", L.CurrentCulture);
 }

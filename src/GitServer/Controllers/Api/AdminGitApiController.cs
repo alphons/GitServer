@@ -8,13 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GitServer.Controllers.Api;
 
-public record StartInstallRequest(string? TagName);
-
 /// <summary>Git installation management (site admins only): the install job and the license browser.</summary>
 [ApiController]
 [Authorize]
 [ApiAntiforgery]
 [Route("api/admin/git")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
 public class AdminGitApiController(
 	UserManager<AppUser> userManager, AppDbContext db,
 	GitInstallProgressTracker progressTracker, IServiceScopeFactory scopeFactory,
@@ -22,10 +22,11 @@ public class AdminGitApiController(
 {
 	private async Task<bool> IsAdminAsync() => AccessPolicy.IsSiteAdmin(await userManager.GetUserAsync(User));
 
-	// Starts the download/install in the background and hands back a jobId the page polls via GetInstallJob,
-	// so the UI can show a live progress bar instead of blocking the request.
+	/// <summary>Starts downloading and installing the latest MinGit release in the background and returns a job id;
+	/// poll <c>GET installs/{jobId}</c> for the progress, so a UI can show a live progress bar instead of blocking the request.</summary>
 	[HttpPost("installs")]
-	public async Task<IActionResult> StartInstall([FromBody] StartInstallRequest request)
+	[ProducesResponseType<StartInstallResponse>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<StartInstallResponse>> StartInstall([FromBody] StartInstallRequest request)
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
@@ -57,33 +58,28 @@ public class AdminGitApiController(
 			}
 		});
 
-		return Ok(new { jobId });
+		return new StartInstallResponse(jobId);
 	}
 
+	/// <summary>The progress of an install job started with <c>POST installs</c>.</summary>
 	[HttpGet("installs/{jobId}")]
-	public async Task<IActionResult> GetInstallJob(string jobId)
+	[ProducesResponseType<GitInstallProgress>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<GitInstallProgress>> GetInstallJob(string jobId)
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
 		var progress = progressTracker.Get(jobId);
 		if (progress == null) return NotFound();
 
-		return Ok(new
-		{
-			progress.BytesDownloaded,
-			progress.TotalBytes,
-			progress.Completed,
-			progress.Failed,
-			progress.Error,
-			progress.InstalledVersion,
-		});
+		return progress;
 	}
 
-	// Lists the entries of one subdirectory of an installation's mingw64\share\licenses folder
-	// (the only part of a trimmed install kept around), for the license-browser modal. "path" is
-	// relative to that folder and is confined there — it can go deeper, never above it (see ResolveSafePath).
+	/// <summary>Lists the entries of one subdirectory of an installation's mingw64\share\licenses folder (the only part of a
+	/// trimmed install kept around), for the license browser. <paramref name="path"/> is relative to that folder and
+	/// confined there: it can go deeper, never above it (see ResolveSafePath). Directories come first.</summary>
 	[HttpGet("installations/{id:int}/entries")]
-	public async Task<IActionResult> Browse(int id, string? path)
+	[ProducesResponseType<IReadOnlyList<FileEntryDto>>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<IReadOnlyList<FileEntryDto>>> Browse(int id, string? path)
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
@@ -93,23 +89,18 @@ public class AdminGitApiController(
 		var (fullPath, ok) = ResolveSafePath(GitInstallerService.GetLicensesPath(installation.InstallPath), path);
 		if (!ok || !Directory.Exists(fullPath)) return NotFound();
 
-		var entries = new DirectoryInfo(fullPath).GetFileSystemInfos()
-			.Select(e => new
-			{
-				name = e.Name,
-				isDirectory = e is DirectoryInfo,
-				size = e is FileInfo f ? f.Length : (long?)null,
-			})
-			.OrderByDescending(e => e.isDirectory)
-			.ThenBy(e => e.name, StringComparer.OrdinalIgnoreCase)
+		return new DirectoryInfo(fullPath).GetFileSystemInfos()
+			.Select(e => new FileEntryDto(e.Name, e is DirectoryInfo, e is FileInfo f ? f.Length : null))
+			.OrderByDescending(e => e.IsDirectory)
+			.ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
 			.ToList();
-
-		return Ok(entries);
 	}
 
-	// Returns one file's content as text for the browser modal's preview pane.
+	/// <summary>Returns one file's content as text for the license browser's preview pane. Files over 2 MB and binary files
+	/// are not returned; <c>error</c> then says why.</summary>
 	[HttpGet("installations/{id:int}/file")]
-	public async Task<IActionResult> FileContent(int id, string path)
+	[ProducesResponseType<FileContentResponse>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<FileContentResponse>> FileContent(int id, string path)
 	{
 		if (!await IsAdminAsync()) return Forbid();
 
@@ -121,13 +112,13 @@ public class AdminGitApiController(
 
 		const long maxPreviewSize = 2 * 1024 * 1024;
 		if (new FileInfo(fullPath).Length > maxPreviewSize)
-			return Ok(new { error = L["admin_gitversion_file_too_large"] });
+			return new FileContentResponse(null, L["admin_gitversion_file_too_large"]);
 
 		var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
 		if (bytes.Take(8000).Any(b => b == 0))
-			return Ok(new { error = L["admin_gitversion_file_binary"] });
+			return new FileContentResponse(null, L["admin_gitversion_file_binary"]);
 
-		return Ok(new { content = System.Text.Encoding.UTF8.GetString(bytes) });
+		return new FileContentResponse(System.Text.Encoding.UTF8.GetString(bytes), null);
 	}
 
 	/// <summary>Resolves a browser-supplied relative path against an installation's root, rejecting

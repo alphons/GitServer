@@ -11,12 +11,18 @@ namespace GitServer.Controllers.Api;
 [ApiController]
 [Authorize]
 [Route("api/admin/users")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
 public class AdminUsersApiController(
 	UserManager<AppUser> userManager, IOptions<GitServerOptions> options,
 	TimeZoneService tz, LocalizationService L) : ControllerBase
 {
+	/// <summary>Lists all users for site administrators: confirmed accounts first, then by user name.</summary>
+	/// <param name="q">Optional filter on user name, display name or e-mail address.</param>
+	/// <param name="p">Page, starting at 0.</param>
 	[HttpGet]
-	public async Task<IActionResult> Get(string? q, int p = 0)
+	[ProducesResponseType<AdminUsersResponse>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<AdminUsersResponse>> Get(string? q, int p = 0)
 	{
 		var currentUser = await userManager.GetUserAsync(User);
 		if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
@@ -43,26 +49,13 @@ public class AdminUsersApiController(
 			.Take(pageSize + 1)
 			.ToListAsync();
 
-		return Ok(new
-		{
-			page,
-			hasNext = fetched.Count > pageSize,
-			totalPages = Math.Max(pageSize > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 1, 1),
-			users = fetched.Take(pageSize).Select(u => new
-			{
-				id = u.Id,
-				userName = u.UserName,
-				displayName = u.DisplayName,
-				email = u.Email,
-				created = tz.ToLocal(u.CreatedAt).ToString("d MMM yyyy", L.CurrentCulture),
-				lastLogin = u.LastLoginAt.HasValue
-					? tz.ToLocal(u.LastLoginAt.Value).ToString("d MMM yyyy HH:mm", L.CurrentCulture)
-					: null,
-				isDisabled = u.IsDisabled,
-				isAdmin = u.IsAdmin,
-				isPending = !u.EmailConfirmed,
-				isSelf = u.Id == currentUser.Id,
-			}),
-		});
+		return new AdminUsersResponse(
+			page, fetched.Count > pageSize,
+			Math.Max(pageSize > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 1, 1),
+			fetched.Take(pageSize).Select(u => new AdminUserDto(
+				u.Id, u.UserName, u.DisplayName, u.Email,
+				tz.ToLocal(u.CreatedAt).ToString("d MMM yyyy", L.CurrentCulture),
+				u.LastLoginAt.HasValue ? tz.ToLocal(u.LastLoginAt.Value).ToString("d MMM yyyy HH:mm", L.CurrentCulture) : null,
+				u.IsDisabled, u.IsAdmin, !u.EmailConfirmed, u.Id == currentUser.Id)).ToList());
 	}
 }

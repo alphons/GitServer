@@ -30,6 +30,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 // Identity + authentication cookie
 builder.Services.AddGitServerIdentity();
 builder.Services.AddGitServerApiKeys();
+builder.Services.AddGitServerOpenApi();
 
 builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"));
 builder.Services.AddEmailService(builder.Configuration);
@@ -103,6 +104,7 @@ app.UseAuthorization();
 app.MapSetLanguage();
 
 app.MapControllers();
+app.MapOpenApi(OpenApiExtensions.DocumentPath);
 app.MapRazorPages();
 
 app.Run();

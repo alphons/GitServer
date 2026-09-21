@@ -13,12 +13,17 @@ namespace GitServer.Controllers.Api;
 [ApiController]
 [Authorize]
 [Route("api/groups/{id:int}")]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class GroupsApiController(
 	AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager,
 	RepositoryService repos, IOptions<GitServerOptions> options) : ControllerBase
 {
+	/// <summary>Lists the group's repositories. Not found unless the caller owns the group.</summary>
+	/// <param name="id">The group's id.</param>
+	/// <param name="rp">Page, starting at 0.</param>
 	[HttpGet("repos")]
-	public async Task<IActionResult> Repos(int id, int rp = 0)
+	[ProducesResponseType<GroupReposResponse>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<GroupReposResponse>> Repos(int id, int rp = 0)
 	{
 		var group = await access.GetOwnedGroupAsync(id, userManager.GetUserId(User)!);
 		if (group == null) return NotFound();
@@ -28,41 +33,35 @@ public class GroupsApiController(
 		var total = await repos.GetGroupRepoCountAsync(id);
 		var items = await repos.GetGroupReposAsync(id, skip: rp * pageSize, take: pageSize);
 
-		return Ok(new
-		{
-			page = rp,
-			hasNext = total > (rp + 1) * pageSize,
-			repos = items.Select(r => new
-			{
-				displayName = $"{group.Name} / {r.Name}",
-				href = $"/{group.Name}/{r.Name}",
-				isPrivate = r.IsPrivate,
-				isReadOnly = r.IsReadOnly,
-				description = r.Description,
-			}),
-		});
+		return new GroupReposResponse(
+			rp, total > (rp + 1) * pageSize,
+			items.Select(r => new RepoCardDto(
+				$"{group.Name} / {r.Name}", $"/{group.Name}/{r.Name}", r.IsPrivate, r.IsReadOnly, r.Description,
+				null, null, null)).ToList());
 	}
 
+	/// <summary>Finds users to add as a member (autocomplete). Needs at least 2 characters; the caller is never returned.</summary>
+	/// <param name="id">The group's id.</param>
+	/// <param name="q">Part of a user name, display name or e-mail address.</param>
 	[HttpGet("user-search")]
-	public async Task<IActionResult> SearchUsers(int id, string? q)
+	[ProducesResponseType<IReadOnlyList<UserSearchResult>>(StatusCodes.Status200OK)]
+	public async Task<ActionResult<IReadOnlyList<UserSearchResult>>> SearchUsers(int id, string? q)
 	{
 		var userId = userManager.GetUserId(User)!;
 		if (await access.GetOwnedGroupAsync(id, userId) == null) return NotFound();
 
 		q = q?.Trim();
-		if (string.IsNullOrEmpty(q) || q.Length < 2) return Ok(Array.Empty<object>());
+		if (string.IsNullOrEmpty(q) || q.Length < 2) return Array.Empty<UserSearchResult>();
 
 		var lower = q.ToLower();
-		var results = await db.Users
+		return await db.Users
 			.Where(u => u.Id != userId && (
 				u.UserName!.ToLower().Contains(lower) ||
 				u.Email!.ToLower().Contains(lower) ||
 				u.DisplayName.ToLower().Contains(lower)))
 			.OrderBy(u => u.UserName)
 			.Take(10)
-			.Select(u => new { userName = u.UserName, displayName = u.DisplayName, email = u.Email })
+			.Select(u => new UserSearchResult(u.UserName, u.DisplayName, u.Email))
 			.ToListAsync();
-
-		return Ok(results);
 	}
 }

@@ -15,7 +15,7 @@ namespace GitServer.Tests.TestSupport;
 /// One factory per test class; state is created through the app's own services so tests exercise the
 /// same code paths as production.
 /// </summary>
-public sealed class GitServerFactory : WebApplicationFactory<Program>
+public class GitServerFactory : WebApplicationFactory<Program>
 {
 	public const string Password = "Passw0rd!";
 
