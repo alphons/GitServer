@@ -5,8 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
-		<Version>1.14.0</Version>
+		<Version>1.14.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

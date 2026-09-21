@@ -135,12 +135,12 @@
 
                     var actions = cell();
                     actions.appendChild(button(k.isEnabled ? labels.disable : labels.enable, 'btn-secondary', function () {
-                        send('PUT', apiUrl + '/' + k.id + '/enabled', { enabled: !k.isEnabled }).then(load).catch(function () { });
+                        send('POST', apiUrl + '/' + k.id + '/enabled', { enabled: !k.isEnabled }).then(load).catch(function () { });
                     }));
                     actions.appendChild(document.createTextNode(' '));
                     actions.appendChild(button(labels.delete, 'btn-danger', function () {
                         if (!confirm(labels.confirmDelete)) return;
-                        send('DELETE', apiUrl + '/' + k.id).then(load).catch(function () { });
+                        send('POST', apiUrl + '/' + k.id + '/delete').then(load).catch(function () { });
                     }));
                     tr.appendChild(actions);
 

@@ -175,12 +175,12 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(0, await Db(d => d.Groups.CountAsync(g => g.Name.ToLower().StartsWith(stem))));      // case-insensitive
 
 		var renamed = stem + "renamed";
-		Assert.Equal(HttpStatusCode.OK, (await session.SendJsonAsync(ReservedPage, HttpMethod.Put, $"{ReservedApi}/{id}", new { pattern = renamed })).StatusCode);
+		Assert.Equal(HttpStatusCode.OK, (await session.SendJsonAsync(ReservedPage, HttpMethod.Post, $"{ReservedApi}/{id}/update", new { pattern = renamed })).StatusCode);
 		await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", stem + "team"));
 		Assert.Equal(1, await Db(d => d.Groups.CountAsync(g => g.Name == stem + "team")));                 // old pattern no longer applies
 
-		Assert.Equal(HttpStatusCode.NoContent, (await session.SendJsonAsync(ReservedPage, HttpMethod.Delete, $"{ReservedApi}/{id}")).StatusCode);
-		Assert.Equal(HttpStatusCode.NotFound, (await session.SendJsonAsync(ReservedPage, HttpMethod.Delete, $"{ReservedApi}/{id}")).StatusCode);
+		Assert.Equal(HttpStatusCode.NoContent, (await session.SendJsonAsync(ReservedPage, HttpMethod.Post, $"{ReservedApi}/{id}/delete")).StatusCode);
+		Assert.Equal(HttpStatusCode.NotFound, (await session.SendJsonAsync(ReservedPage, HttpMethod.Post, $"{ReservedApi}/{id}/delete")).StatusCode);
 	}
 
 	[Fact]

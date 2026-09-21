@@ -101,7 +101,7 @@
                 input.value = p.pattern;
                 var actions = document.createElement('span');
                 actions.appendChild(button(labels.save, 'btn-primary', function () {
-                    send('PUT', apiUrl + '/' + p.id, { pattern: input.value })
+                    send('POST', apiUrl + '/' + p.id + '/update', { pattern: input.value })
                         .then(function () { editingId = null; load(); })
                         .catch(function () { });
                 }));
@@ -137,7 +137,7 @@
                     actions.appendChild(button(labels.edit, 'btn-ghost', function () { editingId = p.id; showError(''); render(data); }));
                     actions.appendChild(document.createTextNode(' '));
                     actions.appendChild(button(labels.delete, 'btn-danger', function () {
-                        send('DELETE', apiUrl + '/' + p.id).then(load).catch(function () { });
+                        send('POST', apiUrl + '/' + p.id + '/delete').then(load).catch(function () { });
                     }));
                     tbody.appendChild(row([code(p.pattern), actions]));
                 });

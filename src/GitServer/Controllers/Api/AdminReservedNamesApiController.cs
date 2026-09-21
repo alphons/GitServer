@@ -60,7 +60,7 @@ public partial class AdminReservedNamesApiController(
 		return Ok(new { id = entity.Id, pattern = entity.Pattern });
 	}
 
-	[HttpPut("{id:int}")]
+	[HttpPost("{id:int}/update")]
 	public async Task<IActionResult> Update(int id, [FromBody] ReservedNameRequest request)
 	{
 		if (!await IsAdminAsync()) return Forbid();
@@ -77,7 +77,7 @@ public partial class AdminReservedNamesApiController(
 		return Ok(new { id = entity.Id, pattern = entity.Pattern });
 	}
 
-	[HttpDelete("{id:int}")]
+	[HttpPost("{id:int}/delete")]
 	public async Task<IActionResult> Delete(int id)
 	{
 		if (!await IsAdminAsync()) return Forbid();

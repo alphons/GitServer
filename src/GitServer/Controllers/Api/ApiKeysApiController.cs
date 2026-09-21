@@ -64,7 +64,7 @@ public class ApiKeysApiController(
 		return Ok(new { key, apiKey = Describe(entity) });
 	}
 
-	[HttpPut("{id:int}/enabled")]
+	[HttpPost("{id:int}/enabled")]
 	public async Task<IActionResult> SetEnabled(int id, [FromBody] SetApiKeyEnabledRequest request)
 	{
 		var (user, denied) = await CurrentAsync();
@@ -73,7 +73,7 @@ public class ApiKeysApiController(
 		return await apiKeys.SetEnabledAsync(user!.Id, id, request.Enabled) ? NoContent() : NotFound();
 	}
 
-	[HttpDelete("{id:int}")]
+	[HttpPost("{id:int}/delete")]
 	public async Task<IActionResult> Delete(int id)
 	{
 		var (user, denied) = await CurrentAsync();

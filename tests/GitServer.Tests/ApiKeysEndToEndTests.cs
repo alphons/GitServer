@@ -19,13 +19,13 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	private const string ApiKeysPage = "/dashboard/User/ApiKeys";
 	private const string KeysApi = "/api/user/api-keys";
 
-	private readonly GitServerFactory _f;
+	private readonly GitServerFactory factory;
 
-	public ApiKeysEndToEndTests(GitServerFactory factory) => _f = factory;
+	public ApiKeysEndToEndTests(GitServerFactory factory) => this.factory = factory;
 
 	private static string Unique(string stem) => stem + Guid.NewGuid().ToString("N")[..6];
-	private async Task<WebSession> AsAsync(AppUser user) => await new WebSession(_f).LoginAsync(user.UserName!);
-	private Task<T> Db<T>(Func<AppDbContext, Task<T>> q) => _f.UseServicesAsync(sp => q(sp.GetRequiredService<AppDbContext>()));
+	private async Task<WebSession> AsAsync(AppUser user) => await new WebSession(factory).LoginAsync(user.UserName!);
+	private Task<T> Db<T>(Func<AppDbContext, Task<T>> q) => factory.UseServicesAsync(sp => q(sp.GetRequiredService<AppDbContext>()));
 
 	private async Task<(int Id, string Key)> CreateKeyAsync(WebSession session, string name = "ci")
 	{
@@ -37,7 +37,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 
 	private HttpClient WithKey(string key)
 	{
-		var client = _f.NewClient();
+		var client = factory.NewClient();
 		client.DefaultRequestHeaders.Add("X-Api-Key", key);
 		return client;
 	}
@@ -51,7 +51,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task AKey_IsShownOnce_LooksLikeAKey_AndExpiresAfterTheDefaultLifetime()
 	{
-		var user = await _f.CreateUserAsync(Unique("alice"));
+		var user = await factory.CreateUserAsync(Unique("alice"));
 		var session = await AsAsync(user);
 
 		var (id, key) = await CreateKeyAsync(session);
@@ -69,7 +69,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task TheLifetimeOfNewKeys_FollowsTheAdminSetting()
 	{
-		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var admin = await factory.CreateUserAsync(Unique("boss"), isAdmin: true);
 		var session = await AsAsync(admin);
 
 		await session.PostFormAsync("/dashboard/Admin/Settings", "/dashboard/Admin/Settings",
@@ -80,7 +80,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 		var stored = await Db(d => d.ApiKeys.SingleAsync(k => k.Id == id));
 		Assert.InRange((stored.ExpiresAt - DateTime.UtcNow).TotalDays, 9, 11);
 
-		await _f.UseServicesAsync(async sp =>
+		await factory.UseServicesAsync(async sp =>
 		{
 			var settings = sp.GetRequiredService<SiteSettingsService>();
 			var current = await settings.GetAsync();
@@ -92,12 +92,12 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task AKey_ActsAsItsOwner_OnTheApiControllers()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
-		await _f.CreateRepoAsync(alice, "open");
-		await _f.CreateRepoAsync(alice, "secret", isPrivate: true);
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		await factory.CreateRepoAsync(alice, "open");
+		await factory.CreateRepoAsync(alice, "secret", isPrivate: true);
 		var (_, key) = await CreateKeyAsync(await AsAsync(alice));
 
-		var anonymous = await RepoNamesAsync(await _f.NewClient().GetAsync(Repos(alice)));
+		var anonymous = await RepoNamesAsync(await factory.NewClient().GetAsync(Repos(alice)));
 		var withKey = await RepoNamesAsync(await WithKey(key).GetAsync(Repos(alice)));
 
 		Assert.Equal(new[] { "open" }, anonymous);
@@ -107,26 +107,26 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task AKey_CanBeDisabledAndEnabledAgain_AndDeleted()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
+		var alice = await factory.CreateUserAsync(Unique("alice"));
 		var session = await AsAsync(alice);
 		var (id, key) = await CreateKeyAsync(session);
 		var client = WithKey(key);
 		Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Repos(alice))).StatusCode);
 
-		await session.SendJsonAsync(ApiKeysPage, HttpMethod.Put, $"{KeysApi}/{id}/enabled", new { enabled = false });
+		await session.SendJsonAsync(ApiKeysPage, HttpMethod.Post, $"{KeysApi}/{id}/enabled", new { enabled = false });
 		Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(Repos(alice))).StatusCode);
 
-		await session.SendJsonAsync(ApiKeysPage, HttpMethod.Put, $"{KeysApi}/{id}/enabled", new { enabled = true });
+		await session.SendJsonAsync(ApiKeysPage, HttpMethod.Post, $"{KeysApi}/{id}/enabled", new { enabled = true });
 		Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Repos(alice))).StatusCode);
 
-		Assert.Equal(HttpStatusCode.NoContent, (await session.SendJsonAsync(ApiKeysPage, HttpMethod.Delete, $"{KeysApi}/{id}")).StatusCode);
+		Assert.Equal(HttpStatusCode.NoContent, (await session.SendJsonAsync(ApiKeysPage, HttpMethod.Post, $"{KeysApi}/{id}/delete")).StatusCode);
 		Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(Repos(alice))).StatusCode);
 	}
 
 	[Fact]
 	public async Task AnExpiredKey_IsRefused()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
+		var alice = await factory.CreateUserAsync(Unique("alice"));
 		var (id, key) = await CreateKeyAsync(await AsAsync(alice));
 
 		await Db(async d =>
@@ -141,7 +141,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task AnUnknownKey_IsRefused_EvenNextToAValidSession()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
+		var alice = await factory.CreateUserAsync(Unique("alice"));
 		var session = await AsAsync(alice);
 		session.Client.DefaultRequestHeaders.Add("X-Api-Key", "gsk_notarealkey");
 
@@ -151,10 +151,10 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task TheKeysOfADisabledUser_StopWorking()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
+		var alice = await factory.CreateUserAsync(Unique("alice"));
 		var (_, key) = await CreateKeyAsync(await AsAsync(alice));
 
-		await _f.UseServicesAsync(async sp =>
+		await factory.UseServicesAsync(async sp =>
 		{
 			var users = sp.GetRequiredService<UserManager<AppUser>>();
 			var user = (await users.FindByIdAsync(alice.Id))!;
@@ -168,33 +168,33 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task AKey_CannotManageKeys()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
+		var alice = await factory.CreateUserAsync(Unique("alice"));
 		var (id, key) = await CreateKeyAsync(await AsAsync(alice));
 		var client = WithKey(key);
 
 		Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(KeysApi)).StatusCode);
 		Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync(KeysApi, new { name = "more" })).StatusCode);
-		Assert.Equal(HttpStatusCode.Forbidden, (await client.DeleteAsync($"{KeysApi}/{id}")).StatusCode);
+		Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsync($"{KeysApi}/{id}/delete", null)).StatusCode);
 	}
 
 	[Fact]
 	public async Task OnlyTheOwnerOfAKey_CanSeeOrChangeIt()
 	{
-		var alice = await _f.CreateUserAsync(Unique("alice"));
-		var mallory = await _f.CreateUserAsync(Unique("mallory"));
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		var mallory = await factory.CreateUserAsync(Unique("mallory"));
 		var (id, key) = await CreateKeyAsync(await AsAsync(alice));
 		var malloryPage = await AsAsync(mallory);
 
 		Assert.DoesNotContain(key[..8], await malloryPage.GetHtmlAsync(KeysApi));
-		Assert.Equal(HttpStatusCode.NotFound, (await malloryPage.SendJsonAsync(ApiKeysPage, HttpMethod.Delete, $"{KeysApi}/{id}")).StatusCode);
+		Assert.Equal(HttpStatusCode.NotFound, (await malloryPage.SendJsonAsync(ApiKeysPage, HttpMethod.Post, $"{KeysApi}/{id}/delete")).StatusCode);
 		Assert.Equal(HttpStatusCode.OK, (await WithKey(key).GetAsync(Repos(alice))).StatusCode);
 	}
 
 	[Fact]
 	public async Task AdminEndpoints_AcceptAnAdminsKey_WithoutAnAntiforgeryToken_ButNotAnOrdinaryUsersKey()
 	{
-		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
-		var ordinary = await _f.CreateUserAsync(Unique("plain"));
+		var admin = await factory.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var ordinary = await factory.CreateUserAsync(Unique("plain"));
 		var (_, adminKey) = await CreateKeyAsync(await AsAsync(admin));
 		var (_, plainKey) = await CreateKeyAsync(await AsAsync(ordinary));
 		var stem = Unique("k").ToLowerInvariant();
@@ -202,7 +202,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 
 		var asAdmin = await WithKey(adminKey).PostAsJsonAsync("/api/admin/reserved-names", new { pattern });
 		var asOrdinary = await WithKey(plainKey).PostAsJsonAsync("/api/admin/reserved-names", new { pattern = pattern + "x" });
-		var noAuth = await _f.NewClient().PostAsJsonAsync("/api/admin/reserved-names", new { pattern = pattern + "y" });
+		var noAuth = await factory.NewClient().PostAsJsonAsync("/api/admin/reserved-names", new { pattern = pattern + "y" });
 
 		Assert.Equal(HttpStatusCode.OK, asAdmin.StatusCode);
 		Assert.Equal(HttpStatusCode.Forbidden, asOrdinary.StatusCode);
@@ -213,7 +213,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task CookieCalls_StillNeedTheAntiforgeryToken()
 	{
-		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var admin = await factory.CreateUserAsync(Unique("boss"), isAdmin: true);
 		var session = await AsAsync(admin);
 
 		var response = await session.Client.PostAsJsonAsync("/api/admin/reserved-names", new { pattern = Unique("nope") });
