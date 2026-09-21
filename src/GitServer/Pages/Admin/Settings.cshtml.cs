@@ -16,6 +16,7 @@ public class SettingsModel(
 	[BindProperty] public bool AllowPushToCreateRepositories { get; set; }
 	[BindProperty] public bool AllowAnonymousPush { get; set; }
 	[BindProperty] public bool ShowCommitAuthorAvatar { get; set; }
+	[BindProperty] public int ApiKeyLifetimeDays { get; set; } = 90;
 	public string? Message { get; set; }
 
 	private async Task<bool> RequireAdminAsync()
@@ -32,6 +33,7 @@ public class SettingsModel(
 		AllowPushToCreateRepositories = settings.AllowPushToCreateRepositories;
 		AllowAnonymousPush = settings.AllowAnonymousPush;
 		ShowCommitAuthorAvatar = settings.ShowCommitAuthorAvatar;
+		ApiKeyLifetimeDays = settings.ApiKeyLifetimeDays;
 	}
 
 	public async Task<IActionResult> OnGetAsync()
@@ -53,6 +55,7 @@ public class SettingsModel(
 			AllowPushToCreateRepositories = AllowPushToCreateRepositories,
 			AllowAnonymousPush = AllowAnonymousPush,
 			ShowCommitAuthorAvatar = ShowCommitAuthorAvatar,
+			ApiKeyLifetimeDays = ApiKeyLifetimeDays,
 		});
 
 		Message = L["admin_settings_saved"];

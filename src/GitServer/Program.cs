@@ -29,6 +29,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 
 // Identity + authentication cookie
 builder.Services.AddGitServerIdentity();
+builder.Services.AddGitServerApiKeys();
 
 builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"));
 builder.Services.AddEmailService(builder.Configuration);
@@ -42,6 +43,7 @@ builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();
+builder.Services.AddScoped<ApiKeyService>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
 builder.Services.AddScoped<ReservedNames>();
@@ -85,6 +87,17 @@ app.UseRouting();
 app.UseMiddleware<GitAuthMiddleware>();
 
 app.UseAuthentication();
+// A key that was sent but did not authenticate is an error everywhere, also on endpoints that allow anonymous access.
+app.Use(async (context, next) =>
+{
+	if (context.Request.Headers.ContainsKey(ApiKeyService.HeaderName) && context.User.Identity?.IsAuthenticated != true)
+	{
+		context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+		return;
+	}
+	await next();
+});
+
 app.UseAuthorization();
 
 app.MapSetLanguage();

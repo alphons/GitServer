@@ -11,5 +11,9 @@
            href="/dashboard/User/Groups">@L["nav_groups"]</a>
         <a class="repo-nav-link @(Model.ActiveTab == "profile" ? "active" : "")"
            href="/dashboard/User/Settings">@L["account_settings"]</a>
+        <a class="repo-nav-link @(Model.ActiveTab == "apikeys" ? "active" : "")"
+           href="/dashboard/User/ApiKeys">@L["settings_apikeys_title"]</a>
+        <a class="repo-nav-link @(Model.ActiveTab == "tokens" ? "active" : "")"
+           href="/dashboard/User/AccessTokens">@L["settings_tokens_title"]</a>
     }
 </div>

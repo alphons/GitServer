@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using GitServer.Data;
+using GitServer.Extensions;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,7 +15,7 @@ public record ReservedNameRequest(string? Pattern);
 /// <summary>The reserved user/group names (site admins only): the read-only built-in names plus editable wildcard patterns.</summary>
 [ApiController]
 [Authorize]
-[AutoValidateAntiforgeryToken]
+[ApiAntiforgery]
 [Route("api/admin/reserved-names")]
 public partial class AdminReservedNamesApiController(
 	UserManager<AppUser> userManager, AppDbContext db, ReservedNames reserved, LocalizationService L) : ControllerBase

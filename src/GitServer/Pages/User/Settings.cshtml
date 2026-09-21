@@ -1,6 +1,5 @@
 @page "/dashboard/User/Settings"
 @model GitServer.Pages.User.UserSettingsModel
-@inject GitServer.Services.AccessTokenService Tokens
 @{
     ViewData["Title"] = L["account_settings"];
 }
@@ -98,60 +97,6 @@
     </section>
 
     <section class="settings-section">
-        <h2>@L["settings_tokens_title"]</h2>
-        <p class="text-muted">@L["settings_tokens_help"]</p>
-        @if (Model.NewTokenValue != null)
-        {
-            <div class="alert alert-success"><code id="new-token">@Model.NewTokenValue</code></div>
-        }
-        @if (Model.CurrentUser != null)
-        {
-            var tokenList = await Tokens.ListAsync(Model.CurrentUser.Id);
-            @if (tokenList.Count == 0)
-            {
-                <p class="text-muted">@L["settings_tokens_none"]</p>
-            }
-            else
-            {
-                <table class="table">
-                    <tbody>
-                    @foreach (var t in tokenList)
-                    {
-                        <tr>
-                            <td>@t.Name</td>
-                            <td class="text-muted">@L["created_prefix"] @TZ.ToLocal(t.CreatedAt).ToString("d MMM yyyy")</td>
-                            <td class="text-muted">@L["settings_tokens_last_used"] @(t.LastUsedAt.HasValue ? TZ.ToLocal(t.LastUsedAt.Value).ToString("d MMM yyyy HH:mm") : L["settings_tokens_never"])</td>
-                            <td class="text-muted">@L["settings_tokens_expires"] @(t.ExpiresAt.HasValue ? TZ.ToLocal(t.ExpiresAt.Value).ToString("d MMM yyyy") : L["settings_tokens_never"])</td>
-                            <td>
-                                <form method="post" asp-page-handler="RevokeToken" asp-route-id="@t.Id" onsubmit="return confirm('@L["settings_tokens_revoke_confirm"]');">
-                                    <button type="submit" class="btn btn-danger btn-sm">@L["settings_tokens_revoke"]</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                    </tbody>
-                </table>
-            }
-        }
-        <form method="post" asp-page-handler="CreateToken">
-            <div class="form-group">
-                <label for="tokenName">@L["settings_tokens_name"]</label>
-                <input id="tokenName" name="TokenName" type="text" class="form-control" maxlength="100" required />
-            </div>
-            <div class="form-group">
-                <label for="tokenDays">@L["settings_tokens_expiry"]</label>
-                <select id="tokenDays" name="TokenValidDays" class="form-control">
-                    <option value="30">@L["settings_tokens_exp_30"]</option>
-                    <option value="90" selected>@L["settings_tokens_exp_90"]</option>
-                    <option value="365">@L["settings_tokens_exp_365"]</option>
-                    <option value="">@L["settings_tokens_never"]</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">@L["settings_tokens_create"]</button>
-        </form>
-    </section>
-
-    <section class="settings-section">
         <h2>@L["settings_delete_account_title"]</h2>
         <p class="text-muted">@L["settings_delete_account_help"]</p>
         <form method="post" asp-page-handler="DeleteAccount" onsubmit="return confirm('@L["settings_delete_account_confirm"]');">
@@ -166,3 +111,4 @@
         </form>
     </section>
 </div>
+

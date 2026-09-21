@@ -1,0 +1,172 @@
+@page "/dashboard/User/ApiKeys"
+@model GitServer.Pages.User.ApiKeysModel
+@inject GitServer.Services.SiteSettingsService SiteSettings
+@{
+    ViewData["Title"] = L["settings_apikeys_title"];
+    var apiKeyDays = (await SiteSettings.GetAsync()).ApiKeyLifetimeDays;
+}
+<div class="container">
+    @if (Model.CurrentUser != null)
+    {
+        @await Html.PartialAsync("_ProfileHeader", Model.CurrentUser)
+
+        @await Html.PartialAsync("_UserNav", (Model.CurrentUser.UserName!, "apikeys", true))
+    }
+
+    <section class="settings-section" id="apikeys-section">
+        <h2>@L["settings_apikeys_title"]</h2>
+        <p class="text-muted">@L["settings_apikeys_help"]</p>
+        <p class="text-muted">@L.Format("settings_apikeys_lifetime", apiKeyDays)</p>
+
+        <div id="apikeys-error" class="alert alert-danger" hidden></div>
+        <div id="apikeys-new" class="alert alert-success" hidden>
+            <p>@L["settings_apikeys_copy_now"]</p>
+            <code id="apikeys-new-value" style="word-break:break-all"></code>
+        </div>
+        <div id="apikeys-list"></div>
+
+        <form id="apikeys-form" class="form-inline">
+            <div class="form-group">
+                <label for="apikeys-name">@L["settings_tokens_name"]</label>
+                <input id="apikeys-name" type="text" class="form-control" maxlength="100" required autocomplete="off" />
+            </div>
+            <button type="submit" class="btn btn-primary">@L["settings_apikeys_create"]</button>
+        </form>
+        <form id="apikeys-antiforgery">@Html.AntiForgeryToken()</form>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var apiUrl = '/api/user/api-keys';
+            var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["none"] = L["settings_apikeys_none"],
+                ["enabled"] = L["settings_apikeys_enabled"],
+                ["disabled"] = L["settings_apikeys_disabled"],
+                ["expired"] = L["settings_apikeys_expired"],
+                ["enable"] = L["settings_apikeys_enable"],
+                ["disable"] = L["settings_apikeys_disable"],
+                ["delete"] = L["delete_button"],
+                ["confirmDelete"] = L["settings_apikeys_delete_confirm"],
+                ["created"] = L["created_prefix"],
+                ["expires"] = L["settings_tokens_expires"],
+                ["lastUsed"] = L["settings_tokens_last_used"],
+                ["never"] = L["settings_tokens_never"],
+                ["failed"] = L["admin_reserved_failed"],
+            }));
+            var token = document.querySelector('#apikeys-antiforgery input[name="__RequestVerificationToken"]').value;
+            var listEl = document.getElementById('apikeys-list');
+            var errorEl = document.getElementById('apikeys-error');
+            var newBox = document.getElementById('apikeys-new');
+            var newValue = document.getElementById('apikeys-new-value');
+            var form = document.getElementById('apikeys-form');
+            var nameInput = document.getElementById('apikeys-name');
+
+            function showError(message) {
+                errorEl.hidden = !message;
+                errorEl.textContent = message || '';
+            }
+
+            function send(method, url, body) {
+                showError('');
+                return fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+                    body: body ? JSON.stringify(body) : undefined,
+                }).then(function (r) {
+                    if (r.ok) return r.status === 204 ? null : r.json();
+                    return r.json().catch(function () { return {}; }).then(function (e) {
+                        showError(e.error || labels.failed);
+                        throw new Error('rejected');
+                    });
+                });
+            }
+
+            function cell(text, className) {
+                var td = document.createElement('td');
+                if (className) td.className = className;
+                if (text != null) td.textContent = text;
+                return td;
+            }
+
+            function button(text, className, onClick) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'btn btn-sm ' + className;
+                b.textContent = text;
+                b.addEventListener('click', onClick);
+                return b;
+            }
+
+            function render(keys) {
+                listEl.textContent = '';
+                if (!keys.length) {
+                    var none = document.createElement('p');
+                    none.className = 'text-muted';
+                    none.textContent = labels.none;
+                    listEl.appendChild(none);
+                    return;
+                }
+
+                var table = document.createElement('table');
+                table.className = 'table';
+                var tbody = document.createElement('tbody');
+                keys.forEach(function (k) {
+                    var tr = document.createElement('tr');
+
+                    var nameTd = cell(k.name);
+                    var prefix = document.createElement('code');
+                    prefix.textContent = ' ' + k.prefix + '…';
+                    nameTd.appendChild(prefix);
+                    tr.appendChild(nameTd);
+
+                    var status = document.createElement('span');
+                    status.className = 'badge ' + (k.isExpired || !k.isEnabled ? 'badge-warning' : 'badge-success');
+                    status.textContent = k.isExpired ? labels.expired : (k.isEnabled ? labels.enabled : labels.disabled);
+                    var statusTd = cell();
+                    statusTd.appendChild(status);
+                    tr.appendChild(statusTd);
+
+                    tr.appendChild(cell(labels.created + ' ' + k.created, 'text-muted'));
+                    tr.appendChild(cell(labels.lastUsed + ' ' + (k.lastUsed || labels.never), 'text-muted'));
+                    tr.appendChild(cell(labels.expires + ' ' + k.expires, 'text-muted'));
+
+                    var actions = cell();
+                    actions.appendChild(button(k.isEnabled ? labels.disable : labels.enable, 'btn-secondary', function () {
+                        send('PUT', apiUrl + '/' + k.id + '/enabled', { enabled: !k.isEnabled }).then(load).catch(function () { });
+                    }));
+                    actions.appendChild(document.createTextNode(' '));
+                    actions.appendChild(button(labels.delete, 'btn-danger', function () {
+                        if (!confirm(labels.confirmDelete)) return;
+                        send('DELETE', apiUrl + '/' + k.id).then(load).catch(function () { });
+                    }));
+                    tr.appendChild(actions);
+
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                listEl.appendChild(table);
+            }
+
+            function load() {
+                fetch(apiUrl).then(function (r) { return r.json(); }).then(render);
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                send('POST', apiUrl, { name: nameInput.value })
+                    .then(function (data) {
+                        nameInput.value = '';
+                        newValue.textContent = data.key;
+                        newBox.hidden = false;
+                        load();
+                    })
+                    .catch(function () { });
+            });
+
+            load();
+        })();
+    </script>
+}

@@ -10,4 +10,7 @@ public class SiteSettings
     public bool AllowPushToCreateRepositories { get; set; } = true;
     public bool AllowAnonymousPush { get; set; }
     public bool ShowCommitAuthorAvatar { get; set; } = true;
+
+    /// <summary>How many days a newly created API key stays valid.</summary>
+    public int ApiKeyLifetimeDays { get; set; } = 90;
 }

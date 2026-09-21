@@ -17,10 +17,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<GitInstallation> GitInstallations => Set<GitInstallation>();
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
     public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<SiteSettings>(e => e.Property(s => s.ApiKeyLifetimeDays).HasDefaultValue(90));
+
+        builder.Entity<ApiKey>(e =>
+        {
+            e.HasIndex(k => k.KeyHash).IsUnique();
+            e.HasOne(k => k.User)
+             .WithMany()
+             .HasForeignKey(k => k.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
 
         builder.Entity<ReservedNamePattern>(e =>
         {

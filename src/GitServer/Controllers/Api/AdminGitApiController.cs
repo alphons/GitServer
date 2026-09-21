@@ -1,4 +1,5 @@
 using GitServer.Data;
+using GitServer.Extensions;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,7 @@ public record StartInstallRequest(string? TagName);
 /// <summary>Git installation management (site admins only): the install job and the license browser.</summary>
 [ApiController]
 [Authorize]
-[AutoValidateAntiforgeryToken]
+[ApiAntiforgery]
 [Route("api/admin/git")]
 public class AdminGitApiController(
 	UserManager<AppUser> userManager, AppDbContext db,

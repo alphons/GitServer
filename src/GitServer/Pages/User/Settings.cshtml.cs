@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, AccountService accounts, AccessTokenService tokens, LocalizationService L) : PageModel
+public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, AccountService accounts, LocalizationService L) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public string DisplayName { get; set; } = "";
@@ -23,9 +23,6 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 	public bool IsError { get; set; }
 	public bool HasPassword { get; set; }
 
-	/// <summary>A token that was just created, shown once.</summary>
-	public string? NewTokenValue { get; set; }
-
 	[BindProperty] public string NewDisplayName { get; set; } = "";
 	[BindProperty] public string? NewBio { get; set; }
 	[BindProperty] public string? NewAvatarUrl { get; set; }
@@ -35,8 +32,6 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 	[BindProperty] public string? NewTimeZoneId { get; set; }
 	[BindProperty] public string CurrentPassword { get; set; } = "";
 	[BindProperty] public string NewPassword { get; set; } = "";
-	[BindProperty] public string TokenName { get; set; } = "";
-	[BindProperty] public int? TokenValidDays { get; set; }
 
 	private void LoadFrom(AppUser user)
 	{
@@ -89,35 +84,6 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 		LoadFrom(user);
 		HasPassword = await userManager.HasPasswordAsync(user);
 		return Page();
-	}
-
-	public async Task<IActionResult> OnPostCreateTokenAsync()
-	{
-		var user = await userManager.GetUserAsync(User);
-		if (user == null) return NotFound();
-
-		LoadFrom(user);
-		HasPassword = await userManager.HasPasswordAsync(user);
-
-		if (string.IsNullOrWhiteSpace(TokenName))
-		{
-			Message = L["error_token_name_required"];
-			IsError = true;
-			return Page();
-		}
-
-		NewTokenValue = await tokens.CreateAsync(user, TokenName.Trim(), TokenValidDays);
-		Message = L["settings_tokens_created"];
-		return Page();
-	}
-
-	public async Task<IActionResult> OnPostRevokeTokenAsync(int id)
-	{
-		var user = await userManager.GetUserAsync(User);
-		if (user == null) return NotFound();
-
-		await tokens.RevokeAsync(user.Id, id);
-		return RedirectToPage();
 	}
 
 	public async Task<IActionResult> OnPostDeleteAccountAsync()
