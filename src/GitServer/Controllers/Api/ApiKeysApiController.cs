@@ -27,9 +27,7 @@ public class ApiKeysApiController(
 
 	private ApiKeyDto Describe(ApiKey k) => new(
 		k.Id, k.Name, k.KeyPrefix, k.IsEnabled, k.ExpiresAt <= DateTime.UtcNow,
-		Format(k.CreatedAt), Format(k.ExpiresAt), k.LastUsedAt.HasValue ? Format(k.LastUsedAt.Value) : null);
-
-	private string Format(DateTime utc) => tz.ToLocal(utc).ToString("d MMM yyyy HH:mm", L.CurrentCulture);
+		tz.FormatDateTime(k.CreatedAt), tz.FormatDateTime(k.ExpiresAt), tz.FormatDateTime(k.LastUsedAt));
 
 	/// <summary>Lists the caller's API keys, newest first. The keys themselves are never returned.</summary>
 	[HttpGet]

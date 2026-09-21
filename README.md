@@ -9,6 +9,8 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
+**Current version: 1.15.1**
+
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows VPS or your own hardware in minutes.
 
 ---
@@ -50,17 +52,48 @@ Because your code doesn't belong to anyone else.
 - Groups with members, usable as a unit when granting repository access
 - Per-repository access control — grant individual users or whole groups **Read** or **Write** access to private repos
 - Per-user profile pages with bio, company, country and avatar (via Gravatar or a custom URL)
+- Account area with three tabs: **Account settings**, **API keys** and **Access tokens**
+- **Access tokens** — use a personal token instead of your password for git over HTTPS; create several, set an expiry, revoke any time
+- **API keys** — call the [JSON API](#json-api) as yourself with an `X-Api-Key` header; create as many as you like, enable/disable or delete each one, and they expire automatically (90 days by default, set by the admin)
+- Accounts lock temporarily after too many wrong passwords, on the web and over git (configurable)
+- User and group names cannot clash with the site's own URLs — see [Reserved names](#reserved-names)
 
 ### Admin Panel
 - **Users** — search/filter/paginate all accounts, create users directly, edit username/display name/email/password/role, enable or disable an account, and validate a pending (unconfirmed) registration — all from one modal, no page reloads
 - **Blocked emails** — wildcard email-pattern blocklist for sign-ups (e.g. `*@spam.net`)
+- **Reserved names** — the user and group names nobody may take (see [Reserved names](#reserved-names))
 - **Git version** — the built-in Git engine updater (see [Git engine](#git-engine))
-- **Settings** — site-wide toggles, editable at runtime with no restart required:
+- **Settings** — site-wide settings, editable at runtime with no restart required:
   - Allow user registration
   - Allow user repository creation
   - Allow push to create repositories (auto-create on first `git push`)
   - Allow push for anonymous (unauthenticated) repositories
   - Show commit author avatar
+  - API key lifetime in days (default 90) — applies to newly created keys
+
+### Site layout
+- Everything you click on lives under **`/dashboard`** (`/dashboard/explore`, `/dashboard/user/<name>`, `/dashboard/admin/users`, …)
+- Repositories keep their natural URLs: **`/<owner>/<repo>`** (also the git clone URL)
+- The JSON API lives under **`/api`**
+- The optional `GitPathPrefix` only moves the git Smart HTTP endpoints, never the API
+
+### Reserved names
+A user or group name may never collide with the first URL segment the site itself uses. The list has two parts:
+- **Built in (read-only):** `api`, `dashboard`, the git path prefix and every folder in `wwwroot` (`css`, `js`, …) — computed, so nothing to maintain
+- **Editable wildcard patterns** under **Admin → Reserved names** (`*` = any characters, `?` = one character, case-insensitive), pre-filled with `user*` and `admin*`
+
+The check applies when a name is created or changed; existing accounts and groups are left alone.
+
+### JSON API
+Everything the dashboard does through JavaScript is a plain JSON API under `/api`, usable from scripts too.
+
+- **Authentication:** send an API key in the `X-Api-Key` header (create one under **Dashboard → User → API keys**). The key acts as its owner, with the owner's rights — except that a key cannot manage API keys. A wrong, disabled or expired key always gets `401`.
+- **Verbs:** only `GET` and `POST` are used (`POST /api/…/{id}/update`, `…/{id}/delete`).
+- **Documentation:** the OpenAPI description, with typed request/response shapes and per-endpoint summaries, is served at **`/api/openapi.json`**.
+
+```bash
+curl -H "X-Api-Key: gsk_..." https://git.yourdomain.com/api/users/alice/repos
+```
 
 ### Internationalization
 - Ships with **10 languages** out of the box: English, Dutch, German, French, Spanish, Portuguese, Russian, Chinese, Japanese, Arabic
@@ -69,9 +102,11 @@ Because your code doesn't belong to anyone else.
 - **Extend with your own language** by adding a folder under `Localization/` — no recompile needed (see [Adding a Language](#adding-a-language))
 
 ### Security
-- CSRF protection on all forms
+- CSRF protection on all forms and on every state-changing API call made from the site (API-key calls carry no cookie, so they need none)
 - Secure HTTP-only cookies with configurable expiry
-- Git push/pull protected by Basic Authentication
+- Git push/pull protected by Basic Authentication (password or access token)
+- API keys and access tokens are stored as hashes only and shown once, when created
+- Temporary lockout after repeated failed logins (`MaxFailedLoginAttempts`, `LoginLockoutMinutes`)
 - Data Protection API keys persisted to disk, so sessions and tokens survive app restarts
 
 ---
@@ -112,6 +147,8 @@ Edit `src/GitServer/appsettings.json`:
     "RepositoriesPath": "D:\\GitRepos",
     "AllowRegistration": true,
     "GitPathPrefix": "",
+    "MaxFailedLoginAttempts": 5,
+    "LoginLockoutMinutes": 15,
     "DefaultPrivateOnAutoCreate": true,
     "MaxPushSizeMb": 2048,
     "ExploreRepoPageSize": 20,
@@ -147,6 +184,7 @@ Edit `src/GitServer/appsettings.json`:
 | `GitServer:RepositoriesPath` | Where bare Git repositories are stored on disk |
 | `GitServer:AllowRegistration` | Seeds the DB-backed "Allow user registration" toggle the first time the app runs; after that it's live-editable under **Admin → Settings** |
 | `GitServer:GitPathPrefix` | URL path segment in front of Git Smart HTTP endpoints (e.g. `/git`); empty serves at the root |
+| `GitServer:MaxFailedLoginAttempts` / `LoginLockoutMinutes` | Wrong passwords in a row (web login and git over HTTPS) before an account is locked, and for how long |
 | `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
 | `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
 | `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/dashboard/explore` listings |
@@ -161,7 +199,7 @@ Edit `src/GitServer/appsettings.json`:
 | `ConnectionStrings:Default` | SQLite connection string |
 | `EmailService:*` | SMTP settings used to send registration and password-reset emails; leave `SmtpHost` empty to disable outgoing email (registration links then just won't be delivered) |
 
-> Everything above except `EmailService` and the identity/DB plumbing is a startup-time default. The five toggles under **Admin → Settings** (registration, user repo creation, push-to-create, anonymous push, commit avatars) live in the database instead, so an admin can flip them from the browser without editing config or restarting the app.
+> Everything above except `EmailService` and the identity/DB plumbing is a startup-time default. The settings under **Admin → Settings** (registration, user repo creation, push-to-create, anonymous push, commit avatars, API key lifetime) and the reserved-name patterns live in the database instead, so an admin can change them from the browser without editing config or restarting the app.
 
 ### 3. Run
 
@@ -225,14 +263,22 @@ Until an admin installs a version, Git operations simply report "not installed" 
 dotnet test
 ```
 
-The suite in `tests/GitServer.Tests` needs `git` on the PATH (or `GIT_TEST_EXECUTABLE` pointing at one) and nothing else — every test runs against a real temporary SQLite database and real bare repositories, never mocks. It has four layers:
+The suite in `tests/GitServer.Tests` needs `git` on the PATH (or `GIT_TEST_EXECUTABLE` pointing at one) — every test runs against a real temporary SQLite database and real bare repositories, never mocks. The browser tests also need Chromium, installed once per machine after the first build:
+
+```bash
+pwsh tests/GitServer.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
+```
+
+(Windows PowerShell works too: `powershell -File …/playwright.ps1 install chromium`.) The suite has five layers:
 
 | Layer | What it proves |
 |---|---|
 | **Policy** (`AccessPolicyTests`, `GitAccessDecisionTests`) | Every read / write / administer / delete rule, the read-only override, group ownership, and the full clone-and-push decision matrix, as pure questions to `AccessPolicy` |
 | **Services & data** (`RepositoryServiceTests`, `NamingConstraintTests`, `MigrationTests`, `GitProcessServiceTests`) | Case-insensitive lookup with canonical names, paging/search/counts, the NOCASE unique indexes, and that all EF migrations apply (also on top of existing data) and match the model |
 | **Localization** (`LocalizationFilesTests`, `LocalizationServiceTests`) | Every language has every key English has (and no extras), placeholders match, every `L["key"]` used in code exists, no dead strings, cultures and countries |
-| **End to end** (`GitAuthMiddlewareTests`, `GitSmartHttpEndToEndTests`, `WebPagesEndToEndTests`, `HostSmokeTests`) | The real app hosted in-process: HTTP Basic auth, real `git` pack negotiation for push and clone, sign-in through the real login form, and what each kind of visitor (anonymous, owner, group member, stranger, admin) can see and do |
+| **End to end** (`GitAuthMiddlewareTests`, `GitSmartHttpEndToEndTests`, `WebPagesEndToEndTests`, `AccountAndAdminEndToEndTests`, `ApiKeysEndToEndTests`, `HostSmokeTests`, …) | The real app hosted in-process: HTTP Basic auth, real `git` pack negotiation for push and clone, sign-in through the real login form, what each kind of visitor (anonymous, owner, group member, stranger, admin) can see and do, and the API with cookies and with API keys |
+| **API contract** (`OpenApiEndToEndTests`) | The OpenAPI document exists, describes the `X-Api-Key` scheme and documents every `/api` endpoint with a summary — and fails if an endpoint is added without documentation or uses a verb other than `GET`/`POST` |
+| **Browser** (`BrowserTests`) | The JavaScript-driven pages in a real headless Chromium (Playwright) against the same app on a real port: profile lists and paging, API keys, access tokens, reserved names, group detail, admin users |
 
 All authorization decisions live in `Services/AccessPolicy.cs`; pages and middleware ask it instead of comparing `OwnerId` or `IsAdmin` themselves. CI runs the full suite on every push and pull request — see the badges at the top of this file.
 
@@ -258,24 +304,27 @@ GitServer is a single ASP.NET Core 10 application built on Razor Pages.
 ```
 src/GitServer/
 ├── Controllers/        # Git HTTP protocol (upload-pack, receive-pack)
+│   └── Api/            # The JSON API under /api (typed contracts in ApiContracts.cs)
 ├── Data/               # EF Core DbContext + SQLite migrations
+├── Extensions/         # Startup wiring: identity, API-key authentication, OpenAPI, git route prefix
 ├── Localization/       # One folder per language: strings.json + emails/*.html
 ├── Middleware/         # Git Basic Auth middleware, site-settings enforcement
-├── Models/             # Domain models (User, Repository, Issue, Comment, Group, SiteSettings)
-├── Services/           # Business logic (Git, Repository, AccessPolicy, Localization, SiteSettings)
-├── Pages/              # Razor Pages
+├── Models/             # Domain models (User, Repository, Issue, Group, ApiKey, AccessToken, SiteSettings, …)
+├── Services/           # Business logic (Git, Repository, AccessPolicy, ApiKey, ReservedNames, UserSearch, TimeZone, …)
+├── Pages/              # Razor Pages, all served under /dashboard (except the home page and repository pages)
 │   ├── Auth/           # Login, Register, password reset
 │   ├── Repo/           # Repository browser, commits, branches, tags, issues
-│   ├── User/           # Profile, settings, groups
-│   └── Admin/          # Users, blocked emails, Git version updater, site settings
+│   ├── User/           # Profile, account settings, API keys, access tokens, groups
+│   └── Admin/          # Users, blocked emails, reserved names, Git version updater, site settings
 └── wwwroot/            # Static assets only (css, js, favicon)
-tests/GitServer.Tests/   # xUnit: policy, services, migrations, localization, and in-process end-to-end tests
+tests/GitServer.Tests/   # xUnit: policy, services, migrations, localization, end-to-end, API contract and browser tests
 ```
 
 **Stack:**
 - ASP.NET Core 10 Razor Pages
 - Entity Framework Core with SQLite
 - ASP.NET Core Identity
+- A JSON API described with OpenAPI (`Microsoft.AspNetCore.OpenApi`); the pages render lists client-side from that API
 - Git operations run as plain `git.exe` subprocesses (`Process.Start`) — no native Git library dependency
 - Zero JavaScript frameworks — vanilla JS only
 
@@ -299,6 +348,8 @@ Pull requests are welcome. For major changes, open an issue first to discuss wha
 2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Commit your changes
 4. Push and open a pull request
+
+Code style is set in `.editorconfig`: tab indentation for C#, Razor, JavaScript and CSS, LF line endings. Keep the API to `GET` and `POST`, document every new `/api` endpoint with an XML summary, and add UI text to every language (see [Adding a Language](#adding-a-language)).
 
 ---
 

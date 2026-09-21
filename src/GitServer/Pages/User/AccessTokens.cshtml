@@ -48,9 +48,9 @@
 					{
 						<tr>
 							<td>@t.Name</td>
-							<td class="text-muted">@TZ.ToLocal(t.CreatedAt).ToString("d MMM yyyy")</td>
-							<td class="text-muted">@(t.LastUsedAt.HasValue ? TZ.ToLocal(t.LastUsedAt.Value).ToString("d MMM yyyy HH:mm") : L["settings_tokens_never"])</td>
-							<td class="text-muted">@(t.ExpiresAt.HasValue ? TZ.ToLocal(t.ExpiresAt.Value).ToString("d MMM yyyy") : L["settings_tokens_never"])</td>
+							<td class="text-muted">@TZ.FormatDate(t.CreatedAt)</td>
+							<td class="text-muted">@(t.LastUsedAt.HasValue ? TZ.FormatDateTime(t.LastUsedAt.Value) : L["settings_tokens_never"])</td>
+							<td class="text-muted">@(t.ExpiresAt.HasValue ? TZ.FormatDate(t.ExpiresAt.Value) : L["settings_tokens_never"])</td>
 							<td>
 								<form method="post" asp-page-handler="RevokeToken" asp-route-id="@t.Id" onsubmit="return confirm('@L["settings_tokens_revoke_confirm"]');">
 									<button type="submit" class="btn btn-danger btn-sm">@L["settings_tokens_revoke"]</button>

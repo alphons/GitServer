@@ -1,10 +1,8 @@
-using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Controllers.Api;
 
@@ -13,7 +11,7 @@ namespace GitServer.Controllers.Api;
 [Route("api/repos/{user}/{repo}")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class RepoCollaboratorsApiController(
-	RepositoryService repos, AccessPolicy access, UserManager<AppUser> userManager, AppDbContext db) : ControllerBase
+	RepositoryService repos, AccessPolicy access, UserManager<AppUser> userManager, UserSearchService userSearch) : ControllerBase
 {
 	/// <summary>Finds users that can be granted access to the repository (everyone but its owner), for the collaborator autocomplete.
 	/// Needs at least 2 characters. Only the repository's owner may call this.</summary>
@@ -29,18 +27,6 @@ public class RepoCollaboratorsApiController(
 		if (repoObj == null) return NotFound();
 		if (!await access.CanAdministerAsync(repoObj, userManager.GetUserId(User))) return Forbid();
 
-		q = q?.Trim();
-		if (string.IsNullOrEmpty(q) || q.Length < 2) return Array.Empty<UserSearchResult>();
-
-		var lower = q.ToLower();
-		return await db.Users
-			.Where(u => u.Id != repoObj.OwnerId && (
-				u.UserName!.ToLower().Contains(lower) ||
-				u.Email!.ToLower().Contains(lower) ||
-				u.DisplayName.ToLower().Contains(lower)))
-			.OrderBy(u => u.UserName)
-			.Take(10)
-			.Select(u => new UserSearchResult(u.UserName, u.DisplayName, u.Email))
-			.ToListAsync();
+		return Ok(await userSearch.SearchAsync(q, repoObj.OwnerId));
 	}
 }

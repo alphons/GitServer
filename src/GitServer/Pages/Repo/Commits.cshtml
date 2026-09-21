@@ -36,7 +36,7 @@
 					}
 					<div class="commit-meta">
 						<span class="commit-author">@commit.Author</span>
-						<span class="commit-date text-muted">@TZ.ToLocal(commit.Date).ToString("d MMM yyyy, HH:mm")</span>
+						<span class="commit-date text-muted">@TZ.FormatDateTime(commit.Date)</span>
 						<a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@commit.Sha">@commit.ShortSha</a>
 					</div>
 				</div>

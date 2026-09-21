@@ -15,7 +15,7 @@ namespace GitServer.Controllers.Api;
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 public class AdminUsersApiController(
 	UserManager<AppUser> userManager, IOptions<GitServerOptions> options,
-	TimeZoneService tz, LocalizationService L) : ControllerBase
+	TimeZoneService tz) : ControllerBase
 {
 	/// <summary>Lists all users for site administrators: confirmed accounts first, then by user name.</summary>
 	/// <param name="q">Optional filter on user name, display name or e-mail address.</param>
@@ -54,8 +54,8 @@ public class AdminUsersApiController(
 			Math.Max(pageSize > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 1, 1),
 			fetched.Take(pageSize).Select(u => new AdminUserDto(
 				u.Id, u.UserName, u.DisplayName, u.Email,
-				tz.ToLocal(u.CreatedAt).ToString("d MMM yyyy", L.CurrentCulture),
-				u.LastLoginAt.HasValue ? tz.ToLocal(u.LastLoginAt.Value).ToString("d MMM yyyy HH:mm", L.CurrentCulture) : null,
+				tz.FormatDate(u.CreatedAt),
+				tz.FormatDateTime(u.LastLoginAt),
 				u.IsDisabled, u.IsAdmin, !u.EmailConfirmed, u.Id == currentUser.Id)).ToList());
 	}
 }

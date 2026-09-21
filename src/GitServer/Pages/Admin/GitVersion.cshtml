@@ -64,7 +64,7 @@
 					var filesPresent = Model.FilesPresent.GetValueOrDefault(installation.Id);
 					<tr>
 						<td><code>@installation.Version</code></td>
-						<td>@installation.InstalledAt.ToString("yyyy-MM-dd HH:mm")</td>
+						<td>@TZ.FormatDateTime(installation.InstalledAt)</td>
 						<td>
 							@if (!filesPresent)
 							{

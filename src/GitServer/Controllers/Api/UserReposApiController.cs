@@ -11,7 +11,7 @@ namespace GitServer.Controllers.Api;
 [Route("api/users/{username}/repos")]
 public class UserReposApiController(
 	UserManager<AppUser> userManager, RepositoryService repos,
-	IOptions<GitServerOptions> options, TimeZoneService tz, LocalizationService L) : ControllerBase
+	IOptions<GitServerOptions> options, TimeZoneService tz) : ControllerBase
 {
 	/// <summary>Lists a user's repositories. Private repositories and group repositories are only included for the user themself.</summary>
 	/// <param name="username">The profile's user name.</param>
@@ -58,13 +58,11 @@ public class UserReposApiController(
 
 	private RepoCardDto Card(Repository r, string href, string displayName, bool withCollaborators) => new(
 		displayName, href, r.IsPrivate, r.IsReadOnly, r.Description,
-		Format(r.UpdatedAt), Format(r.CreatedAt),
+		tz.FormatDateTime(r.UpdatedAt), tz.FormatDateTime(r.CreatedAt),
 		withCollaborators && r.IsPrivate
 			? r.Accesses
 				.Select(a => new CollaboratorDto(a.User?.UserName, a.User == null ? a.Group?.Name : null))
 				.Where(a => a.UserName != null || a.GroupName != null)
 				.ToList()
 			: null);
-
-	private string Format(DateTime utc) => tz.ToLocal(utc).ToString("d MMM yyyy HH:mm", L.CurrentCulture);
 }

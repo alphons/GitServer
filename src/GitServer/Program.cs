@@ -45,6 +45,7 @@ builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();
 builder.Services.AddScoped<ApiKeyService>();
+builder.Services.AddScoped<UserSearchService>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
 builder.Services.AddScoped<ReservedNames>();

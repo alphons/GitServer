@@ -1,10 +1,8 @@
-using GitServer.Data;
 using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace GitServer.Controllers.Api;
@@ -15,7 +13,7 @@ namespace GitServer.Controllers.Api;
 [Route("api/groups/{id:int}")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class GroupsApiController(
-	AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager,
+	UserSearchService userSearch, AccessPolicy access, UserManager<AppUser> userManager,
 	RepositoryService repos, IOptions<GitServerOptions> options) : ControllerBase
 {
 	/// <summary>Lists the group's repositories. Not found unless the caller owns the group.</summary>
@@ -50,18 +48,6 @@ public class GroupsApiController(
 		var userId = userManager.GetUserId(User)!;
 		if (await access.GetOwnedGroupAsync(id, userId) == null) return NotFound();
 
-		q = q?.Trim();
-		if (string.IsNullOrEmpty(q) || q.Length < 2) return Array.Empty<UserSearchResult>();
-
-		var lower = q.ToLower();
-		return await db.Users
-			.Where(u => u.Id != userId && (
-				u.UserName!.ToLower().Contains(lower) ||
-				u.Email!.ToLower().Contains(lower) ||
-				u.DisplayName.ToLower().Contains(lower)))
-			.OrderBy(u => u.UserName)
-			.Take(10)
-			.Select(u => new UserSearchResult(u.UserName, u.DisplayName, u.Email))
-			.ToListAsync();
+		return Ok(await userSearch.SearchAsync(q, userId));
 	}
 }

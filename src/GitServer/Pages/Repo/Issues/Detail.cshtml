@@ -22,7 +22,7 @@
 				@(issue.IsClosed ? L["issues_closed"] : L["issues_open"])
 			</span>
 			<span class="text-muted">
-				@L["issues_opened_by"] @issue.Author.UserName @L["issues_on"] @TZ.ToLocal(issue.CreatedAt).ToString("d MMM yyyy")
+				@L["issues_opened_by"] @issue.Author.UserName @L["issues_on"] @TZ.FormatDate(issue.CreatedAt)
 			</span>
 		</div>
 
@@ -32,7 +32,7 @@
 				<div class="timeline-body">
 					<div class="timeline-header">
 						<strong>@issue.Author.UserName</strong>
-						<span class="text-muted">@TZ.ToLocal(issue.CreatedAt).ToString("d MMM yyyy, HH:mm")</span>
+						<span class="text-muted">@TZ.FormatDateTime(issue.CreatedAt)</span>
 					</div>
 					<div class="markdown-body pane-output"
 						 data-markdown-src="/@Model.UserName/@Model.RepoName/issues/@issue.Id/raw"></div>
@@ -46,7 +46,7 @@
 					<div class="timeline-body">
 						<div class="timeline-header">
 							<strong>@comment.Author.UserName</strong>
-							<span class="text-muted">@TZ.ToLocal(comment.CreatedAt).ToString("d MMM yyyy, HH:mm")</span>
+							<span class="text-muted">@TZ.FormatDateTime(comment.CreatedAt)</span>
 						</div>
 						<div class="markdown-body pane-output"
 							 data-markdown-src="/@Model.UserName/@Model.RepoName/issues/@issue.Id/comments/@comment.Id/raw"></div>

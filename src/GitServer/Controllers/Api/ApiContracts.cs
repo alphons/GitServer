@@ -22,9 +22,6 @@ public record UserReposResponse(
 
 public record GroupReposResponse(int Page, bool HasNext, IReadOnlyList<RepoCardDto> Repos);
 
-/// <summary>A user that matched an autocomplete search.</summary>
-public record UserSearchResult(string? UserName, string DisplayName, string? Email);
-
 // ---- Administration ----------------------------------------------------------------------------------------
 
 public record AdminUserDto(

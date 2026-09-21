@@ -36,7 +36,7 @@
 								{
 									<span class="commit-author">@tag.Tagger</span>
 								}
-								<span class="text-muted">@TZ.ToLocal(tag.Date).ToString("d MMM yyyy, HH:mm")</span>
+								<span class="text-muted">@TZ.FormatDateTime(tag.Date)</span>
 							</div>
 							@if (!string.IsNullOrWhiteSpace(tag.Subject))
 							{
