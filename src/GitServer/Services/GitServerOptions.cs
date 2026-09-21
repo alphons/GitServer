@@ -14,7 +14,7 @@ public class GitServerOptions
     public int LoginLockoutMinutes { get; set; } = 15;
 
     /// <summary>Only used to seed SiteSettings.AllowRegistration the first time the app runs.
-    /// After that, the live value lives in the database and is managed from /Admin/Settings.</summary>
+    /// After that, the live value lives in the database and is managed from /dashboard/Admin/Settings.</summary>
     public bool AllowRegistration { get; set; } = true;
 
     /// <summary>Visibility for repositories auto-created on first push (e.g. via "existing remote" in an IDE).</summary>
@@ -37,10 +37,10 @@ public class GitServerOptions
     /// Note: IIS's own limit in Web.Config (maxAllowedContentLength) is separate and not driven by this setting.</summary>
     public long? MaxPushSizeMb { get; set; } = null;
 
-    /// <summary>Number of items per page on the /explore repo listing.</summary>
+    /// <summary>Number of items per page on the /dashboard/explore repo listing.</summary>
     public int ExploreRepoPageSize { get; set; } = 10;
 
-    /// <summary>Number of items per page on the /explore/users listing.</summary>
+    /// <summary>Number of items per page on the /dashboard/explore/users listing.</summary>
     public int ExploreUserPageSize { get; set; } = 10;
 
     /// <summary>Number of repos shown on the home page's "recent repositories" list.</summary>
@@ -49,7 +49,7 @@ public class GitServerOptions
     /// <summary>Number of items per page on a user's profile repository listing.</summary>
     public int ProfileRepoPageSize { get; set; } = 10;
 
-    /// <summary>Number of items per page on the /Admin/Users listing.</summary>
+    /// <summary>Number of items per page on the /dashboard/Admin/Users listing.</summary>
     public int AdminUsersPageSize { get; set; } = 10;
 
     /// <summary>GitHub Releases API base URL the admin git-updater queries for MinGit versions

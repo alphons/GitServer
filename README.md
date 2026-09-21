@@ -149,7 +149,7 @@ Edit `src/GitServer/appsettings.json`:
 | `GitServer:GitPathPrefix` | URL path segment in front of Git Smart HTTP endpoints (e.g. `/git`); empty serves at the root |
 | `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
 | `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
-| `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/explore` listings |
+| `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/dashboard/explore` listings |
 | `GitServer:ProfileRepoPageSize` | Items per page on a user's profile repository list |
 | `GitServer:AdminUsersPageSize` | Items per page on the **Admin → Users** listing |
 | `GitServer:IndexRecentReposCount` | Repos shown in the home page's "recent repositories" list |

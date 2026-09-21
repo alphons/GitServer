@@ -12,7 +12,8 @@ public class CompleteRegistrationModel(
 	UserManager<AppUser> userManager,
 	SignInManager<AppUser> signInManager,
 	AppDbContext db,
-	LocalizationService L) : PageModel
+	LocalizationService L,
+	ReservedNames reserved) : PageModel
 {
 	[BindProperty] public string Email { get; set; } = "";
 	[BindProperty] public string Token { get; set; } = "";
@@ -72,6 +73,9 @@ public class CompleteRegistrationModel(
 			return await FailAsync(L["error_invalid_or_expired_link"]);
 
 		var username = Username.Trim();
+		if (await reserved.IsReservedAsync(username))
+			return await FailAsync(L["error_name_reserved"]);
+
 		var existing = await userManager.FindByNameAsync(username);
 		if (existing != null && existing.Id != user.Id)
 			return await FailAsync(L["error_username_taken"]);

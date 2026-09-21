@@ -4,48 +4,22 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace GitServer.Pages.Admin;
 
-public class UsersModel(UserManager<AppUser> userManager, AccountService accounts, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
+public class UsersModel(UserManager<AppUser> userManager, AccountService accounts, LocalizationService L, ReservedNames reserved) : PageModel
 {
-	public List<AppUser> Users { get; set; } = new();
     public string? CurrentUserId { get; set; }
     public string? Message { get; set; }
     public string? ErrorMessage { get; set; }
     public string Filter { get; set; } = "";
     public new int Page { get; set; }
-    public int PageSize { get; } = options.Value.AdminUsersPageSize;
-    public int TotalCount { get; set; }
-    public bool HasNextPage { get; set; }
 
-    private async Task LoadUsersAsync(string? filter, int page)
+    // The user list itself is loaded by the page from GET /api/admin/users; here only the filter and page are kept.
+    private void LoadUsers(string? filter, int page)
     {
         Filter = (filter ?? "").Trim();
         Page = Math.Max(page, 0);
-
-        var query = userManager.Users.AsQueryable();
-        if (!string.IsNullOrEmpty(Filter))
-        {
-            var lower = Filter.ToLower();
-            query = query.Where(u =>
-                u.UserName!.ToLower().Contains(lower) ||
-                u.DisplayName.ToLower().Contains(lower) ||
-                u.Email!.ToLower().Contains(lower));
-        }
-
-        TotalCount = await query.CountAsync();
-
-        var fetched = await query
-            .OrderByDescending(u => u.EmailConfirmed)
-            .ThenBy(u => u.UserName)
-            .Skip(Page * PageSize)
-            .Take(PageSize + 1)
-            .ToListAsync();
-
-        HasNextPage = fetched.Count > PageSize;
-        Users = fetched.Take(PageSize).ToList();
     }
 
     public async Task<IActionResult> OnGetAsync(string? q, int p = 0)
@@ -54,18 +28,8 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
         if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
 
         CurrentUserId = currentUser.Id;
-        await LoadUsersAsync(q, p);
+        LoadUsers(q, p);
         return Page();
-    }
-
-    public async Task<IActionResult> OnGetSearchAsync(string? q, int p = 0)
-    {
-        var currentUser = await userManager.GetUserAsync(User);
-        if (!AccessPolicy.IsSiteAdmin(currentUser)) return Forbid();
-
-        CurrentUserId = currentUser.Id;
-        await LoadUsersAsync(q, p);
-        return Partial("_UsersTableBody", this);
     }
 
     public async Task<IActionResult> OnPostSaveAsync(
@@ -91,7 +55,7 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
         }
 
         CurrentUserId = currentUser.Id;
-        await LoadUsersAsync(q, p);
+        LoadUsers(q, p);
         return Page();
     }
 
@@ -103,6 +67,9 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
             return L["error_new_password_required"];
         if (newPassword != confirmPassword)
             return L["error_passwords_do_not_match"];
+
+        if (await reserved.IsReservedAsync(userName))
+            return L["error_name_reserved"];
 
         var existing = await userManager.FindByNameAsync(userName);
         if (existing != null)
@@ -147,6 +114,9 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
 
         if (!string.Equals(target.UserName, userName, StringComparison.Ordinal))
         {
+            if (await reserved.IsReservedAsync(userName))
+                return L["error_name_reserved"];
+
             var existing = await userManager.FindByNameAsync(userName);
             if (existing != null && existing.Id != target.Id)
                 return L["error_username_taken"];
@@ -213,7 +183,7 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
         else ErrorMessage = failure;
 
         CurrentUserId = currentUser.Id;
-        await LoadUsersAsync(q, p);
+        LoadUsers(q, p);
         return Page();
     }
 }

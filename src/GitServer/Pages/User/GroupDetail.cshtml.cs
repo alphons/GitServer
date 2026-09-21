@@ -11,22 +11,18 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L, IOptions<GitServerOptions> options) : PageModel
+public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager, RepositoryService repos, LocalizationService L) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public Group? Group { get; set; }
 	public List<GroupMember> Members { get; set; } = new();
-	public List<Repository> Repositories { get; set; } = new();
 	public int RepoTotalCount { get; set; }
-	public int RepoCurrentPage { get; set; }
-	public int RepoPageSize { get; } = options.Value.ProfileRepoPageSize;
-	public bool RepoHasNextPage { get; set; }
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
 
 	[BindProperty] public string? MemberName { get; set; }
 
-	private async Task<bool> LoadAsync(int id, int rp = 0)
+	private async Task<bool> LoadAsync(int id)
 	{
 		CurrentUser = await userManager.GetUserAsync(User);
 		if (CurrentUser == null) return false;
@@ -40,46 +36,15 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 			.OrderBy(m => m.User.UserName)
 			.ToListAsync();
 
-		RepoCurrentPage = rp;
 		RepoTotalCount = await repos.GetGroupRepoCountAsync(id);
-		RepoHasNextPage = RepoTotalCount > (rp + 1) * RepoPageSize;
-		Repositories = await repos.GetGroupReposAsync(id, skip: rp * RepoPageSize, take: RepoPageSize);
 
 		return true;
 	}
 
-	public async Task<IActionResult> OnGetAsync(int id, int rp = 0)
-	{
-		if (!await LoadAsync(id, rp)) return NotFound();
-		return Page();
-	}
-
-	public async Task<IActionResult> OnGetReposAsync(int id, int rp = 0)
-	{
-		if (!await LoadAsync(id, rp)) return NotFound();
-		return Partial("_GroupDetailRepos", this);
-	}
-
-	public async Task<IActionResult> OnGetSearchUsersAsync(int id, string? q)
+	public async Task<IActionResult> OnGetAsync(int id)
 	{
 		if (!await LoadAsync(id)) return NotFound();
-
-		q = q?.Trim();
-		if (string.IsNullOrEmpty(q) || q.Length < 2) return new JsonResult(Array.Empty<object>());
-
-		var lower = q.ToLower();
-		var memberIds = Members.Select(m => m.UserId).ToHashSet();
-		var results = await db.Users
-			.Where(u => u.Id != CurrentUser!.Id && (
-				u.UserName!.ToLower().Contains(lower) ||
-				u.Email!.ToLower().Contains(lower) ||
-				u.DisplayName.ToLower().Contains(lower)))
-			.OrderBy(u => u.UserName)
-			.Take(10)
-			.Select(u => new { userName = u.UserName, displayName = u.DisplayName, email = u.Email })
-			.ToListAsync();
-
-		return new JsonResult(results);
+		return Page();
 	}
 
 	public async Task<IActionResult> OnPostAddMemberAsync(int id)

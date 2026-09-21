@@ -26,7 +26,7 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 	private async Task<string> CreateTokenAsync(AppUser user, string name = "laptop", string days = "90")
 	{
 		var session = await new WebSession(_f).LoginAsync(user.UserName!);
-		var response = await session.PostFormAsync("/User/Settings", "/User/Settings?handler=CreateToken", ("TokenName", name), ("TokenValidDays", days));
+		var response = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=CreateToken", ("TokenName", name), ("TokenValidDays", days));
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		var match = Regex.Match(await response.Content.ReadAsStringAsync(), "<code id=\"new-token\">(gsp_[A-Za-z0-9_-]+)</code>");
 		Assert.True(match.Success, "the new token is shown on the page");
@@ -87,7 +87,7 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 		var token = await CreateTokenAsync(user, "my-laptop");
 		var session = await new WebSession(_f).LoginAsync(user.UserName!);
 
-		var html = await session.GetHtmlAsync("/User/Settings");
+		var html = await session.GetHtmlAsync("/dashboard/User/Settings");
 
 		Assert.Contains("my-laptop", html);
 		Assert.DoesNotContain(token, html);
@@ -115,7 +115,7 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 		var id = await Db(d => d.AccessTokens.Where(t => t.UserId == user.Id && t.Name == "doomed").Select(t => t.Id).SingleAsync());
 		var session = await new WebSession(_f).LoginAsync(user.UserName!);
 
-		await session.PostFormAsync("/User/Settings", $"/User/Settings?handler=RevokeToken&id={id}");
+		await session.PostFormAsync("/dashboard/User/Settings", $"/dashboard/User/Settings?handler=RevokeToken&id={id}");
 
 		Assert.Equal(HttpStatusCode.Unauthorized, await DiscoverAsync(user.UserName!, doomed, user.UserName!, "secret"));
 		Assert.Equal(HttpStatusCode.OK, await DiscoverAsync(user.UserName!, kept, user.UserName!, "secret"));
@@ -129,7 +129,7 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 		await CreateTokenAsync(owner);
 		var id = await Db(d => d.AccessTokens.Where(t => t.UserId == owner.Id).Select(t => t.Id).SingleAsync());
 
-		await (await new WebSession(_f).LoginAsync(other.UserName!)).PostFormAsync("/User/Settings", $"/User/Settings?handler=RevokeToken&id={id}");
+		await (await new WebSession(_f).LoginAsync(other.UserName!)).PostFormAsync("/dashboard/User/Settings", $"/dashboard/User/Settings?handler=RevokeToken&id={id}");
 
 		Assert.Equal(1, await Db(d => d.AccessTokens.CountAsync(t => t.Id == id)));
 	}
@@ -209,7 +209,7 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 		var user = await _f.CreateUserAsync(Unique("noname"));
 		var session = await new WebSession(_f).LoginAsync(user.UserName!);
 
-		await session.PostFormAsync("/User/Settings", "/User/Settings?handler=CreateToken", ("TokenName", "   "), ("TokenValidDays", "90"));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=CreateToken", ("TokenName", "   "), ("TokenValidDays", "90"));
 
 		Assert.Equal(0, await Db(d => d.AccessTokens.CountAsync(t => t.UserId == user.Id)));
 	}
@@ -222,7 +222,7 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 		var token = await CreateTokenAsync(user);
 		var session = await new WebSession(_f).LoginAsync(user.UserName!);
 
-		await session.PostFormAsync("/User/Settings", "/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
 
 		Assert.Equal(0, await Db(d => d.AccessTokens.CountAsync(t => t.UserId == user.Id)));
 		Assert.NotEqual(HttpStatusCode.OK, await DiscoverAsync(user.UserName!, token, user.UserName!, "secret"));

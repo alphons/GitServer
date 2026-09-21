@@ -10,15 +10,15 @@
             <h1>@L["home_intro_title"]</h1>
             <p>@L["home_intro_text"]</p>
             <p>
-                <a class="btn btn-primary" href="/Auth/Register">@L["home_intro_register"]</a>
-                <a href="/Terms">@L["terms_title"]</a>
+                <a class="btn btn-primary" href="/dashboard/Auth/Register">@L["home_intro_register"]</a>
+                <a href="/dashboard/Terms">@L["terms_title"]</a>
             </p>
         </section>
     }
     <div class="page-header">
         <h1>@L["index_recent_repos"]</h1>
         <div class="header-actions">
-            <form method="get" action="/explore" class="search-form">
+            <form method="get" action="/dashboard/explore" class="search-form">
                 <input name="q" type="search" class="form-control" placeholder="@L["search_placeholder"]" />
                 <button type="submit" class="btn btn-secondary">@L["search_button"]</button>
             </form>
@@ -28,7 +28,7 @@
     @if (!Model.Repos.Any())
     {
         <div class="empty-state">
-            <p>@L["index_empty"] <a href="/Repo/New">@L["index_empty_create"]</a></p>
+            <p>@L["index_empty"] <a href="/dashboard/Repo/New">@L["index_empty_create"]</a></p>
         </div>
     }
     else
@@ -63,11 +63,11 @@
         <p class="text-muted">
             @if (Model.CurrentUserName != null)
             {
-                <a href="/User/@Model.CurrentUserName">@L["index_all_my_repos"]</a>
+                <a href="/dashboard/User/@Model.CurrentUserName">@L["index_all_my_repos"]</a>
             }
             else
             {
-                <a href="/explore">@L["index_all_repos"]</a>
+                <a href="/dashboard/explore">@L["index_all_repos"]</a>
             }
         </p>
     }

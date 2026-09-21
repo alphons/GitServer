@@ -41,7 +41,7 @@ public class TestGitExecutablePathProvider : IGitExecutablePathProvider
 
 		throw new InvalidOperationException(
 			"No working git executable found for tests. Set GIT_TEST_EXECUTABLE, put git on PATH, " +
-			"or install a MinGit version via /Admin/GitVersion in a local run of the app first.");
+			"or install a MinGit version via /dashboard/Admin/GitVersion in a local run of the app first.");
 	}
 
 	private static bool Works(string path)

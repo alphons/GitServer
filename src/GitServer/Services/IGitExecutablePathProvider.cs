@@ -12,7 +12,7 @@ public interface IGitExecutablePathProvider
 }
 
 /// <summary>Seeded at startup from the active GitInstallation row, if any. No other fallback:
-/// until an admin installs and activates a MinGit version via /Admin/GitVersion, CurrentPath is
+/// until an admin installs and activates a MinGit version via /dashboard/Admin/GitVersion, CurrentPath is
 /// empty and GitProcessService.GetVersion() reports "not installed" rather than silently running
 /// whatever "git" happens to resolve to on the server's PATH.</summary>
 public class GitExecutablePathProvider : IGitExecutablePathProvider

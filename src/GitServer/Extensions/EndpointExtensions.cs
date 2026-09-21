@@ -7,7 +7,7 @@ public static class EndpointExtensions
 {
 	public static IEndpointRouteBuilder MapSetLanguage(this IEndpointRouteBuilder endpoints)
 	{
-		endpoints.MapGet("/set-language", (string? lang, string? returnUrl, HttpResponse response) =>
+		endpoints.MapGet("/dashboard/set-language", (string? lang, string? returnUrl, HttpResponse response) =>
 		{
 			if (!string.IsNullOrEmpty(lang) && lang.Length <= 10 && lang.All(c => char.IsLetterOrDigit(c) || c == '-'))
 			{

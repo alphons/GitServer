@@ -31,7 +31,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	/// <summary>Registers an address and returns the path+query of the link that was mailed.</summary>
 	private async Task<string> RegisterAsync(string email, WebSession? session = null)
 	{
-		var response = await (session ?? NewSession()).PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
+		var response = await (session ?? NewSession()).PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		return _f.Mail.SentTo(email).Last().FirstLinkPathAndQuery();
 	}
@@ -47,7 +47,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var (email, token) = ParseLink(link);
 		// The antiforgery token comes from the login page: an invalid link renders no form at all.
-		return s.PostFormAsync("/Auth/Login", "/Auth/CompleteRegistration", ("Email", email), ("Token", token), ("Username", username),
+		return s.PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/CompleteRegistration", ("Email", email), ("Token", token), ("Username", username),
 			("DisplayName", displayName), ("Password", password), ("ConfirmPassword", confirm ?? password));
 	}
 
@@ -62,7 +62,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 
 		var mail = Assert.Single(_f.Mail.SentTo(email));
 		Assert.Equal(En("register_email_subject"), mail.Subject);
-		Assert.StartsWith("/Auth/CompleteRegistration?", link);
+		Assert.StartsWith("/dashboard/Auth/CompleteRegistration?", link);
 		var page = await NewSession().GetHtmlAsync(link);
 		Assert.Contains(En("complete_registration_title"), page);
 		Assert.DoesNotContain(En("error_invalid_or_expired_link"), page);
@@ -71,7 +71,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task Register_ShowsThatAMailWasSent()
 	{
-		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", Unique("x") + "@example.com"), ("AcceptTerms", "true"));
+		var response = await NewSession().PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", Unique("x") + "@example.com"), ("AcceptTerms", "true"));
 
 		Assert.Contains(En("register_email_sent"), await response.Content.ReadAsStringAsync());
 	}
@@ -91,7 +91,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(username, user!.UserName);
 		Assert.True(user.EmailConfirmed);
 		Assert.Equal("New Person", user.DisplayName);
-		Assert.Equal(HttpStatusCode.OK, (await session.GetAsync("/User/Settings")).StatusCode);      // already signed in
+		Assert.Equal(HttpStatusCode.OK, (await session.GetAsync("/dashboard/User/Settings")).StatusCode);      // already signed in
 		await NewSession().LoginAsync(username);                                                       // and can sign in again
 	}
 
@@ -111,7 +111,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 
-		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", alice.Email!), ("AcceptTerms", "true"));
+		var response = await NewSession().PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", alice.Email!), ("AcceptTerms", "true"));
 
 		Assert.Contains(En("error_email_already_registered"), await response.Content.ReadAsStringAsync());
 		Assert.Empty(_f.Mail.SentTo(alice.Email!));
@@ -136,7 +136,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		await Db(async db => { db.BlockedEmailPatterns.Add(new BlockedEmailPattern { Pattern = "*@" + domain }); await db.SaveChangesAsync(); return 0; });
 		var email = "someone@" + domain.ToUpperInvariant();
 
-		var response = await NewSession().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
+		var response = await NewSession().PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 
 		Assert.Contains(En("error_email_blocked"), await response.Content.ReadAsStringAsync());
 		Assert.Empty(_f.Mail.SentTo(email));
@@ -150,8 +150,8 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		await SetRegistrationAsync(false);
 		try
 		{
-			var page = await NewSession().GetHtmlAsync("/Auth/Register");
-			var post = await NewSession().PostFormAsync("/Auth/Login", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));   // no form is rendered while disabled
+			var page = await NewSession().GetHtmlAsync("/dashboard/Auth/Register");
+			var post = await NewSession().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Register", ("Email", email), ("AcceptTerms", "true"));   // no form is rendered while disabled
 
 			Assert.Contains(En("register_disabled"), page);
 			Assert.Contains(En("register_disabled"), await post.Content.ReadAsStringAsync());
@@ -177,7 +177,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		var (_, token) = ParseLink(link);
 		var session = NewSession();
 
-		var response = await session.PostFormAsync(link, "/Auth/CompleteRegistration", ("Email", email), ("Token", token[..^4] + "AAAA"),
+		var response = await session.PostFormAsync(link, "/dashboard/Auth/CompleteRegistration", ("Email", email), ("Token", token[..^4] + "AAAA"),
 			("Username", Unique("x")), ("Password", GitServerFactory.Password), ("ConfirmPassword", GitServerFactory.Password));
 
 		Assert.Contains(En("error_invalid_or_expired_link"), await response.Content.ReadAsStringAsync());
@@ -247,12 +247,12 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	public async Task ForgotPassword_MailsAResetLink_ThatSetsANewPassword()
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
-		var page = await NewSession().PostFormAsync("/Auth/ForgotPassword", "/Auth/ForgotPassword", ("Email", alice.Email!));
+		var page = await NewSession().PostFormAsync("/dashboard/Auth/ForgotPassword", "/dashboard/Auth/ForgotPassword", ("Email", alice.Email!));
 		var mail = Assert.Single(_f.Mail.SentTo(alice.Email!));
 		var link = mail.FirstLinkPathAndQuery();
 		var (email, token) = ParseLink(link);
 
-		var reset = await NewSession().PostFormAsync(link, "/Auth/ResetPassword", ("Email", email), ("Token", token),
+		var reset = await NewSession().PostFormAsync(link, "/dashboard/Auth/ResetPassword", ("Email", email), ("Token", token),
 			("Password", "Brand-new-1"), ("ConfirmPassword", "Brand-new-1"));
 
 		Assert.Contains(En("reset_password_email_sent"), await page.Content.ReadAsStringAsync());
@@ -270,8 +270,8 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		await RegisterAsync(pending);
 		var mailsBefore = _f.Mail.Sent.Count;
 
-		var forUnknown = await NewSession().PostFormAsync("/Auth/ForgotPassword", "/Auth/ForgotPassword", ("Email", unknown));
-		var forPending = await NewSession().PostFormAsync("/Auth/ForgotPassword", "/Auth/ForgotPassword", ("Email", pending));
+		var forUnknown = await NewSession().PostFormAsync("/dashboard/Auth/ForgotPassword", "/dashboard/Auth/ForgotPassword", ("Email", unknown));
+		var forPending = await NewSession().PostFormAsync("/dashboard/Auth/ForgotPassword", "/dashboard/Auth/ForgotPassword", ("Email", pending));
 
 		Assert.Contains(En("reset_password_email_sent"), await forUnknown.Content.ReadAsStringAsync());
 		Assert.Contains(En("reset_password_email_sent"), await forPending.Content.ReadAsStringAsync());   // no account enumeration
@@ -282,11 +282,11 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	public async Task AResetLink_WorksOnlyOnce_AndRejectsBadTokensAndMismatchedPasswords()
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
-		await NewSession().PostFormAsync("/Auth/ForgotPassword", "/Auth/ForgotPassword", ("Email", alice.Email!));
+		await NewSession().PostFormAsync("/dashboard/Auth/ForgotPassword", "/dashboard/Auth/ForgotPassword", ("Email", alice.Email!));
 		var link = _f.Mail.SentTo(alice.Email!).Single().FirstLinkPathAndQuery();
 		var (email, token) = ParseLink(link);
 		Task<HttpResponseMessage> Post(string t, string pw, string confirm) =>
-			NewSession().PostFormAsync(link, "/Auth/ResetPassword", ("Email", email), ("Token", t), ("Password", pw), ("ConfirmPassword", confirm));
+			NewSession().PostFormAsync(link, "/dashboard/Auth/ResetPassword", ("Email", email), ("Token", t), ("Password", pw), ("ConfirmPassword", confirm));
 
 		var mismatch = await Post(token, "Brand-new-1", "Brand-new-2");
 		var badToken = await Post("not-a-token", "Brand-new-1", "Brand-new-1");
@@ -327,7 +327,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 		});
 
 		async Task<string> Try(string user, string pw) =>
-			await (await NewSession().PostFormAsync("/Auth/Login", "/Auth/Login", ("Username", user), ("Password", pw))).Content.ReadAsStringAsync();
+			await (await NewSession().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login", ("Username", user), ("Password", pw))).Content.ReadAsStringAsync();
 
 		Assert.Contains(En("error_invalid_credentials"), await Try("nobody-at-all", GitServerFactory.Password));
 		Assert.Contains(En("error_invalid_credentials"), await Try(alice.UserName!, "wrong-password"));
@@ -339,7 +339,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 
-		var response = await NewSession().PostFormAsync("/Auth/Login", "/Auth/Login?returnUrl=%2Fexplore",
+		var response = await NewSession().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login?returnUrl=%2Fexplore",
 			("Username", alice.UserName!), ("Password", GitServerFactory.Password));
 
 		Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -354,7 +354,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 
-		var response = await NewSession().PostFormAsync("/Auth/Login", "/Auth/Login?returnUrl=" + Uri.EscapeDataString(returnUrl),
+		var response = await NewSession().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login?returnUrl=" + Uri.EscapeDataString(returnUrl),
 			("Username", alice.UserName!), ("Password", GitServerFactory.Password));
 
 		Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
@@ -372,7 +372,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 			await db.SaveChangesAsync(); return 0;
 		});
 
-		var response = await NewSession().PostFormAsync("/Auth/Login", "/Auth/Login", ("Username", alice.UserName!), ("Password", GitServerFactory.Password));
+		var response = await NewSession().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login", ("Username", alice.UserName!), ("Password", GitServerFactory.Password));
 
 		var cookies = string.Join(";", response.Headers.GetValues("Set-Cookie"));
 		Assert.Contains("lang=nl", cookies);
@@ -384,25 +384,25 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 		var session = await new WebSession(_f).LoginAsync(alice.UserName!);
-		Assert.Equal(HttpStatusCode.OK, (await session.GetAsync("/User/Settings")).StatusCode);
+		Assert.Equal(HttpStatusCode.OK, (await session.GetAsync("/dashboard/User/Settings")).StatusCode);
 
-		var logout = await session.PostFormAsync("/User/Settings", "/Auth/Logout");
-		var after = await session.GetAsync("/User/Settings");
+		var logout = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/Auth/Logout");
+		var after = await session.GetAsync("/dashboard/User/Settings");
 
 		Assert.Equal(HttpStatusCode.Redirect, logout.StatusCode);
 		Assert.Equal(HttpStatusCode.Redirect, after.StatusCode);
-		Assert.StartsWith("/Auth/Login", after.Headers.Location!.AbsolutePath);
+		Assert.StartsWith("/dashboard/Auth/Login", after.Headers.Location!.AbsolutePath);
 	}
 
 	[Fact]
 	public async Task TheSignedInPagesRequireALogin()
 	{
-		foreach (var path in new[] { "/User/Settings", "/User/Groups", "/Repo/New" })
+		foreach (var path in new[] { "/dashboard/User/Settings", "/dashboard/User/Groups", "/dashboard/Repo/New" })
 		{
 			var response = await NewSession().GetAsync(path);
 
 			Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-			Assert.StartsWith("/Auth/Login", response.Headers.Location!.AbsolutePath);
+			Assert.StartsWith("/dashboard/Auth/Login", response.Headers.Location!.AbsolutePath);
 		}
 	}
 
@@ -411,7 +411,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task SetLanguage_StoresTheChoiceInACookie_AndReturnsToTheLocalPage()
 	{
-		var response = await _f.NewClient().GetAsync("/set-language?lang=nl&returnUrl=%2Fexplore");
+		var response = await _f.NewClient().GetAsync("/dashboard/set-language?lang=nl&returnUrl=%2Fexplore");
 
 		Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
 		Assert.Equal("/explore", response.Headers.Location!.OriginalString);
@@ -424,7 +424,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	[InlineData("waaaaaaaaaaaay-too-long")]
 	public async Task SetLanguage_IgnoresValuesThatAreNotALanguageCode(string lang)
 	{
-		var response = await _f.NewClient().GetAsync("/set-language?lang=" + Uri.EscapeDataString(lang));
+		var response = await _f.NewClient().GetAsync("/dashboard/set-language?lang=" + Uri.EscapeDataString(lang));
 
 		Assert.False(response.Headers.Contains("Set-Cookie"));
 		Assert.Equal("/", response.Headers.Location!.OriginalString);
@@ -435,7 +435,7 @@ public class AuthFlowsEndToEndTests : IClassFixture<GitServerFactory>
 	[InlineData("//evil.example")]
 	public async Task SetLanguage_NeverRedirectsToAnotherSite(string returnUrl)
 	{
-		var response = await _f.NewClient().GetAsync("/set-language?lang=nl&returnUrl=" + Uri.EscapeDataString(returnUrl));
+		var response = await _f.NewClient().GetAsync("/dashboard/set-language?lang=nl&returnUrl=" + Uri.EscapeDataString(returnUrl));
 
 		Assert.Equal("/", response.Headers.Location!.OriginalString);
 	}
@@ -452,10 +452,10 @@ public class FirstRegistrationTests : IClassFixture<GitServerFactory>
 	private async Task RegisterAndCompleteAsync(string email, string username)
 	{
 		var session = new WebSession(_f);
-		await session.PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
+		await session.PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 		var link = _f.Mail.SentTo(email).Single().FirstLinkPathAndQuery();
 		var query = System.Web.HttpUtility.ParseQueryString(new Uri("http://x" + link).Query);
-		var response = await session.PostFormAsync(link, "/Auth/CompleteRegistration", ("Email", query["email"]!), ("Token", query["token"]!),
+		var response = await session.PostFormAsync(link, "/dashboard/Auth/CompleteRegistration", ("Email", query["email"]!), ("Token", query["token"]!),
 			("Username", username), ("DisplayName", ""), ("Password", GitServerFactory.Password), ("ConfirmPassword", GitServerFactory.Password));
 		Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
 	}

@@ -1,4 +1,4 @@
-@page "/Admin/Users"
+@page "/dashboard/Admin/Users"
 @model GitServer.Pages.Admin.UsersModel
 @{
     ViewData["Title"] = L["admin_users_title"];
@@ -22,9 +22,7 @@
         <button type="button" id="new-user-btn" class="btn btn-primary">@L["admin_new_user_button"]</button>
     </div>
 
-    <div id="users-list-container">
-        @await Html.PartialAsync("_UsersTableBody", Model)
-    </div>
+    <div id="users-list-container"></div>
 </div>
 
 <div id="user-modal-backdrop" class="user-modal-backdrop" hidden>
@@ -167,8 +165,120 @@
             var newTitle = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)L["admin_new_user_title"]));
             var confirmDeleteTemplate = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)L["confirm_delete_user"]));
 
+            var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["user"] = L["admin_col_user"],
+                ["displayName"] = L["admin_col_display_name"],
+                ["email"] = L["email_label"],
+                ["created"] = L["admin_col_created"],
+                ["lastLogin"] = L["admin_col_last_login"],
+                ["status"] = L["admin_col_status"],
+                ["admin"] = L["admin_col_admin"],
+                ["pending"] = L["admin_pending_registration"],
+                ["never"] = L["admin_never_logged_in"],
+                ["enabled"] = L["admin_status_enabled"],
+                ["disabled"] = L["admin_status_disabled"],
+                ["noResults"] = L["explore_no_results"],
+                ["prev"] = L["pagination_prev"],
+                ["next"] = L["pagination_next"],
+                ["pageOf"] = L["admin_pagination_page_of"],
+            }));
+
             var currentFilter = filterInput.value;
-            var currentPage = 0;
+            var currentPage = @Model.Page;
+            var loadSeq = 0;
+
+            function cell(row, text) {
+                var td = document.createElement('td');
+                td.textContent = text;
+                row.appendChild(td);
+                return td;
+            }
+
+            function badge(className, text, style) {
+                var s = document.createElement('span');
+                s.className = 'badge ' + className;
+                s.textContent = text;
+                if (style) s.setAttribute('style', style);
+                return s;
+            }
+
+            function renderUsers(data) {
+                listContainer.textContent = '';
+
+                var table = document.createElement('table');
+                table.className = 'data-table';
+                var headRow = document.createElement('tr');
+                [labels.user, labels.displayName, labels.email, labels.created, labels.lastLogin, labels.status, labels.admin]
+                    .forEach(function (h) {
+                        var th = document.createElement('th');
+                        th.textContent = h;
+                        headRow.appendChild(th);
+                    });
+                var thead = document.createElement('thead');
+                thead.appendChild(headRow);
+                table.appendChild(thead);
+
+                var tbody = document.createElement('tbody');
+                data.users.forEach(function (u) {
+                    var tr = document.createElement('tr');
+                    tr.className = 'user-row';
+                    tr.style.cursor = 'pointer';
+                    tr.dataset.userId = u.id;
+                    tr.dataset.username = u.userName;
+                    tr.dataset.displayName = u.displayName;
+                    tr.dataset.email = u.email;
+                    tr.dataset.isDisabled = u.isDisabled ? 'true' : 'false';
+                    tr.dataset.isAdmin = u.isAdmin ? 'true' : 'false';
+                    tr.dataset.isPending = u.isPending ? 'true' : 'false';
+                    tr.dataset.isSelf = u.isSelf ? 'true' : 'false';
+
+                    var nameCell = cell(tr, u.isPending ? '' : u.userName);
+                    if (u.isPending) nameCell.appendChild(badge('badge-read', labels.pending));
+                    cell(tr, u.displayName);
+                    cell(tr, u.email);
+                    cell(tr, u.created);
+                    cell(tr, u.lastLogin || labels.never);
+                    var statusCell = cell(tr, '');
+                    statusCell.appendChild(u.isDisabled
+                        ? badge('badge-write', labels.disabled, 'background:rgba(248,81,73,0.15);color:var(--danger)')
+                        : badge('badge-write', labels.enabled));
+                    cell(tr, u.isAdmin ? '✔' : '');
+                    tbody.appendChild(tr);
+                });
+                if (!data.users.length) {
+                    var empty = document.createElement('tr');
+                    var td = cell(empty, labels.noResults);
+                    td.colSpan = 7;
+                    td.className = 'text-muted';
+                    tbody.appendChild(empty);
+                }
+                table.appendChild(tbody);
+                listContainer.appendChild(table);
+
+                var pager = document.createElement('div');
+                pager.className = 'pagination';
+                pager.id = 'users-pagination';
+                var prev = document.createElement('button');
+                prev.type = 'button';
+                prev.className = 'btn btn-secondary';
+                prev.id = 'users-prev-btn';
+                prev.textContent = labels.prev;
+                prev.disabled = data.page <= 0;
+                var info = document.createElement('span');
+                info.className = 'text-muted';
+                info.textContent = labels.pageOf.replace('{0}', data.page + 1).replace('{1}', data.totalPages);
+                var next = document.createElement('button');
+                next.type = 'button';
+                next.className = 'btn btn-secondary';
+                next.id = 'users-next-btn';
+                next.textContent = labels.next;
+                next.disabled = !data.hasNext;
+                pager.appendChild(prev);
+                pager.appendChild(info);
+                pager.appendChild(next);
+                listContainer.appendChild(pager);
+            }
 
             function openConfirm(message, onConfirm) {
                 confirmText.textContent = message;
@@ -253,11 +363,14 @@
             });
 
             function loadUsers() {
-                var url = '?handler=Search&q=' + encodeURIComponent(currentFilter) + '&p=' + currentPage;
+                var url = '/api/admin/users?q=' + encodeURIComponent(currentFilter) + '&p=' + currentPage;
+                var mine = ++loadSeq;
                 fetch(url)
-                    .then(function (r) { return r.text(); })
-                    .then(function (html) { listContainer.innerHTML = html; });
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) { if (mine === loadSeq) renderUsers(data); });
             }
+
+            loadUsers();
 
             filterInput.addEventListener('input', function () {
                 currentFilter = filterInput.value;

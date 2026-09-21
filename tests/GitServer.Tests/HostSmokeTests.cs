@@ -13,11 +13,11 @@ public class HostSmokeTests : IClassFixture<GitServerFactory>
 
 	[Theory]
 	[InlineData("/")]
-	[InlineData("/explore")]
-	[InlineData("/explore/users")]
-	[InlineData("/Auth/Login")]
-	[InlineData("/Auth/Register")]
-	[InlineData("/Auth/ForgotPassword")]
+	[InlineData("/dashboard/explore")]
+	[InlineData("/dashboard/explore/users")]
+	[InlineData("/dashboard/Auth/Login")]
+	[InlineData("/dashboard/Auth/Register")]
+	[InlineData("/dashboard/Auth/ForgotPassword")]
 	public async Task PublicPages_Render(string path)
 	{
 		var response = await _factory.NewClient().GetAsync(path);

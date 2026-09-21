@@ -11,7 +11,7 @@ using Regex = System.Text.RegularExpressions.Regex;
 namespace GitServer.Pages.User;
 
 [Authorize]
-public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager, LocalizationService L) : PageModel
+public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUser> userManager, LocalizationService L, ReservedNames reserved) : PageModel
 {
 	public AppUser? CurrentUser { get; set; }
 	public List<Group> Groups { get; set; } = new();
@@ -51,6 +51,13 @@ public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUs
 		if (!Regex.IsMatch(name, @"^[a-zA-Z0-9_\-]+$"))
 		{
 			Message = L["error_invalid_group_name"];
+			IsError = true;
+			return Page();
+		}
+
+		if (await reserved.IsReservedAsync(name))
+		{
+			Message = L["error_name_reserved"];
 			IsError = true;
 			return Page();
 		}

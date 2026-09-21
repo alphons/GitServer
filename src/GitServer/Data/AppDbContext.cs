@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     public DbSet<Issue> Issues => Set<Issue>();
     public DbSet<IssueComment> IssueComments => Set<IssueComment>();
     public DbSet<BlockedEmailPattern> BlockedEmailPatterns => Set<BlockedEmailPattern>();
+    public DbSet<ReservedNamePattern> ReservedNamePatterns => Set<ReservedNamePattern>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<GitInstallation> GitInstallations => Set<GitInstallation>();
@@ -20,6 +21,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<ReservedNamePattern>(e =>
+        {
+            e.Property(p => p.Pattern).UseCollation("NOCASE");
+            e.HasIndex(p => p.Pattern).IsUnique();
+        });
 
         builder.Entity<AccessToken>(e =>
         {

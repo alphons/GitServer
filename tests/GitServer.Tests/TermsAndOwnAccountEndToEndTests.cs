@@ -32,7 +32,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 	private static bool IsLoginRedirect(HttpResponseMessage r) =>
 		r.StatusCode == HttpStatusCode.Redirect && r.Headers.Location != null &&
 		(r.Headers.Location.IsAbsoluteUri ? r.Headers.Location.AbsolutePath : r.Headers.Location.OriginalString)
-			.StartsWith("/Auth/Login", StringComparison.OrdinalIgnoreCase);
+			.StartsWith("/dashboard/Auth/Login", StringComparison.OrdinalIgnoreCase);
 
 	// ---- The terms page ----------------------------------------------------------------------------------
 
@@ -42,7 +42,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var strings = Strings(language);
 
-		var html = Decode(await Anonymous().GetHtmlAsync("/Terms", language));
+		var html = Decode(await Anonymous().GetHtmlAsync("/dashboard/Terms", language));
 
 		Assert.Contains(strings["terms_title"], html);
 		Assert.Contains(strings["terms_s1_text"], html);
@@ -52,7 +52,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task TheTermsPage_ShowsTheConfiguredContactAddress()
 	{
-		var html = await Anonymous().GetHtmlAsync("/Terms");
+		var html = await Anonymous().GetHtmlAsync("/dashboard/Terms");
 
 		Assert.Contains("href=\"mailto:privacy@example.test\"", html);
 		Assert.Contains(Terms.CurrentVersion, html);
@@ -63,9 +63,9 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var user = await _f.CreateUserAsync(Unique("reader"));
 
-		foreach (var path in new[] { "/", "/Auth/Login", "/Terms" })
-			Assert.Contains("href=\"/Terms\"", await Anonymous().GetHtmlAsync(path));
-		Assert.Contains("href=\"/Terms\"", await (await AsAsync(user)).GetHtmlAsync("/"));
+		foreach (var path in new[] { "/", "/dashboard/Auth/Login", "/dashboard/Terms" })
+			Assert.Contains("href=\"/dashboard/Terms\"", await Anonymous().GetHtmlAsync(path));
+		Assert.Contains("href=\"/dashboard/Terms\"", await (await AsAsync(user)).GetHtmlAsync("/"));
 	}
 
 	// ---- Agreeing while registering -----------------------------------------------------------------------
@@ -73,10 +73,10 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task TheRegistrationForm_AsksToAgree_WithALinkToTheTerms()
 	{
-		var html = await Anonymous().GetHtmlAsync("/Auth/Register");
+		var html = await Anonymous().GetHtmlAsync("/dashboard/Auth/Register");
 
 		Assert.Contains("name=\"AcceptTerms\"", html);
-		Assert.Contains("href=\"/Terms\"", html);
+		Assert.Contains("href=\"/dashboard/Terms\"", html);
 	}
 
 	[Fact]
@@ -84,7 +84,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var email = Unique("noterms") + "@example.com";
 
-		var response = await Anonymous().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email));
+		var response = await Anonymous().PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", email));
 
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		Assert.Contains(Strings("en")["error_terms_required"], await response.Content.ReadAsStringAsync());
@@ -98,7 +98,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 		var email = Unique("terms") + "@example.com";
 		var before = DateTime.UtcNow.AddMinutes(-1);
 
-		await Anonymous().PostFormAsync("/Auth/Register", "/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
+		await Anonymous().PostFormAsync("/dashboard/Auth/Register", "/dashboard/Auth/Register", ("Email", email), ("AcceptTerms", "true"));
 
 		var user = await Db(d => d.Users.SingleAsync(u => u.Email == email));
 		Assert.Equal(Terms.CurrentVersion, user.TermsVersion);
@@ -118,7 +118,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 
 		Assert.Contains(strings["home_intro_title"], html);
 		Assert.Contains(strings["home_intro_text"], html);
-		Assert.Contains("href=\"/Auth/Register\"", html);
+		Assert.Contains("href=\"/dashboard/Auth/Register\"", html);
 	}
 
 	[Fact]
@@ -139,7 +139,7 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 		var user = await _f.CreateUserAsync(Unique("stay"));
 		var session = await AsAsync(user);
 
-		var response = await session.PostFormAsync("/User/Settings", "/User/Settings?handler=DeleteAccount", ("CurrentPassword", "not-my-password"));
+		var response = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=DeleteAccount", ("CurrentPassword", "not-my-password"));
 
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		Assert.Contains(Strings("en")["error_current_password_wrong"], await response.Content.ReadAsStringAsync());
@@ -155,10 +155,10 @@ public class TermsAndOwnAccountEndToEndTests : IClassFixture<GitServerFactory>
 		var oldName = user.UserName!;
 		var session = await AsAsync(user);
 
-		var response = await session.PostFormAsync("/User/Settings", "/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
+		var response = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
 
 		Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-		Assert.True(IsLoginRedirect(await session.GetAsync("/User/Settings")));                   // the session is gone
+		Assert.True(IsLoginRedirect(await session.GetAsync("/dashboard/User/Settings")));                   // the session is gone
 		var anon = (await _f.UseServicesAsync(sp => sp.GetRequiredService<UserManager<AppUser>>().FindByIdAsync(user.Id)))!;
 		Assert.Matches("^anonymous-[0-9]{4,5}$", anon.UserName);
 		await Assert.ThrowsAsync<InvalidOperationException>(() => new WebSession(_f).LoginAsync(oldName));
@@ -179,14 +179,14 @@ public class LastAdministratorTests : IClassFixture<GitServerFactory>
 		var only = await _f.CreateUserAsync("onlyadmin", isAdmin: true);
 		var session = await new WebSession(_f).LoginAsync(only.UserName!);
 
-		var refused = await session.PostFormAsync("/User/Settings", "/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
+		var refused = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
 
 		Assert.Equal(HttpStatusCode.OK, refused.StatusCode);
 		Assert.Contains(WebUtility.HtmlDecode("You are the last administrator"), WebUtility.HtmlDecode(await refused.Content.ReadAsStringAsync()));
 		Assert.NotNull(await _f.UseServicesAsync(sp => sp.GetRequiredService<UserManager<AppUser>>().FindByNameAsync("onlyadmin")));
 
 		await _f.CreateUserAsync("secondadmin", isAdmin: true);
-		var allowed = await session.PostFormAsync("/User/Settings", "/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
+		var allowed = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=DeleteAccount", ("CurrentPassword", GitServerFactory.Password));
 
 		Assert.Equal(HttpStatusCode.Redirect, allowed.StatusCode);
 		Assert.Null(await _f.UseServicesAsync(sp => sp.GetRequiredService<UserManager<AppUser>>().FindByNameAsync("onlyadmin")));

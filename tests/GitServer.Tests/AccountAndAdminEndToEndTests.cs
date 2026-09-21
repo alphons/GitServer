@@ -30,7 +30,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	private static bool IsLoginRedirect(HttpResponseMessage r) =>
 		r.StatusCode == HttpStatusCode.Redirect && r.Headers.Location != null &&
 		(r.Headers.Location.IsAbsoluteUri ? r.Headers.Location.AbsolutePath : r.Headers.Location.OriginalString)
-			.StartsWith("/Auth/Login", StringComparison.OrdinalIgnoreCase);
+			.StartsWith("/dashboard/Auth/Login", StringComparison.OrdinalIgnoreCase);
 
 	private static (string, string)[] UserForm(AppUser u, bool disabled = false, bool admin = false, string display = "") => new[]
 	{
@@ -42,7 +42,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 
 	[Fact]
 	public async Task SettingsPage_RequiresASignedInUser() =>
-		Assert.True(IsLoginRedirect(await Anonymous().GetAsync("/User/Settings")));
+		Assert.True(IsLoginRedirect(await Anonymous().GetAsync("/dashboard/User/Settings")));
 
 	[Fact]
 	public async Task SavingTheProfile_PersistsIt_AndRemembersTheTimeZoneInACookie()
@@ -50,7 +50,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var user = await _f.CreateUserAsync(Unique("prof"));
 		var session = await AsAsync(user);
 
-		var response = await session.PostFormAsync("/User/Settings", "/User/Settings?handler=Profile",
+		var response = await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Profile",
 			("NewDisplayName", "Pro File"), ("NewBio", "Hello there"), ("NewCountry", " NL "),
 			("NewCompanyName", ""), ("NewPreferredLanguage", "nl"), ("NewTimeZoneId", "Europe/Amsterdam"));
 
@@ -71,10 +71,10 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var user = await _f.CreateUserAsync(Unique("pw"));
 		var session = await AsAsync(user);
 
-		await session.PostFormAsync("/User/Settings", "/User/Settings?handler=Password", ("CurrentPassword", "wrong"), ("NewPassword", "Better1!pass"));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Password", ("CurrentPassword", "wrong"), ("NewPassword", "Better1!pass"));
 		await new WebSession(_f).LoginAsync(user.UserName!);                              // old password still valid
 
-		await session.PostFormAsync("/User/Settings", "/User/Settings?handler=Password", ("CurrentPassword", GitServerFactory.Password), ("NewPassword", "Better1!pass"));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Password", ("CurrentPassword", GitServerFactory.Password), ("NewPassword", "Better1!pass"));
 
 		await new WebSession(_f).LoginAsync(user.UserName!, "Better1!pass");
 		await Assert.ThrowsAsync<InvalidOperationException>(() => new WebSession(_f).LoginAsync(user.UserName!));
@@ -86,8 +86,8 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var user = await _f.CreateUserAsync(Unique("weak"));
 		var session = await AsAsync(user);
 
-		await session.PostFormAsync("/User/Settings", "/User/Settings?handler=Password", ("CurrentPassword", GitServerFactory.Password), ("NewPassword", ""));
-		await session.PostFormAsync("/User/Settings", "/User/Settings?handler=Password", ("CurrentPassword", GitServerFactory.Password), ("NewPassword", "abc"));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Password", ("CurrentPassword", GitServerFactory.Password), ("NewPassword", ""));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Password", ("CurrentPassword", GitServerFactory.Password), ("NewPassword", "abc"));
 
 		await new WebSession(_f).LoginAsync(user.UserName!);
 	}
@@ -95,11 +95,11 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	// ---- Admin pages: who may enter -----------------------------------------------------------------------
 
 	[Theory]
-	[InlineData("/Admin/Users")]
-	[InlineData("/Admin/Users?handler=Search&q=x")]
-	[InlineData("/Admin/BlockedEmails")]
-	[InlineData("/Admin/Settings")]
-	[InlineData("/Admin/GitVersion")]
+	[InlineData("/dashboard/Admin/Users")]
+	[InlineData("/api/admin/users?q=x")]
+	[InlineData("/dashboard/Admin/BlockedEmails")]
+	[InlineData("/dashboard/Admin/Settings")]
+	[InlineData("/dashboard/Admin/GitVersion")]
 	public async Task AdminPages_AreClosedToAnonymousAndOrdinaryUsers_AndOpenToAdmins(string url)
 	{
 		var ordinary = await _f.CreateUserAsync(Unique("plain"));
@@ -114,6 +114,101 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(HttpStatusCode.OK, (await (await AsAsync(admin)).GetAsync(url)).StatusCode);
 	}
 
+	[Theory]
+	[InlineData("/api/admin/users")]
+	[InlineData("/api/admin/git/installs/nope")]
+	[InlineData("/api/admin/git/installations/1/entries")]
+	public async Task TheAdminApi_AnswersWithStatusCodes_NotLoginRedirects(string url)
+	{
+		var ordinary = await _f.CreateUserAsync(Unique("plain"));
+
+		Assert.Equal(HttpStatusCode.Unauthorized, (await Anonymous().GetAsync(url)).StatusCode);
+		Assert.Equal(HttpStatusCode.Forbidden, (await (await AsAsync(ordinary)).GetAsync(url)).StatusCode);
+	}
+
+	// ---- Admin: reserved names ------------------------------------------------------------------------------
+
+	private const string ReservedPage = "/dashboard/Admin/ReservedNames";
+	private const string ReservedApi = "/api/admin/reserved-names";
+
+	[Fact]
+	public async Task ReservedNames_StartWithTheBuiltInNames_AndTheEditableDefaults()
+	{
+		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+
+		using var doc = JsonDocument.Parse(await (await AsAsync(admin)).GetHtmlAsync(ReservedApi));
+
+		var builtIn = doc.RootElement.GetProperty("builtIn").EnumerateArray().Select(e => e.GetString()).ToList();
+		var patterns = doc.RootElement.GetProperty("patterns").EnumerateArray().Select(e => e.GetProperty("pattern").GetString()).ToList();
+		Assert.Contains("api", builtIn);
+		Assert.Contains("dashboard", builtIn);
+		Assert.Contains("css", builtIn);
+		Assert.Contains("js", builtIn);
+		Assert.Contains("user*", patterns);
+		Assert.Contains("admin*", patterns);
+	}
+
+	[Theory]
+	[InlineData("/api/admin/reserved-names")]
+	public async Task TheReservedNamesApi_IsClosedToAnonymousAndOrdinaryUsers(string url)
+	{
+		var ordinary = await _f.CreateUserAsync(Unique("plain"));
+
+		Assert.Equal(HttpStatusCode.Unauthorized, (await Anonymous().GetAsync(url)).StatusCode);
+		Assert.Equal(HttpStatusCode.Forbidden, (await (await AsAsync(ordinary)).GetAsync(url)).StatusCode);
+		Assert.Equal(HttpStatusCode.Forbidden,
+			(await (await AsAsync(ordinary)).SendJsonAsync("/dashboard/User/Settings", HttpMethod.Post, url, new { pattern = "hacked" })).StatusCode);
+	}
+
+	[Fact]
+	public async Task ReservedNames_CanBeAdded_Edited_AndDeleted_AndTheyBlockGroupAndUserNames()
+	{
+		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var session = await AsAsync(admin);
+		var stem = Unique("zz").ToLowerInvariant();
+
+		var added = await session.SendJsonAsync(ReservedPage, HttpMethod.Post, ReservedApi, new { pattern = stem + "*" });
+		Assert.Equal(HttpStatusCode.OK, added.StatusCode);
+		var id = JsonDocument.Parse(await added.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetInt32();
+
+		await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", stem.ToUpperInvariant() + "team"));
+		Assert.Equal(0, await Db(d => d.Groups.CountAsync(g => g.Name.ToLower().StartsWith(stem))));      // case-insensitive
+
+		var renamed = stem + "renamed";
+		Assert.Equal(HttpStatusCode.OK, (await session.SendJsonAsync(ReservedPage, HttpMethod.Put, $"{ReservedApi}/{id}", new { pattern = renamed })).StatusCode);
+		await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", stem + "team"));
+		Assert.Equal(1, await Db(d => d.Groups.CountAsync(g => g.Name == stem + "team")));                 // old pattern no longer applies
+
+		Assert.Equal(HttpStatusCode.NoContent, (await session.SendJsonAsync(ReservedPage, HttpMethod.Delete, $"{ReservedApi}/{id}")).StatusCode);
+		Assert.Equal(HttpStatusCode.NotFound, (await session.SendJsonAsync(ReservedPage, HttpMethod.Delete, $"{ReservedApi}/{id}")).StatusCode);
+	}
+
+	[Fact]
+	public async Task TheDefaultPatterns_BlockUserAndAdminNames()
+	{
+		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var session = await AsAsync(admin);
+
+		await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", "Administrators"));
+		await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", "users-club"));
+
+		Assert.Equal(0, await Db(d => d.Groups.CountAsync(g => g.Name == "Administrators" || g.Name == "users-club")));
+	}
+
+	[Theory]
+	[InlineData("", HttpStatusCode.BadRequest)]
+	[InlineData("**", HttpStatusCode.BadRequest)]
+	[InlineData("has space", HttpStatusCode.BadRequest)]
+	[InlineData("USER*", HttpStatusCode.Conflict)]     // "user*" exists already, case-insensitively
+	public async Task ReservedNames_RefuseInvalidAndDuplicatePatterns(string pattern, HttpStatusCode expected)
+	{
+		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+
+		var response = await (await AsAsync(admin)).SendJsonAsync(ReservedPage, HttpMethod.Post, ReservedApi, new { pattern });
+
+		Assert.Equal(expected, response.StatusCode);
+	}
+
 	[Fact]
 	public async Task AnOrdinaryUser_CannotPostToTheAdminPages()
 	{
@@ -123,9 +218,9 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var pattern = $"*@{Unique("evil")}.test";
 		var before = (await _f.UseServicesAsync(sp => sp.GetRequiredService<SiteSettingsService>().GetAsync())).AllowRegistration;
 
-		await session.PostFormAsync("/User/Settings", "/Admin/Users?handler=Delete", ("userId", victim.Id));
-		await session.PostFormAsync("/User/Settings", "/Admin/BlockedEmails?handler=Add", ("NewPattern", pattern));
-		await session.PostFormAsync("/User/Settings", "/Admin/Settings", ("AllowRegistration", before ? "false" : "true"));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/Admin/Users?handler=Delete", ("userId", victim.Id));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/Admin/BlockedEmails?handler=Add", ("NewPattern", pattern));
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/Admin/Settings", ("AllowRegistration", before ? "false" : "true"));
 
 		Assert.NotNull(await Reload(victim.Id));
 		Assert.Equal(0, await Db(d => d.BlockedEmailPatterns.CountAsync(p => p.Pattern == pattern)));
@@ -143,10 +238,26 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var other = await _f.CreateUserAsync(Unique("bystander"));
 		var session = await AsAsync(admin);
 
-		var html = await session.GetHtmlAsync("/Admin/Users?handler=Search&q=" + stem.ToUpperInvariant());
+		var json = await session.GetHtmlAsync("/api/admin/users?q=" + stem.ToUpperInvariant());
 
-		Assert.Contains(stem, html);
-		Assert.DoesNotContain(other.UserName!, html);
+		Assert.Contains(stem, json);
+		Assert.DoesNotContain(other.UserName!, json);
+	}
+
+	[Theory]
+	[InlineData("api")]
+	[InlineData("Dashboard")]
+	public async Task AnAdmin_CannotCreateOrRenameAUserToAReservedName(string reserved)
+	{
+		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var target = await _f.CreateUserAsync(Unique("victim"));
+		var session = await AsAsync(admin);
+
+		await session.PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save",
+			("userName", reserved), ("displayName", ""), ("email", Unique("x") + "@example.com"), ("newPassword", "Secret1!pass"), ("confirmPassword", "Secret1!pass"));
+		await session.PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save", UserForm(target).Select(f => f.Item1 == "userName" ? ("userName", reserved) : f).ToArray());
+
+		Assert.Equal(0, await Db(d => d.Users.CountAsync(u => u.UserName!.ToLower() == reserved.ToLower())));
 	}
 
 	[Fact]
@@ -155,7 +266,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 		var name = Unique("made");
 
-		await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save",
+		await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save",
 			("userName", name), ("displayName", ""), ("email", name + "@example.com"), ("newPassword", "Secret1!pass"), ("confirmPassword", "Secret1!pass"));
 
 		await new WebSession(_f).LoginAsync(name, "Secret1!pass");
@@ -172,7 +283,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 		var name = Unique("nopw");
 
-		await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save",
+		await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save",
 			("userName", name), ("displayName", ""), ("email", name + "@example.com"), ("newPassword", password), ("confirmPassword", confirm));
 
 		Assert.Equal(0, await Db(d => d.Users.CountAsync(u => u.UserName == name)));
@@ -184,7 +295,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 		var existing = await _f.CreateUserAsync(Unique("taken"));
 
-		await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save",
+		await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save",
 			("userName", existing.UserName!.ToUpperInvariant()), ("displayName", ""), ("email", "x" + existing.Email), ("newPassword", "Secret1!pass"), ("confirmPassword", "Secret1!pass"));
 
 		Assert.Equal(1, await Db(d => d.Users.CountAsync(u => u.NormalizedUserName == existing.UserName!.ToUpperInvariant())));
@@ -197,10 +308,10 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var target = await _f.CreateUserAsync(Unique("target"));
 		var session = await AsAsync(admin);
 
-		await session.PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save", UserForm(target, disabled: true));
+		await session.PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save", UserForm(target, disabled: true));
 		await Assert.ThrowsAsync<InvalidOperationException>(() => new WebSession(_f).LoginAsync(target.UserName!));
 
-		await session.PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save", UserForm(target, disabled: false));
+		await session.PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save", UserForm(target, disabled: false));
 		await new WebSession(_f).LoginAsync(target.UserName!);
 	}
 
@@ -210,7 +321,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 		var target = await _f.CreateUserAsync(Unique("target"));
 
-		await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save",
+		await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save",
 			UserForm(target, admin: true, display: "Renamed").Concat(new[] { ("newPassword", "Reset1!pass"), ("confirmPassword", "Reset1!pass") }).ToArray());
 
 		var saved = (await Reload(target.Id))!;
@@ -224,7 +335,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 
-		await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save", UserForm(admin, disabled: true, admin: true));
+		await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save", UserForm(admin, disabled: true, admin: true));
 
 		await new WebSession(_f).LoginAsync(admin.UserName!);
 	}
@@ -234,7 +345,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 
-		var response = await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Delete", ("userId", admin.Id));
+		var response = await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Delete", ("userId", admin.Id));
 
 		Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 		Assert.False((await Reload(admin.Id))!.IsDisabled);
@@ -262,7 +373,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		});
 		var oldName = target.UserName!;
 
-		var response = await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Delete", ("userId", target.Id));
+		var response = await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Delete", ("userId", target.Id));
 
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		var anon = (await Reload(target.Id))!;
@@ -303,7 +414,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 			return u;
 		});
 
-		await (await AsAsync(admin)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Delete", ("userId", pending.Id));
+		await (await AsAsync(admin)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Delete", ("userId", pending.Id));
 
 		Assert.Null(await Reload(pending.Id));
 	}
@@ -318,16 +429,16 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var pattern = $"*@{Unique("spam")}.test";
 		var session = await AsAsync(admin);
 
-		var added = await session.PostFormAsync("/Admin/BlockedEmails", "/Admin/BlockedEmails?handler=Add", ("NewPattern", "  " + pattern + " "));
-		await session.PostFormAsync("/Admin/BlockedEmails", "/Admin/BlockedEmails?handler=Add", ("NewPattern", pattern));
-		await session.PostFormAsync("/Admin/BlockedEmails", "/Admin/BlockedEmails?handler=Add", ("NewPattern", "   "));
+		var added = await session.PostFormAsync("/dashboard/Admin/BlockedEmails", "/dashboard/Admin/BlockedEmails?handler=Add", ("NewPattern", "  " + pattern + " "));
+		await session.PostFormAsync("/dashboard/Admin/BlockedEmails", "/dashboard/Admin/BlockedEmails?handler=Add", ("NewPattern", pattern));
+		await session.PostFormAsync("/dashboard/Admin/BlockedEmails", "/dashboard/Admin/BlockedEmails?handler=Add", ("NewPattern", "   "));
 
 		Assert.Equal(HttpStatusCode.Redirect, added.StatusCode);
 		Assert.Equal(1, await Db(d => d.BlockedEmailPatterns.CountAsync(p => p.Pattern == pattern)));
-		Assert.Contains(pattern, await session.GetHtmlAsync("/Admin/BlockedEmails"));
+		Assert.Contains(pattern, await session.GetHtmlAsync("/dashboard/Admin/BlockedEmails"));
 
 		var id = await Db(d => d.BlockedEmailPatterns.Where(p => p.Pattern == pattern).Select(p => p.Id).SingleAsync());
-		await session.PostFormAsync("/Admin/BlockedEmails", "/Admin/BlockedEmails?handler=Delete", ("id", id.ToString()));
+		await session.PostFormAsync("/dashboard/Admin/BlockedEmails", "/dashboard/Admin/BlockedEmails?handler=Delete", ("id", id.ToString()));
 		Assert.Equal(0, await Db(d => d.BlockedEmailPatterns.CountAsync(p => p.Pattern == pattern)));
 	}
 
@@ -340,19 +451,19 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 		var session = await AsAsync(admin);
 		try
 		{
-			await session.PostFormAsync("/Admin/Settings", "/Admin/Settings", ("AllowRegistration", "false"), ("AllowUserRepoCreation", "true"));
+			await session.PostFormAsync("/dashboard/Admin/Settings", "/dashboard/Admin/Settings", ("AllowRegistration", "false"), ("AllowUserRepoCreation", "true"));
 
 			var settings = await _f.UseServicesAsync(sp => sp.GetRequiredService<SiteSettingsService>().GetAsync());
 			Assert.False(settings.AllowRegistration);
 			Assert.True(settings.AllowUserRepoCreation);
 			Assert.False(settings.AllowAnonymousPush);
-			Assert.Contains(En("register_disabled"), await Anonymous().GetHtmlAsync("/Auth/Register"));
+			Assert.Contains(En("register_disabled"), await Anonymous().GetHtmlAsync("/dashboard/Auth/Register"));
 		}
 		finally
 		{
-			await session.PostFormAsync("/Admin/Settings", "/Admin/Settings", ("AllowRegistration", "true"), ("AllowUserRepoCreation", "true"), ("AllowPushToCreateRepositories", "true"));
+			await session.PostFormAsync("/dashboard/Admin/Settings", "/dashboard/Admin/Settings", ("AllowRegistration", "true"), ("AllowUserRepoCreation", "true"), ("AllowPushToCreateRepositories", "true"));
 		}
-		Assert.DoesNotContain(En("register_disabled"), await Anonymous().GetHtmlAsync("/Auth/Register"));
+		Assert.DoesNotContain(En("register_disabled"), await Anonymous().GetHtmlAsync("/dashboard/Auth/Register"));
 	}
 
 	[Fact]
@@ -360,7 +471,7 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var admin = await _f.CreateUserAsync(Unique("boss"), isAdmin: true);
 
-		var html = await (await AsAsync(admin)).GetHtmlAsync("/Admin/GitVersion");
+		var html = await (await AsAsync(admin)).GetHtmlAsync("/dashboard/Admin/GitVersion");
 
 		Assert.Contains("git version", html, StringComparison.OrdinalIgnoreCase);
 	}

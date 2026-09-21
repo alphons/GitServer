@@ -29,11 +29,14 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	private WebSession Anonymous() => new(_f);
 	private async Task<WebSession> AsAsync(AppUser user) => await new WebSession(_f).LoginAsync(user.UserName!);
 
+	private static JsonElement Json(string body) => JsonDocument.Parse(body).RootElement;
+	private static string[] Names(JsonElement data, string list) =>
+		data.GetProperty(list).EnumerateArray().Select(r => r.GetProperty("displayName").GetString()!.Split(" / ").Last()).ToArray();
 	private static int RepoCards(string html) => Regex.Matches(html, "class=\"repo-card\"").Count;
 	private static bool IsLoginRedirect(HttpResponseMessage r) =>
 		r.StatusCode == HttpStatusCode.Redirect && r.Headers.Location != null &&
 		(r.Headers.Location.IsAbsoluteUri ? r.Headers.Location.AbsolutePath : r.Headers.Location.OriginalString)
-			.StartsWith("/Auth/Login", StringComparison.OrdinalIgnoreCase);
+			.StartsWith("/dashboard/Auth/Login", StringComparison.OrdinalIgnoreCase);
 
 	private Task<T> Db<T>(Func<AppDbContext, Task<T>> action) =>
 		_f.UseServicesAsync(sp => action(sp.GetRequiredService<AppDbContext>()));
@@ -50,7 +53,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateGroupRepoAsync(group, "visible-group-repo");
 		await _f.CreateGroupRepoAsync(group, "hidden-group-repo", isPrivate: true);
 
-		var html = await Anonymous().GetHtmlAsync("/explore?q=" + Uri.EscapeDataString("-repo"));
+		var html = await Anonymous().GetHtmlAsync("/dashboard/explore?q=" + Uri.EscapeDataString("-repo"));
 
 		Assert.Contains($"{alice.UserName} / visible-user-repo", html);
 		Assert.Contains($"{group.Name} / visible-group-repo", html);
@@ -84,10 +87,10 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var userRepo = await Anonymous().GetHtmlAsync($"/{alice.UserName}/mine");
 		var groupRepo = await Anonymous().GetHtmlAsync($"/{group.Name}/ours");
 
-		Assert.Contains($"href=\"/User/{alice.UserName}\"", userRepo);
-		Assert.DoesNotContain("href=\"/Group/", userRepo);
-		Assert.Contains($"href=\"/Group/{group.Name}\"", groupRepo);
-		Assert.DoesNotContain($"href=\"/User/{group.Name}\"", groupRepo);   // the original 404 bug
+		Assert.Contains($"href=\"/dashboard/User/{alice.UserName}\"", userRepo);
+		Assert.DoesNotContain("href=\"/dashboard/Group/", userRepo);
+		Assert.Contains($"href=\"/dashboard/Group/{group.Name}\"", groupRepo);
+		Assert.DoesNotContain($"href=\"/dashboard/User/{group.Name}\"", groupRepo);   // the original 404 bug
 	}
 
 	[Fact]
@@ -142,7 +145,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateGroupRepoAsync(group, "public-one");
 		await _f.CreateGroupRepoAsync(group, "private-one", isPrivate: true);
 
-		var html = await Anonymous().GetHtmlAsync($"/Group/{group.Name.ToUpperInvariant()}");
+		var html = await Anonymous().GetHtmlAsync($"/dashboard/Group/{group.Name.ToUpperInvariant()}");
 
 		Assert.Contains(group.Name, html);
 		Assert.Contains("public-one", html);
@@ -161,7 +164,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var group = await _f.CreateGroupAsync(Unique("Team"), owner, member);
 		await _f.CreateGroupRepoAsync(group, "private-one", isPrivate: true);
 
-		var html = await (await AsAsync(member)).GetHtmlAsync($"/Group/{group.Name}");
+		var html = await (await AsAsync(member)).GetHtmlAsync($"/dashboard/Group/{group.Name}");
 
 		Assert.Contains("private-one", html);
 	}
@@ -173,8 +176,8 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var group = await _f.CreateGroupAsync(Unique("Big"), owner);
 		await _f.AddRepoRowsAsync(null, group, "repo", 25);
 
-		var page0 = await Anonymous().GetHtmlAsync($"/Group/{group.Name}");
-		var page1 = await Anonymous().GetHtmlAsync($"/Group/{group.Name}?p=1");
+		var page0 = await Anonymous().GetHtmlAsync($"/dashboard/Group/{group.Name}");
+		var page1 = await Anonymous().GetHtmlAsync($"/dashboard/Group/{group.Name}?p=1");
 
 		Assert.Contains(En("group_repos_title") + " (25)", page0);
 		Assert.Equal(20, RepoCards(page0));
@@ -188,8 +191,8 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var anonymous = Anonymous();
 
-		Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/Group/no-such-group-anywhere")).StatusCode);
-		Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/User/no-such-user-anywhere")).StatusCode);
+		Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/dashboard/Group/no-such-group-anywhere")).StatusCode);
+		Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/dashboard/User/no-such-user-anywhere")).StatusCode);
 	}
 
 	// ---- Profile page ------------------------------------------------------------------------------
@@ -201,12 +204,11 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateRepoAsync(alice, "pub");
 		await _f.CreateRepoAsync(alice, "priv", isPrivate: true);
 
-		var html = await Anonymous().GetHtmlAsync($"/User/{alice.UserName}");
+		var data = Json(await Anonymous().GetHtmlAsync($"/api/users/{alice.UserName}/repos"));
 
-		Assert.Contains("pub", html);
-		Assert.DoesNotContain("priv", html.Replace("private", "").Replace("Private", ""));
-		Assert.DoesNotContain(En("profile_own_repos_title"), html);      // "Your repositories" is for your own profile
-		Assert.DoesNotContain(En("profile_group_repos_title"), html);
+		Assert.Equal(new[] { "pub" }, Names(data, "repos"));
+		Assert.False(data.GetProperty("isOwner").GetBoolean());          // "Your repositories" is for your own profile
+		Assert.Empty(Names(data, "groupRepos"));
 	}
 
 	[Fact]
@@ -219,11 +221,13 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateRepoAsync(alice, "my-secret", isPrivate: true);
 		await _f.AddRepoRowsAsync(null, group, "shared", 22, isPrivate: true);
 
-		var html = await (await AsAsync(alice)).GetHtmlAsync($"/User/{alice.UserName}");
+		var data = Json(await (await AsAsync(alice)).GetHtmlAsync($"/api/users/{alice.UserName}/repos"));
 
-		Assert.Contains(En("profile_own_repos_title") + " (24)", html);
-		Assert.Contains(En("profile_group_repos_title") + " (22)", html);
-		Assert.Equal(40, RepoCards(html));                                 // 20 + 20 on the first pages
+		Assert.True(data.GetProperty("isOwner").GetBoolean());
+		Assert.Equal(24, data.GetProperty("totalCount").GetInt32());
+		Assert.Equal(22, data.GetProperty("groupTotalCount").GetInt32());
+		Assert.Equal(20, data.GetProperty("repos").GetArrayLength());       // 20 + 20 on the first pages
+		Assert.Equal(20, data.GetProperty("groupRepos").GetArrayLength());
 	}
 
 	[Fact]
@@ -235,14 +239,14 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.AddRepoRowsAsync(null, group, "grp", 45);
 		var session = await AsAsync(alice);
 
-		var ownPage2 = await session.GetHtmlAsync($"/User/{alice.UserName}?handler=Search&q=&p=1&gp=0");
-		var groupPage3 = await session.GetHtmlAsync($"/User/{alice.UserName}?handler=Search&q=&p=0&gp=2");
+		var ownPage2 = Json(await session.GetHtmlAsync($"/api/users/{alice.UserName}/repos?q=&p=1&gp=0"));
+		var groupPage3 = Json(await session.GetHtmlAsync($"/api/users/{alice.UserName}/repos?q=&p=0&gp=2"));
 
-		Assert.Contains("own-01", ownPage2);                              // page 2 of own = the single oldest repo
-		Assert.DoesNotContain("own-21", ownPage2);
-		Assert.Contains("grp-05", groupPage3);                            // page 3 of group = the last 5
-		Assert.DoesNotContain("grp-06", groupPage3);
-		Assert.Contains("own-21", groupPage3);                            // own list still on its first page
+		Assert.Equal(new[] { "own-01" }, Names(ownPage2, "repos"));       // page 2 of own = the single oldest repo
+		Assert.Contains("own-21", Names(groupPage3, "repos"));            // own list still on its first page
+		Assert.Contains("grp-05", Names(groupPage3, "groupRepos"));       // page 3 of group = the last 5
+		Assert.DoesNotContain("grp-06", Names(groupPage3, "groupRepos"));
+		Assert.Equal(5, groupPage3.GetProperty("groupRepos").GetArrayLength());
 	}
 
 	[Fact]
@@ -255,14 +259,12 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateGroupRepoAsync(group, "billing-api");
 		await _f.CreateGroupRepoAsync(group, "website");
 
-		var html = await (await AsAsync(alice)).GetHtmlAsync($"/User/{alice.UserName}?handler=Search&q=BILLING");
+		var data = Json(await (await AsAsync(alice)).GetHtmlAsync($"/api/users/{alice.UserName}/repos?q=BILLING"));
 
-		Assert.Contains("billing-tool", html);
-		Assert.Contains("billing-api", html);
-		Assert.DoesNotContain("notes", html);
-		Assert.DoesNotContain("website", html);
-		Assert.Contains(En("profile_own_repos_title") + " (1)", html);
-		Assert.Contains(En("profile_group_repos_title") + " (1)", html);
+		Assert.Equal(new[] { "billing-tool" }, Names(data, "repos"));
+		Assert.Equal(new[] { "billing-api" }, Names(data, "groupRepos"));
+		Assert.Equal(1, data.GetProperty("totalCount").GetInt32());
+		Assert.Equal(1, data.GetProperty("groupTotalCount").GetInt32());
 	}
 
 	// ---- Language ----------------------------------------------------------------------------------
@@ -274,7 +276,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	[InlineData("ar")]
 	public async Task TheLanguageCookie_ChangesThePageText_AndTheHtmlLangAttribute(string language)
 	{
-		var html = await Anonymous().GetHtmlAsync("/explore", language);
+		var html = await Anonymous().GetHtmlAsync("/dashboard/explore", language);
 
 		Assert.Contains(Text(language, "nav_explore"), WebUtility.HtmlDecode(html));   // Razor writes non-Latin text as entities
 		Assert.Contains($"<html lang=\"{language}\"", html);
@@ -283,7 +285,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task WithoutTheCookie_ThePageIsEnglish()
 	{
-		var html = await Anonymous().GetHtmlAsync("/explore");
+		var html = await Anonymous().GetHtmlAsync("/dashboard/explore");
 
 		Assert.Contains("<html lang=\"en\"", html);
 		Assert.Contains(En("nav_explore"), html);
@@ -296,8 +298,8 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 
-		var good = await Anonymous().PostFormAsync("/Auth/Login", "/Auth/Login", ("Username", alice.UserName!), ("Password", GitServerFactory.Password));
-		var bad = await Anonymous().PostFormAsync("/Auth/Login", "/Auth/Login", ("Username", alice.UserName!), ("Password", "wrong-wrong"));
+		var good = await Anonymous().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login", ("Username", alice.UserName!), ("Password", GitServerFactory.Password));
+		var bad = await Anonymous().PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login", ("Username", alice.UserName!), ("Password", "wrong-wrong"));
 
 		Assert.Equal(HttpStatusCode.Redirect, good.StatusCode);
 		Assert.Equal(HttpStatusCode.OK, bad.StatusCode);
@@ -398,7 +400,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateRepoAsync(alice, "keep");
 		var session = await AsAsync(mallory);
 
-		var response = await session.PostFormAsync("/Auth/Login", $"/{alice.UserName}/keep/settings?handler=Delete");
+		var response = await session.PostFormAsync("/dashboard/Auth/Login", $"/{alice.UserName}/keep/settings?handler=Delete");
 
 		Assert.True(IsLoginRedirect(response));
 		Assert.True(Directory.Exists(Path.Combine(_f.ReposPath, alice.UserName!, "keep.git")));
@@ -450,7 +452,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 
-		var response = await (await AsAsync(alice)).PostFormAsync("/Repo/New", "/Repo/New", ("Name", "brand-new"), ("Description", "hello"));
+		var response = await (await AsAsync(alice)).PostFormAsync("/dashboard/Repo/New", "/dashboard/Repo/New", ("Name", "brand-new"), ("Description", "hello"));
 
 		Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
 		Assert.Equal($"/{alice.UserName}/brand-new", Location(response));
@@ -466,8 +468,8 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var theirs = await _f.CreateGroupAsync(Unique("Theirs"), bob);
 		var session = await AsAsync(alice);
 
-		var ok = await session.PostFormAsync("/Repo/New", "/Repo/New", ("Name", "in-my-group"), ("GroupOwnerId", mine.Id.ToString()));
-		var refused = await session.PostFormAsync("/Repo/New", "/Repo/New", ("Name", "in-their-group"), ("GroupOwnerId", theirs.Id.ToString()));
+		var ok = await session.PostFormAsync("/dashboard/Repo/New", "/dashboard/Repo/New", ("Name", "in-my-group"), ("GroupOwnerId", mine.Id.ToString()));
+		var refused = await session.PostFormAsync("/dashboard/Repo/New", "/dashboard/Repo/New", ("Name", "in-their-group"), ("GroupOwnerId", theirs.Id.ToString()));
 
 		Assert.Equal($"/{mine.Name}/in-my-group", Location(ok));
 		Assert.Equal(HttpStatusCode.OK, refused.StatusCode);
@@ -482,8 +484,8 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateRepoAsync(alice, "Taken");
 		var session = await AsAsync(alice);
 
-		var duplicate = await session.PostFormAsync("/Repo/New", "/Repo/New", ("Name", "taken"));
-		var invalid = await session.PostFormAsync("/Repo/New", "/Repo/New", ("Name", "no spaces/allowed"));
+		var duplicate = await session.PostFormAsync("/dashboard/Repo/New", "/dashboard/Repo/New", ("Name", "taken"));
+		var invalid = await session.PostFormAsync("/dashboard/Repo/New", "/dashboard/Repo/New", ("Name", "no spaces/allowed"));
 
 		Assert.Contains(En("error_repo_name_taken"), await duplicate.Content.ReadAsStringAsync());
 		Assert.Contains(En("error_invalid_repo_name"), await invalid.Content.ReadAsStringAsync());
@@ -500,10 +502,10 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var session = await AsAsync(alice);
 		var name = Unique("Crew");
 
-		var created = await session.PostFormAsync("/User/Groups", "/User/Groups?handler=Create", ("NewGroupName", name));
-		var sameNameOtherCase = await (await AsAsync(bob)).PostFormAsync("/User/Groups", "/User/Groups?handler=Create", ("NewGroupName", name.ToUpperInvariant()));
-		var clashesWithUser = await session.PostFormAsync("/User/Groups", "/User/Groups?handler=Create", ("NewGroupName", bob.UserName!.ToUpperInvariant()));
-		var badChars = await session.PostFormAsync("/User/Groups", "/User/Groups?handler=Create", ("NewGroupName", "no spaces or/slashes"));
+		var created = await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", name));
+		var sameNameOtherCase = await (await AsAsync(bob)).PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", name.ToUpperInvariant()));
+		var clashesWithUser = await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", bob.UserName!.ToUpperInvariant()));
+		var badChars = await session.PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", "no spaces or/slashes"));
 
 		Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
 		Assert.Contains(En("error_group_name_taken"), await sameNameOtherCase.Content.ReadAsStringAsync());
@@ -520,7 +522,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var stranger = await _f.CreateUserAsync(Unique("stranger"));
 		var group = await _f.CreateGroupAsync(Unique("Team"), owner);
 		await _f.CreateGroupRepoAsync(group, "inside");
-		var page = $"/User/GroupDetail/{group.Id}";
+		var page = $"/dashboard/User/GroupDetail/{group.Id}";
 		var session = await AsAsync(owner);
 
 		Assert.Equal(HttpStatusCode.NotFound, (await (await AsAsync(stranger)).GetAsync(page)).StatusCode);
@@ -539,6 +541,21 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(0, await Db(db => db.Repositories.CountAsync(r => r.GroupOwnerId == group.Id)));   // cascade
 	}
 
+	[Theory]
+	[InlineData("api")]
+	[InlineData("API")]
+	[InlineData("dashboard")]
+	[InlineData("css")]
+	[InlineData("js")]
+	public async Task AGroup_CannotTakeANameTheSiteUsesInItsUrls(string name)
+	{
+		var alice = await _f.CreateUserAsync(Unique("alice"));
+
+		await (await AsAsync(alice)).PostFormAsync("/dashboard/User/Groups", "/dashboard/User/Groups?handler=Create", ("NewGroupName", name));
+
+		Assert.Equal(0, await Db(db => db.Groups.CountAsync(g => g.Name.ToLower() == name.ToLower())));
+	}
+
 	[Fact]
 	public async Task GroupDetail_ListsRepos_WithPaging_AndTheRealTotal()
 	{
@@ -547,22 +564,24 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.AddRepoRowsAsync(null, group, "repo", 23);
 		var session = await AsAsync(owner);
 
-		var first = await session.GetHtmlAsync($"/User/GroupDetail/{group.Id}");
-		var second = await session.GetHtmlAsync($"/User/GroupDetail/{group.Id}?handler=Repos&rp=1");
+		var page = await session.GetHtmlAsync($"/dashboard/User/GroupDetail/{group.Id}");
+		var first = Json(await session.GetHtmlAsync($"/api/groups/{group.Id}/repos"));
+		var second = Json(await session.GetHtmlAsync($"/api/groups/{group.Id}/repos?rp=1"));
 
-		Assert.Contains(" (23)", first);
-		Assert.Equal(20, RepoCards(first));
-		Assert.Equal(3, RepoCards(second));
-		Assert.DoesNotContain(En("index_empty_create"), first);              // "Create the first one!" only when empty
+		Assert.Contains(" (23)", page);
+		Assert.Equal(20, first.GetProperty("repos").GetArrayLength());
+		Assert.True(first.GetProperty("hasNext").GetBoolean());
+		Assert.Equal(3, second.GetProperty("repos").GetArrayLength());
+		Assert.False(second.GetProperty("hasNext").GetBoolean());
 	}
 
 	// ---- Site administration -------------------------------------------------------------------------
 
 	[Theory]
-	[InlineData("/Admin/Users")]
-	[InlineData("/Admin/Settings")]
-	[InlineData("/Admin/BlockedEmails")]
-	[InlineData("/Admin/GitVersion")]
+	[InlineData("/dashboard/Admin/Users")]
+	[InlineData("/dashboard/Admin/Settings")]
+	[InlineData("/dashboard/Admin/BlockedEmails")]
+	[InlineData("/dashboard/Admin/GitVersion")]
 	public async Task AdminPages_AreOnlyForAdmins(string path)
 	{
 		var admin = await _f.CreateUserAsync(Unique("admin"), isAdmin: true);
@@ -579,9 +598,9 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var admin = await _f.CreateUserAsync(Unique("admin"), isAdmin: true);
 		var user = await _f.CreateUserAsync(Unique("plain"));
 
-		Assert.Contains("href=\"/Admin/Users\"", await (await AsAsync(admin)).GetHtmlAsync("/explore"));
-		Assert.DoesNotContain("href=\"/Admin/Users\"", await (await AsAsync(user)).GetHtmlAsync("/explore"));
-		Assert.DoesNotContain("href=\"/Admin/Users\"", await Anonymous().GetHtmlAsync("/explore"));
+		Assert.Contains("href=\"/dashboard/Admin/Users\"", await (await AsAsync(admin)).GetHtmlAsync("/dashboard/explore"));
+		Assert.DoesNotContain("href=\"/dashboard/Admin/Users\"", await (await AsAsync(user)).GetHtmlAsync("/dashboard/explore"));
+		Assert.DoesNotContain("href=\"/dashboard/Admin/Users\"", await Anonymous().GetHtmlAsync("/dashboard/explore"));
 	}
 
 	[Fact]
@@ -596,7 +615,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		});
 		try
 		{
-			var response = await session.PostFormAsync("/Repo/New", "/Repo/New", ("Name", "blocked"));
+			var response = await session.PostFormAsync("/dashboard/Repo/New", "/dashboard/Repo/New", ("Name", "blocked"));
 
 			Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 			Assert.Contains(En("new_repo_creation_disabled"), await response.Content.ReadAsStringAsync());

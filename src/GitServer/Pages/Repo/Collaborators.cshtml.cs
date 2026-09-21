@@ -70,29 +70,6 @@ public class CollaboratorsModel(
 		return Page();
 	}
 
-	public async Task<IActionResult> OnGetSearchUsersAsync(string user, string repo, string? q)
-	{
-		var (repoObj, isOwner) = await LoadAsync(user, repo);
-		if (repoObj == null) return NotFound();
-		if (!isOwner) return Forbid();
-
-		q = q?.Trim();
-		if (string.IsNullOrEmpty(q) || q.Length < 2) return new JsonResult(Array.Empty<object>());
-
-		var lower = q.ToLower();
-		var results = await db.Users
-			.Where(u => u.Id != repoObj.OwnerId && (
-				u.UserName!.ToLower().Contains(lower) ||
-				u.Email!.ToLower().Contains(lower) ||
-				u.DisplayName.ToLower().Contains(lower)))
-			.OrderBy(u => u.UserName)
-			.Take(10)
-			.Select(u => new { userName = u.UserName, displayName = u.DisplayName, email = u.Email })
-			.ToListAsync();
-
-		return new JsonResult(results);
-	}
-
 	public async Task<IActionResult> OnPostAddCollaboratorAsync(string user, string repo)
 	{
 		var (repoObj, isOwner) = await LoadAsync(user, repo);

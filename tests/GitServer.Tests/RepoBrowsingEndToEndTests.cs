@@ -31,7 +31,7 @@ public class RepoBrowsingEndToEndTests : IClassFixture<GitServerFactory>
 	private static bool IsLoginRedirect(HttpResponseMessage r) =>
 		r.StatusCode == HttpStatusCode.Redirect && r.Headers.Location != null &&
 		(r.Headers.Location.IsAbsoluteUri ? r.Headers.Location.AbsolutePath : r.Headers.Location.OriginalString)
-			.StartsWith("/Auth/Login", StringComparison.OrdinalIgnoreCase);
+			.StartsWith("/dashboard/Auth/Login", StringComparison.OrdinalIgnoreCase);
 
 	private async Task<(AppUser Owner, GitServerFactory.SeededRepo Seed, string Base)> SeedAsync(bool isPrivate = false, int extraCommits = 0)
 	{
@@ -347,7 +347,7 @@ public class RepoBrowsingEndToEndTests : IClassFixture<GitServerFactory>
 		Directory.Delete(Path.Combine(_f.ReposPath, owner.UserName!, "broken.git"), recursive: true);
 		var page = $"/{owner.UserName}/broken/data-missing";
 
-		var refused = await (await AsAsync(stranger)).PostFormAsync("/User/Settings", page + "?handler=Delete");
+		var refused = await (await AsAsync(stranger)).PostFormAsync("/dashboard/User/Settings", page + "?handler=Delete");
 		Assert.True(IsLoginRedirect(refused));
 		Assert.Equal(1, await _f.UseServicesAsync(sp => sp.GetRequiredService<AppDbContext>().Repositories.CountAsync(r => r.OwnerId == owner.Id)));
 
@@ -414,7 +414,7 @@ public class RepoBrowsingEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(HttpStatusCode.OK, (await (await AsAsync(member)).GetAsync(url + "/commits")).StatusCode);
 		Assert.True(IsLoginRedirect(await (await AsAsync(stranger)).GetAsync(url + "/commits")));
 		var html = await (await AsAsync(member)).GetHtmlAsync(url);
-		Assert.Contains($"href=\"/Group/{group.Name}\"", html);
+		Assert.Contains($"href=\"/dashboard/Group/{group.Name}\"", html);
 		Assert.Contains($"/git/{group.Name}/proj.git", html);
 	}
 }

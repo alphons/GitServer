@@ -1,4 +1,4 @@
-@page "/explore"
+@page "/dashboard/explore"
 @model GitServer.Pages.ExploreModel
 @{
     ViewData["Title"] = "Explore";
@@ -22,8 +22,8 @@
     }
 
     @{
-        var prevUrl = $"/explore?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page - 1}";
-        var nextUrl = $"/explore?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page + 1}";
+        var prevUrl = $"/dashboard/explore?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page - 1}";
+        var nextUrl = $"/dashboard/explore?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page + 1}";
     }
     @if (Model.Page > 0 || Model.HasNextPage)
     {

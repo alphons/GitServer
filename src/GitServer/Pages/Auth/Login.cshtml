@@ -1,4 +1,4 @@
-@page "/Auth/Login"
+@page "/dashboard/Auth/Login"
 @model GitServer.Pages.Auth.LoginModel
 @{
     ViewData["Title"] = L["login_title"];
@@ -26,9 +26,9 @@
             <button type="submit" class="btn btn-primary btn-block">@L["login_submit"]</button>
         </form>
         <div class="auth-links">
-            <a href="/Auth/Register">@L["login_register_link"]</a>
+            <a href="/dashboard/Auth/Register">@L["login_register_link"]</a>
             &middot;
-            <a href="/Auth/ForgotPassword">@L["login_forgot_password_link"]</a>
+            <a href="/dashboard/Auth/ForgotPassword">@L["login_forgot_password_link"]</a>
         </div>
     </div>
 </div>

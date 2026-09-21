@@ -1,4 +1,4 @@
-@page "/Auth/CompleteRegistration"
+@page "/dashboard/Auth/CompleteRegistration"
 @model GitServer.Pages.Auth.CompleteRegistrationModel
 @{
     ViewData["Title"] = L["complete_registration_page_title"];
@@ -10,7 +10,7 @@
         {
             <div class="alert alert-danger">@Model.ErrorMessage</div>
             <div class="auth-links">
-                <a href="/Auth/Register">@L["register_login_link"]</a>
+                <a href="/dashboard/Auth/Register">@L["register_login_link"]</a>
             </div>
         }
         else

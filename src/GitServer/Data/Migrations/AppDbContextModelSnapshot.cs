@@ -405,6 +405,28 @@ namespace GitServer.Data.Migrations
                     b.ToTable("RepositoryAccesses");
                 });
 
+            modelBuilder.Entity("GitServer.Models.ReservedNamePattern", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Pattern")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Pattern")
+                        .IsUnique();
+
+                    b.ToTable("ReservedNamePatterns");
+                });
+
             modelBuilder.Entity("GitServer.Models.SiteSettings", b =>
                 {
                     b.Property<int>("Id")

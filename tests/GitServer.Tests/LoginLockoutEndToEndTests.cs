@@ -23,7 +23,7 @@ public class LoginLockoutEndToEndTests : IClassFixture<GitServerFactory>
 		JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(TestPaths.LocalizationRoot, "en", "strings.json")))![key];
 
 	private static Task<HttpResponseMessage> TryLogin(WebSession s, string user, string password) =>
-		s.PostFormAsync("/Auth/Login", "/Auth/Login", ("Username", user), ("Password", password));
+		s.PostFormAsync("/dashboard/Auth/Login", "/dashboard/Auth/Login", ("Username", user), ("Password", password));
 
 	[Fact]
 	public async Task AfterTooManyWrongPasswords_TheRightOneNoLongerWorks_AndTheUserIsToldWhy()
@@ -85,7 +85,7 @@ public class LoginLockoutEndToEndTests : IClassFixture<GitServerFactory>
 		for (var i = 0; i < Attempts; i++) await TryLogin(new WebSession(_f), user.UserName!, "wrong-password");
 		await Assert.ThrowsAsync<InvalidOperationException>(() => new WebSession(_f).LoginAsync(user.UserName!));
 
-		await (await new WebSession(_f).LoginAsync(admin.UserName!)).PostFormAsync("/Admin/Users", "/Admin/Users?handler=Save",
+		await (await new WebSession(_f).LoginAsync(admin.UserName!)).PostFormAsync("/dashboard/Admin/Users", "/dashboard/Admin/Users?handler=Save",
 			("userId", user.Id), ("userName", user.UserName!), ("displayName", ""), ("email", user.Email!), ("isDisabled", "false"), ("isAdmin", "false"));
 
 		await new WebSession(_f).LoginAsync(user.UserName!);

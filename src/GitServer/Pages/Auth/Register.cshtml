@@ -1,4 +1,4 @@
-@page "/Auth/Register"
+@page "/dashboard/Auth/Register"
 @model GitServer.Pages.Auth.RegisterModel
 @{
     ViewData["Title"] = L["register_page_title"];
@@ -32,7 +32,7 @@
                     <div class="form-group">
                         <label>
                             <input name="AcceptTerms" type="checkbox" value="true" required />
-                            @L["register_terms_agree"] <a href="/Terms" target="_blank">@L["terms_title"]</a>
+                            @L["register_terms_agree"] <a href="/dashboard/Terms" target="_blank">@L["terms_title"]</a>
                         </label>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">@L["register_submit"]</button>
@@ -40,7 +40,7 @@
             }
         }
         <div class="auth-links">
-            <a href="/Auth/Login">@L["register_login_link"]</a>
+            <a href="/dashboard/Auth/Login">@L["register_login_link"]</a>
         </div>
     </div>
 </div>

@@ -27,10 +27,10 @@ public class IssuesEndToEndTests : IClassFixture<GitServerFactory>
 	private static bool IsLoginRedirect(HttpResponseMessage r) =>
 		r.StatusCode == HttpStatusCode.Redirect && r.Headers.Location != null &&
 		(r.Headers.Location.IsAbsoluteUri ? r.Headers.Location.AbsolutePath : r.Headers.Location.OriginalString)
-			.StartsWith("/Auth/Login", StringComparison.OrdinalIgnoreCase);
+			.StartsWith("/dashboard/Auth/Login", StringComparison.OrdinalIgnoreCase);
 
 	// A page that always renders a form, so a signed-in session can obtain an antiforgery token even when the target page is forbidden.
-	private const string TokenPage = "/User/Settings";
+	private const string TokenPage = "/dashboard/User/Settings";
 
 	private Task<HttpResponseMessage> PostAsync(WebSession s, string url, params (string, string)[] fields) => s.PostFormAsync(TokenPage, url, fields);
 
@@ -78,7 +78,7 @@ public class IssuesEndToEndTests : IClassFixture<GitServerFactory>
 		var repo = await _f.CreateRepoAsync(alice, "tracker");
 
 		var page = await new WebSession(_f).GetAsync($"/{alice.UserName}/tracker/issues/new");
-		var post = await new WebSession(_f).PostFormAsync("/Auth/Login", $"/{alice.UserName}/tracker/issues/new", ("Title", "anon"), ("Body", "x"));
+		var post = await new WebSession(_f).PostFormAsync("/dashboard/Auth/Login", $"/{alice.UserName}/tracker/issues/new", ("Title", "anon"), ("Body", "x"));
 
 		Assert.True(IsLoginRedirect(page));
 		Assert.True(IsLoginRedirect(post));
@@ -228,7 +228,7 @@ public class IssuesEndToEndTests : IClassFixture<GitServerFactory>
 		var repo = await _f.CreateRepoAsync(alice, "tracker");
 		var issue = await AddIssueAsync(repo, alice);
 
-		var anonymous = await new WebSession(_f).PostFormAsync("/Auth/Login", $"/{alice.UserName}/tracker/issues/{issue.Id}?handler=Comment", ("CommentBody", "x"));
+		var anonymous = await new WebSession(_f).PostFormAsync("/dashboard/Auth/Login", $"/{alice.UserName}/tracker/issues/{issue.Id}?handler=Comment", ("CommentBody", "x"));
 		var missing = await PostAsync(await AsAsync(alice), $"/{alice.UserName}/tracker/issues/999999?handler=Comment", ("CommentBody", "x"));
 
 		Assert.True(anonymous.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden);

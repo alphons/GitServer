@@ -1,4 +1,4 @@
-@page "/User/GroupDetail/{id:int}"
+@page "/dashboard/User/GroupDetail/{id:int}"
 @model GitServer.Pages.User.GroupDetailModel
 @{
     ViewData["Title"] = Model.Group?.Name ?? L["nav_groups"];
@@ -34,7 +34,7 @@
                     {
                         <tr>
                             <td>
-                                <a href="/User/@member.User.UserName" class="collaborator-user">
+                                <a href="/dashboard/User/@member.User.UserName" class="collaborator-user">
                                     <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
                                     <span>
                                         <strong>@member.User.UserName</strong>
@@ -74,9 +74,7 @@
 
     <section class="settings-section">
         <h2>@L["nav_groups"] — @L["group_repos_title"] (@Model.RepoTotalCount)</h2>
-        <div id="group-repos-container">
-            @await Html.PartialAsync("_GroupDetailRepos", Model)
-        </div>
+        <div id="group-repos-container"></div>
     </section>
 
     <section class="settings-section">
@@ -90,11 +88,12 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/repo-list.js" asp-append-version="true"></script>
     <script>
         (function () {
             var input = document.getElementById('memberName');
             var results = document.getElementById('memberResults');
-            var searchUrl = window.location.pathname + '?handler=SearchUsers';
+            var searchUrl = '/api/groups/@Model.Group!.Id/user-search';
             var debounceTimer = null;
             var currentRequest = null;
 
@@ -130,7 +129,7 @@
                     if (currentRequest) currentRequest.abort();
                     var controller = new AbortController();
                     currentRequest = controller;
-                    fetch(searchUrl + '&q=' + encodeURIComponent(q), { signal: controller.signal })
+                    fetch(searchUrl + '?q=' + encodeURIComponent(q), { signal: controller.signal })
                         .then(function (r) { return r.json(); })
                         .then(renderResults)
                         .catch(function () { });
@@ -146,17 +145,35 @@
             var container = document.getElementById('group-repos-container');
             if (!container) return;
 
-            container.addEventListener('click', function (e) {
-                var link = e.target.closest('a');
-                if (!link) return;
-                var url = new URL(link.href, window.location.href);
-                if (url.searchParams.get('handler') !== 'Repos') return;
+            var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+            {
+                ["prev"] = L["pagination_prev"],
+                ["next"] = L["pagination_next"],
+                ["private"] = L["badge_private"],
+                ["public"] = L["badge_public"],
+                ["readOnly"] = L["settings_readonly_label"],
+                ["empty"] = L["group_repos_empty"],
+                ["create"] = L["index_empty_create"],
+            }));
+            var el = RepoList.el;
 
-                e.preventDefault();
-                fetch(url)
-                    .then(function (r) { return r.text(); })
-                    .then(function (html) { container.innerHTML = html; });
-            });
+            function render(data) {
+                container.textContent = '';
+                var empty = el('div');
+                empty.appendChild(el('p', 'text-muted', labels.empty));
+                var create = el('a', 'btn btn-primary', labels.create);
+                create.href = '/dashboard/Repo/New';
+                empty.appendChild(create);
+                RepoList.list(container, data.repos, data.page, data.hasNext, labels, load, empty);
+            }
+
+            function load(rp) {
+                fetch('/api/groups/@Model.Group!.Id/repos?rp=' + rp)
+                    .then(function (r) { return r.json(); })
+                    .then(render);
+            }
+
+            load(0);
         })();
     </script>
 }

@@ -6,7 +6,7 @@
 <div class="container">
     <div class="repo-header">
         <div class="repo-title">
-            <a href="/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
+            <a href="/dashboard/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
             <a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
         </div>
     </div>
@@ -39,7 +39,7 @@
                             <td>
                                 @if (access.User != null)
                                 {
-                                    <a href="/User/@access.User.UserName" class="collaborator-user">
+                                    <a href="/dashboard/User/@access.User.UserName" class="collaborator-user">
                                         <img src="@access.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
                                         <span>
                                             <strong>@access.User.UserName</strong>
@@ -128,7 +128,7 @@
         (function () {
             var input = document.getElementById('collaboratorName');
             var results = document.getElementById('collaboratorResults');
-            var searchUrl = window.location.pathname + '?handler=SearchUsers';
+            var searchUrl = '/api/repos/' + encodeURIComponent(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.UserName))) + '/' + encodeURIComponent(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RepoName))) + '/user-search';
             var debounceTimer = null;
             var currentRequest = null;
 
@@ -164,7 +164,7 @@
                     if (currentRequest) currentRequest.abort();
                     var controller = new AbortController();
                     currentRequest = controller;
-                    fetch(searchUrl + '&q=' + encodeURIComponent(q), { signal: controller.signal })
+                    fetch(searchUrl + '?q=' + encodeURIComponent(q), { signal: controller.signal })
                         .then(function (r) { return r.json(); })
                         .then(renderResults)
                         .catch(function () { });

@@ -1,4 +1,4 @@
-@page "/explore/users"
+@page "/dashboard/explore/users"
 @model GitServer.Pages.ExploreUsersModel
 @{
     ViewData["Title"] = L["explore_nav_users"];
@@ -22,8 +22,8 @@
     }
 
     @{
-        var prevUrl = $"/explore/users?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page - 1}";
-        var nextUrl = $"/explore/users?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page + 1}";
+        var prevUrl = $"/dashboard/explore/users?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page - 1}";
+        var nextUrl = $"/dashboard/explore/users?q={Uri.EscapeDataString(Model.Query)}&p={Model.Page + 1}";
     }
     @if (Model.Page > 0 || Model.HasNextPage)
     {
@@ -35,7 +35,7 @@
         <div class="user-list">
             @foreach (var user in Model.Users)
             {
-                <a class="user-card" href="/User/@user.UserName">
+                <a class="user-card" href="/dashboard/User/@user.UserName">
                     <img src="@user.EffectiveAvatarUrl" alt="@user.UserName" class="avatar-img avatar-md" />
                     <div class="user-card-info">
                         <div class="user-card-name">@user.DisplayName</div>

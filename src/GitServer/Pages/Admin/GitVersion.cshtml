@@ -1,4 +1,4 @@
-@page "/Admin/GitVersion"
+@page "/dashboard/Admin/GitVersion"
 @model GitServer.Pages.Admin.GitVersionModel
 @{
     ViewData["Title"] = L["admin_gitversion_title"];
@@ -153,6 +153,8 @@
 
 @section Scripts {
     <script>
+        var apiBase = '/api/admin/git';
+
         (function () {
             var installBtn = document.getElementById('install-btn');
             if (!installBtn) return;
@@ -169,7 +171,7 @@
             }
 
             function poll(jobId) {
-                fetch('?handler=InstallProgress&jobId=' + encodeURIComponent(jobId))
+                fetch(apiBase + '/installs/' + encodeURIComponent(jobId))
                     .then(function (r) { return r.json(); })
                     .then(function (p) {
                         if (p.totalBytes > 0) {
@@ -207,11 +209,10 @@
                 progressBar.value = 0;
                 progressText.textContent = '';
 
-                fetch('?handler=StartInstall', {
+                fetch(apiBase + '/installs', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: 'tagName=' + encodeURIComponent(installBtn.dataset.tagName) +
-                        '&__RequestVerificationToken=' + encodeURIComponent(token),
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+                    body: JSON.stringify({ tagName: installBtn.dataset.tagName }),
                 })
                     .then(function (r) { return r.json(); })
                     .then(function (data) { poll(data.jobId); })
@@ -249,7 +250,7 @@
                 listEl.hidden = false;
                 breadcrumb.textContent = '/' + path;
 
-                fetch('?handler=Browse&id=' + currentInstallationId + '&path=' + encodeURIComponent(path))
+                fetch(apiBase + '/installations/' + currentInstallationId + '/entries?path=' + encodeURIComponent(path))
                     .then(function (r) { return r.json(); })
                     .then(function (entries) {
                         listEl.innerHTML = '';
@@ -284,7 +285,7 @@
 
             function showFile(path) {
                 breadcrumb.textContent = '/' + path;
-                fetch('?handler=FileContent&id=' + currentInstallationId + '&path=' + encodeURIComponent(path))
+                fetch(apiBase + '/installations/' + currentInstallationId + '/file?path=' + encodeURIComponent(path))
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         listEl.hidden = true;

@@ -1,4 +1,4 @@
-@page "/Group/{name}"
+@page "/dashboard/Group/{name}"
 @model GitServer.Pages.GroupProfile.IndexModel
 @{
     ViewData["Title"] = Model.GroupEntity?.Name;
@@ -65,7 +65,7 @@
                 <tbody>
                     <tr>
                         <td>
-                            <a href="/User/@Model.GroupEntity.Owner.UserName" class="collaborator-user">
+                            <a href="/dashboard/User/@Model.GroupEntity.Owner.UserName" class="collaborator-user">
                                 <img src="@Model.GroupEntity.Owner.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
                                 <span>@Model.GroupEntity.Owner.UserName</span>
                             </a>
@@ -76,7 +76,7 @@
                     {
                         <tr>
                             <td>
-                                <a href="/User/@member.User.UserName" class="collaborator-user">
+                                <a href="/dashboard/User/@member.User.UserName" class="collaborator-user">
                                     <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
                                     <span>@member.User.UserName</span>
                                 </a>

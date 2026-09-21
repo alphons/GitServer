@@ -44,6 +44,7 @@ builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();
 builder.Services.AddScoped<LocalizationService>();
 builder.Services.AddScoped<TimeZoneService>();
+builder.Services.AddScoped<ReservedNames>();
 builder.Services.AddScoped<GitReleaseService>();
 builder.Services.AddScoped<GitInstallerService>();
 builder.Services.AddScoped<SiteSettingsService>();
@@ -54,7 +55,8 @@ builder.Services.AddHttpClient("GitHubReleases", c =>
 });
 
 // MVC + Razor Pages
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(o =>
+	o.Conventions.Add(new GitRoutePrefixConvention(gitOptions.NormalizedGitPathPrefix)));
 builder.Services.AddGitServerRazorPages();
 
 // Disable response buffering globally — git endpoints need streaming
@@ -71,7 +73,7 @@ using (var scope = app.Services.CreateScope())
 
 if (!app.Environment.IsDevelopment())
 {
-	app.UseExceptionHandler("/Error");
+	app.UseExceptionHandler("/dashboard/error");
 	app.UseHsts();
 }
 
@@ -87,7 +89,7 @@ app.UseAuthorization();
 
 app.MapSetLanguage();
 
-app.MapGroup(gitOptions.NormalizedGitPathPrefix).MapControllers();
+app.MapControllers();
 app.MapRazorPages();
 
 app.Run();

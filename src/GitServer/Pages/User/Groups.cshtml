@@ -1,4 +1,4 @@
-@page "/User/Groups"
+@page "/dashboard/User/Groups"
 @model GitServer.Pages.User.GroupsModel
 @{
     ViewData["Title"] = L["nav_groups"];
@@ -34,9 +34,9 @@
                     @foreach (var group in Model.Groups)
                     {
                         <tr>
-                            <td><a href="/User/GroupDetail/@group.Id">@group.Name</a></td>
+                            <td><a href="/dashboard/User/GroupDetail/@group.Id">@group.Name</a></td>
                             <td>@group.Members.Count</td>
-                            <td><a href="/User/GroupDetail/@group.Id" class="btn btn-secondary btn-sm">@L["group_manage"]</a></td>
+                            <td><a href="/dashboard/User/GroupDetail/@group.Id" class="btn btn-secondary btn-sm">@L["group_manage"]</a></td>
                         </tr>
                     }
                 </tbody>

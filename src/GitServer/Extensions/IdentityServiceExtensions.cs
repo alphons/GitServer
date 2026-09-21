@@ -40,15 +40,26 @@ public static class IdentityServiceExtensions
 
 		services.ConfigureApplicationCookie(opt =>
 		{
-			opt.LoginPath = "/Auth/Login";
-			opt.LogoutPath = "/Auth/Logout";
-			opt.AccessDeniedPath = "/Auth/Login";
+			opt.LoginPath = "/dashboard/Auth/Login";
+			opt.LogoutPath = "/dashboard/Auth/Logout";
+			opt.AccessDeniedPath = "/dashboard/Auth/Login";
 			opt.Cookie.HttpOnly = true;
 			opt.Cookie.SameSite = SameSiteMode.Lax;
 			opt.ExpireTimeSpan = TimeSpan.FromDays(30);
 			opt.SlidingExpiration = true;
+
+			// The JSON API answers 401/403 instead of redirecting a script to the login page.
+			opt.Events.OnRedirectToLogin = ctx => RedirectOrStatus(ctx, StatusCodes.Status401Unauthorized);
+			opt.Events.OnRedirectToAccessDenied = ctx => RedirectOrStatus(ctx, StatusCodes.Status403Forbidden);
 		});
 
 		return services;
+	}
+
+	private static Task RedirectOrStatus(Microsoft.AspNetCore.Authentication.RedirectContext<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions> ctx, int apiStatus)
+	{
+		if (ctx.Request.Path.StartsWithSegments("/api")) ctx.Response.StatusCode = apiStatus;
+		else ctx.Response.Redirect(ctx.RedirectUri);
+		return Task.CompletedTask;
 	}
 }
