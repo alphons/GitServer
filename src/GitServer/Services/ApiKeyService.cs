@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Services;
 
-public class ApiKeyService(AppDbContext db, SiteSettingsService siteSettings)
+/// <summary>The owner of a valid API key and whether the key may only read.</summary>
+public record ApiKeyIdentity(AppUser User, bool ReadOnly);
+
+public class ApiKeyService(AppDbContext db, SiteSettingsService siteSettings, AuditService audit)
 {
 	public const string Prefix = "gsk_";
 	public const string HeaderName = "X-Api-Key";
@@ -14,7 +17,7 @@ public class ApiKeyService(AppDbContext db, SiteSettingsService siteSettings)
 	private static string Hash(string key) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
 
 	/// <summary>Creates a key valid for the site-wide lifetime and returns it in plain text; this is the only time it can be seen.</summary>
-	public async Task<(ApiKey Entity, string Key)> CreateAsync(AppUser user, string name)
+	public async Task<(ApiKey Entity, string Key)> CreateAsync(AppUser user, string name, bool readOnly)
 	{
 		var key = Prefix + Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
 			.Replace('+', '-').Replace('/', '_').TrimEnd('=');
@@ -25,6 +28,7 @@ public class ApiKeyService(AppDbContext db, SiteSettingsService siteSettings)
 			UserId = user.Id,
 			Name = name.Trim(),
 			KeyPrefix = key[..8],
+			IsReadOnly = readOnly,
 			KeyHash = Hash(key),
 			ExpiresAt = DateTime.UtcNow.AddDays(lifetimeDays),
 		};
@@ -54,9 +58,9 @@ public class ApiKeyService(AppDbContext db, SiteSettingsService siteSettings)
 		return true;
 	}
 
-	/// <summary>The user a live key belongs to, or null if the key is unknown, disabled, expired, or its owner
+	/// <summary>The owner (and read-only flag) of a live key, or null if the key is unknown, disabled, expired, or its owner
 	/// can no longer sign in (disabled, locked out or not yet registered). Marks the key as used.</summary>
-	public async Task<AppUser?> AuthenticateAsync(string key)
+	public async Task<ApiKeyIdentity?> AuthenticateAsync(string key)
 	{
 		if (!key.StartsWith(Prefix, StringComparison.Ordinal)) return null;
 
@@ -67,11 +71,15 @@ public class ApiKeyService(AppDbContext db, SiteSettingsService siteSettings)
 		var user = stored.User;
 		if (!user.EmailConfirmed || (user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow)) return null;
 
+		// Usage is logged at most once an hour per key, so an integration polling every second does not flood the audit log.
+		if (stored.LastUsedAt == null || stored.LastUsedAt < DateTime.UtcNow.AddHours(-1))
+			await audit.WriteAsAsync(user, "api-key", "apikey.used", stored.Name);
+
 		if (stored.LastUsedAt == null || stored.LastUsedAt < DateTime.UtcNow.AddMinutes(-1))
 		{
 			stored.LastUsedAt = DateTime.UtcNow;
 			await db.SaveChangesAsync();
 		}
-		return user;
+		return new ApiKeyIdentity(user, stored.IsReadOnly);
 	}
 }

@@ -11,6 +11,7 @@ namespace GitServer.Pages.Admin;
 public class BlockedEmailsModel(
 	UserManager<AppUser> userManager,
 	AppDbContext db,
+	AuditService audit,
 	LocalizationService L) : PageModel
 {
 	public List<BlockedEmailPattern> Patterns { get; set; } = new();
@@ -55,6 +56,7 @@ public class BlockedEmailsModel(
 		{
 			db.BlockedEmailPatterns.Add(new BlockedEmailPattern { Pattern = pattern });
 			await db.SaveChangesAsync();
+			await audit.WriteAsync("blocked-email.add", pattern);
 		}
 
 		Message = L.Format("success_pattern_added", pattern);
@@ -70,6 +72,7 @@ public class BlockedEmailsModel(
 		{
 			db.BlockedEmailPatterns.Remove(pattern);
 			await db.SaveChangesAsync();
+			await audit.WriteAsync("blocked-email.delete", pattern.Pattern);
 		}
 
 		return RedirectToPage();

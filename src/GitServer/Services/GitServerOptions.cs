@@ -4,6 +4,10 @@ public class GitServerOptions
 {
 	public string RepositoriesPath { get; set; } = "C:\\GitRepos";
 
+	/// <summary>"Sqlite" (default) or "SqlServer". ConnectionStrings:Default is a connection string for that provider.
+	/// Each provider has its own migrations, applied at startup.</summary>
+	public string DatabaseProvider { get; set; } = "Sqlite";
+
 	/// <summary>Address shown on the terms page for questions or requests about personal data. Empty = not shown.</summary>
 	public string ContactEmail { get; set; } = "";
 
@@ -12,6 +16,16 @@ public class GitServerOptions
 
 	/// <summary>How long an account stays locked after too many failed logins.</summary>
 	public int LoginLockoutMinutes { get; set; } = 15;
+
+	/// <summary>Requests per minute one IP address may make to the JSON API (/api). 0 = no limit.</summary>
+	public int ApiRequestsPerMinute { get; set; } = 300;
+
+	/// <summary>Sign-in, registration and password-reset form posts per minute per IP address. 0 = no limit.</summary>
+	public int AuthRequestsPerMinute { get; set; } = 10;
+
+	/// <summary>Trust X-Forwarded-For / X-Forwarded-Proto from a reverse proxy, so limits and the audit log see the visitor's IP
+	/// instead of the proxy's. Only enable this when the app is reachable exclusively through that proxy.</summary>
+	public bool TrustForwardedHeaders { get; set; }
 
 	/// <summary>Only used to seed SiteSettings.AllowRegistration the first time the app runs.
 	/// After that, the live value lives in the database and is managed from /dashboard/Admin/Settings.</summary>

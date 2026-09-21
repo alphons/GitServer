@@ -16,7 +16,7 @@ namespace GitServer.Controllers.Api;
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 public class ApiKeysApiController(
-	UserManager<AppUser> userManager, ApiKeyService apiKeys, TimeZoneService tz, LocalizationService L) : ControllerBase
+	UserManager<AppUser> userManager, ApiKeyService apiKeys, AuditService audit, TimeZoneService tz, LocalizationService L) : ControllerBase
 {
 	private async Task<(AppUser? user, ActionResult? denied)> CurrentAsync()
 	{
@@ -26,7 +26,7 @@ public class ApiKeysApiController(
 	}
 
 	private ApiKeyDto Describe(ApiKey k) => new(
-		k.Id, k.Name, k.KeyPrefix, k.IsEnabled, k.ExpiresAt <= DateTime.UtcNow,
+		k.Id, k.Name, k.KeyPrefix, k.IsEnabled, k.IsReadOnly, k.ExpiresAt <= DateTime.UtcNow,
 		tz.FormatDateTime(k.CreatedAt), tz.FormatDateTime(k.ExpiresAt), tz.FormatDateTime(k.LastUsedAt));
 
 	/// <summary>Lists the caller's API keys, newest first. The keys themselves are never returned.</summary>
@@ -53,7 +53,8 @@ public class ApiKeysApiController(
 		if (name.Length == 0) return BadRequest(new ErrorResponse(L["error_token_name_required"]));
 		if (name.Length > 100) name = name[..100];
 
-		var (entity, key) = await apiKeys.CreateAsync(user!, name);
+		var (entity, key) = await apiKeys.CreateAsync(user!, name, request.ReadOnly);
+		await audit.WriteAsync("apikey.create", name, request.ReadOnly ? "read-only" : "full access");
 		return new CreatedApiKeyResponse(key, Describe(entity));
 	}
 
@@ -64,7 +65,9 @@ public class ApiKeysApiController(
 		var (user, denied) = await CurrentAsync();
 		if (denied != null) return denied;
 
-		return await apiKeys.SetEnabledAsync(user!.Id, id, request.Enabled) ? NoContent() : NotFound();
+		if (!await apiKeys.SetEnabledAsync(user!.Id, id, request.Enabled)) return NotFound();
+		await audit.WriteAsync(request.Enabled ? "apikey.enable" : "apikey.disable", "#" + id);
+		return NoContent();
 	}
 
 	/// <summary>Deletes a key for good.</summary>
@@ -74,6 +77,8 @@ public class ApiKeysApiController(
 		var (user, denied) = await CurrentAsync();
 		if (denied != null) return denied;
 
-		return await apiKeys.DeleteAsync(user!.Id, id) ? NoContent() : NotFound();
+		if (!await apiKeys.DeleteAsync(user!.Id, id)) return NotFound();
+		await audit.WriteAsync("apikey.delete", "#" + id);
+		return NoContent();
 	}
 }

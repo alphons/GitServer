@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Pages.Admin;
 
-public class UsersModel(UserManager<AppUser> userManager, AccountService accounts, LocalizationService L, ReservedNames reserved) : PageModel
+public class UsersModel(UserManager<AppUser> userManager, AccountService accounts, AuditService audit, LocalizationService L, ReservedNames reserved) : PageModel
 {
 	public string? CurrentUserId { get; set; }
 	public string? Message { get; set; }
@@ -95,6 +95,7 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
 		}
 
 		Message = L.Format("admin_user_created", user.UserName!);
+		await audit.WriteAsync("user.create", user.UserName, isAdmin ? "admin" : null);
 		return null;
 	}
 
@@ -165,6 +166,7 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
 		}
 
 		Message = L.Format(wasPending ? "admin_user_validated" : "admin_user_saved", target.UserName!);
+		await audit.WriteAsync(wasPending ? "user.validate" : "user.update", target.UserName, string.IsNullOrEmpty(newPassword) ? null : "password changed");
 		return null;
 	}
 
@@ -179,7 +181,11 @@ public class UsersModel(UserManager<AppUser> userManager, AccountService account
 
 		var label = target.EmailConfirmed ? target.UserName! : target.Email!;
 		var failure = await accounts.DeleteAsync(target);
-		if (failure == null) Message = L.Format("admin_user_deleted", label);
+		if (failure == null)
+		{
+			Message = L.Format("admin_user_deleted", label);
+			await audit.WriteAsync("user.delete", label);
+		}
 		else ErrorMessage = failure;
 
 		CurrentUserId = currentUser.Id;

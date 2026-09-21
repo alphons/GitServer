@@ -27,9 +27,9 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	private async Task<WebSession> AsAsync(AppUser user) => await new WebSession(factory).LoginAsync(user.UserName!);
 	private Task<T> Db<T>(Func<AppDbContext, Task<T>> q) => factory.UseServicesAsync(sp => q(sp.GetRequiredService<AppDbContext>()));
 
-	private async Task<(int Id, string Key)> CreateKeyAsync(WebSession session, string name = "ci")
+	private async Task<(int Id, string Key)> CreateKeyAsync(WebSession session, string name = "ci", bool readOnly = false)
 	{
-		var response = await session.SendJsonAsync(ApiKeysPage, HttpMethod.Post, KeysApi, new { name });
+		var response = await session.SendJsonAsync(ApiKeysPage, HttpMethod.Post, KeysApi, new { name, readOnly });
 		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 		var root = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
 		return (root.GetProperty("apiKey").GetProperty("id").GetInt32(), root.GetProperty("key").GetString()!);
@@ -208,6 +208,31 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(HttpStatusCode.Forbidden, asOrdinary.StatusCode);
 		Assert.True(noAuth.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.BadRequest, noAuth.StatusCode.ToString());
 		Assert.Equal(1, await Db(d => d.ReservedNamePatterns.CountAsync(p => p.Pattern.StartsWith(stem))));
+	}
+
+	[Fact]
+	public async Task AReadOnlyKey_CanRead_ButEverythingThatChangesDataIsRefused()
+	{
+		var admin = await factory.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var (id, key) = await CreateKeyAsync(await AsAsync(admin), "reader", readOnly: true);
+		var client = WithKey(key);
+
+		Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/admin/reserved-names")).StatusCode);
+		var write = await client.PostAsJsonAsync("/api/admin/reserved-names", new { pattern = Unique("ro").ToLowerInvariant() + "*" });
+
+		Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+		Assert.Contains("read-only", await write.Content.ReadAsStringAsync());
+		var stored = await Db(d => d.ApiKeys.SingleAsync(k => k.Id == id));
+		Assert.True(stored.IsReadOnly);
+	}
+
+	[Fact]
+	public async Task AFullKey_IsNotReadOnlyByDefault()
+	{
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		var (id, _) = await CreateKeyAsync(await AsAsync(alice));
+
+		Assert.False((await Db(d => d.ApiKeys.SingleAsync(k => k.Id == id))).IsReadOnly);
 	}
 
 	[Fact]

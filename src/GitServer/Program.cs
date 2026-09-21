@@ -24,13 +24,29 @@ builder.Services.Configure<GitServerOptions>(
 	builder.Configuration.GetSection("GitServer"));
 
 // Database
-builder.Services.AddDbContext<AppDbContext>(opt =>
-	opt.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+var provider = gitOptions.DatabaseProvider.Trim().ToLowerInvariant();
+// ConnectionStrings:Sqlite / ConnectionStrings:SqlServer belong to their provider, so switching only needs DatabaseProvider changed;
+// ConnectionStrings:Default is the fallback for either.
+var connectionString = builder.Configuration.GetConnectionString(provider == "sqlserver" ? "SqlServer" : "Sqlite")
+	?? builder.Configuration.GetConnectionString("Default");
+switch (provider)
+{
+	case "sqlite":
+		builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(connectionString));
+		break;
+	case "sqlserver":
+		// A derived context type, so that SQL Server gets its own migrations (see SqlServerAppDbContext).
+		builder.Services.AddDbContext<AppDbContext, SqlServerAppDbContext>(opt => opt.UseSqlServer(connectionString));
+		break;
+	default:
+		throw new InvalidOperationException($"GitServer:DatabaseProvider '{gitOptions.DatabaseProvider}' is not supported; use 'Sqlite' or 'SqlServer'.");
+}
 
 // Identity + authentication cookie
 builder.Services.AddGitServerIdentity();
 builder.Services.AddGitServerApiKeys();
 builder.Services.AddGitServerOpenApi();
+builder.Services.AddGitServerRateLimiting();
 
 builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"));
 builder.Services.AddEmailService(builder.Configuration);
@@ -44,6 +60,7 @@ builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();
+builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<ApiKeyService>();
 builder.Services.AddScoped<UserSearchService>();
 builder.Services.AddScoped<LocalizationService>();
@@ -83,22 +100,15 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseGitServerForwardedHeaders();
 app.UseRouting();
+app.UseRateLimiter();
 
 // Git auth middleware (before UseAuthentication so it can handle Basic Auth independently)
 app.UseMiddleware<GitAuthMiddleware>();
 
 app.UseAuthentication();
-// A key that was sent but did not authenticate is an error everywhere, also on endpoints that allow anonymous access.
-app.Use(async (context, next) =>
-{
-	if (context.Request.Headers.ContainsKey(ApiKeyService.HeaderName) && context.User.Identity?.IsAuthenticated != true)
-	{
-		context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-		return;
-	}
-	await next();
-});
+app.UseMiddleware<ApiKeyGuardMiddleware>();
 
 app.UseAuthorization();
 

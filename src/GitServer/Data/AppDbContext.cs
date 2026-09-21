@@ -4,8 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GitServer.Data;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<AppUser>(options)
+public class AppDbContext : IdentityDbContext<AppUser>
 {
+	public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+	/// <summary>For the provider-specific contexts that derive from this one (see SqlServerAppDbContext), each with its own migrations.</summary>
+	protected AppDbContext(DbContextOptions options) : base(options) { }
+
 	public DbSet<Repository> Repositories => Set<Repository>();
 	public DbSet<RepositoryAccess> RepositoryAccesses => Set<RepositoryAccess>();
 	public DbSet<Issue> Issues => Set<Issue>();
@@ -18,15 +23,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 	public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
 	public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 	public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+	public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
 	protected override void OnModelCreating(ModelBuilder builder)
 	{
 		base.OnModelCreating(builder);
 
-		builder.Entity<SiteSettings>(e => e.Property(s => s.ApiKeyLifetimeDays).HasDefaultValue(90));
+		// Names are case-insensitive URL segments: SQLite needs an explicit NOCASE collation and SQL Server an explicit
+		// case-insensitive one (its server default varies). SQL Server also cannot index nvarchar(max), so indexed text needs a length.
+		var sqlServer = Database.IsSqlServer();
+		var nameCollation = Database.IsSqlite() ? "NOCASE" : sqlServer ? "SQL_Latin1_General_CP1_CI_AS" : null;
+
+		void IndexedText(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<string> property, int maxLength, bool caseInsensitive = false)
+		{
+			if (sqlServer) property.HasMaxLength(maxLength);
+			if (caseInsensitive && nameCollation != null) property.UseCollation(nameCollation);
+		}
+
+		// SQL Server refuses several cascade paths to one table, so the redundant ones are plain foreign keys there and the code
+		// removes those rows itself (see GroupDetail delete); SQLite keeps the cascades.
+		var redundantCascade = sqlServer ? DeleteBehavior.NoAction : DeleteBehavior.Cascade;
+
+		builder.Entity<SiteSettings>(e =>
+		{
+			e.Property(s => s.ApiKeyLifetimeDays).HasDefaultValue(90);
+			// A single row that always has Id 1: the code sets the key itself, which an IDENTITY column on SQL Server refuses.
+			if (sqlServer) e.Property(s => s.Id).ValueGeneratedNever();
+		});
+
+		builder.Entity<AuditEntry>(e => e.HasIndex(a => a.At));
 
 		builder.Entity<ApiKey>(e =>
 		{
+			IndexedText(e.Property(k => k.KeyHash), 64);
 			e.HasIndex(k => k.KeyHash).IsUnique();
 			e.HasOne(k => k.User)
 			.WithMany()
@@ -36,12 +65,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 
 		builder.Entity<ReservedNamePattern>(e =>
 		{
-			e.Property(p => p.Pattern).UseCollation("NOCASE");
+			IndexedText(e.Property(p => p.Pattern), 64, caseInsensitive: true);
 			e.HasIndex(p => p.Pattern).IsUnique();
 		});
 
 		builder.Entity<AccessToken>(e =>
 		{
+			IndexedText(e.Property(t => t.TokenHash), 64);
 			e.HasIndex(t => t.TokenHash).IsUnique();
 			e.HasOne(t => t.User)
 			.WithMany()
@@ -53,7 +83,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 		{
 			// Case-preserving but case-insensitive, like GitHub: "Foo" and "foo" can't both
 			// exist, and pushing/pulling/browsing works regardless of the casing used.
-			e.Property(r => r.Name).UseCollation("NOCASE");
+			IndexedText(e.Property(r => r.Name), 255, caseInsensitive: true);
 			e.HasIndex(r => new { r.OwnerId, r.Name }).IsUnique().HasFilter("[OwnerId] IS NOT NULL");
 			e.HasIndex(r => new { r.GroupOwnerId, r.Name }).IsUnique().HasFilter("[GroupOwnerId] IS NOT NULL");
 			e.HasOne(r => r.Owner)
@@ -63,7 +93,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 			e.HasOne(r => r.GroupOwner)
 			.WithMany(g => g.Repositories)
 			.HasForeignKey(r => r.GroupOwnerId)
-			.OnDelete(DeleteBehavior.Cascade);
+			.OnDelete(redundantCascade);
 		});
 
 		builder.Entity<RepositoryAccess>(e =>
@@ -77,11 +107,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 			e.HasOne(a => a.User)
 			.WithMany(u => u.RepositoryAccesses)
 			.HasForeignKey(a => a.UserId)
-			.OnDelete(DeleteBehavior.Cascade);
+			.OnDelete(redundantCascade);
 			e.HasOne(a => a.Group)
 			.WithMany(g => g.Accesses)
 			.HasForeignKey(a => a.GroupId)
-			.OnDelete(DeleteBehavior.Cascade);
+			.OnDelete(redundantCascade);
 		});
 
 		builder.Entity<Group>(e =>
@@ -89,7 +119,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbCo
 			// Group names double as a URL namespace segment (like a username), so they must be
 			// globally unique rather than just unique per owner. NOCASE keeps that uniqueness
 			// (and lookups) case-insensitive while preserving the casing it was created with.
-			e.Property(g => g.Name).UseCollation("NOCASE");
+			IndexedText(e.Property(g => g.Name), 100, caseInsensitive: true);
 			e.HasIndex(g => g.Name).IsUnique();
 			e.HasOne(g => g.Owner)
 			.WithMany(u => u.Groups)

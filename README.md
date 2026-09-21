@@ -9,7 +9,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.15.1**
+**Current version: 1.16.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows VPS or your own hardware in minutes.
 
@@ -22,7 +22,7 @@ Because your code doesn't belong to anyone else.
 - **100% free** — no plans, no tiers, no credit card required. Ever.
 - **Open source** — read every line, modify anything, contribute back.
 - **Self-hosted** — a single Windows machine or VPS, nothing else.
-- **Lightweight** — a single binary, a single SQLite database, zero external dependencies.
+- **Lightweight** — a single binary and a single SQLite database, zero external dependencies. Prefer SQL Server? Switch with one setting (see [Choosing a database](#choosing-a-database)).
 - **No telemetry** — your repositories never leave your machine.
 
 ---
@@ -54,13 +54,14 @@ Because your code doesn't belong to anyone else.
 - Per-user profile pages with bio, company, country and avatar (via Gravatar or a custom URL)
 - Account area with three tabs: **Account settings**, **API keys** and **Access tokens**
 - **Access tokens** — use a personal token instead of your password for git over HTTPS; create several, set an expiry, revoke any time
-- **API keys** — call the [JSON API](#json-api) as yourself with an `X-Api-Key` header; create as many as you like, enable/disable or delete each one, and they expire automatically (90 days by default, set by the admin)
+- **API keys** — call the [JSON API](#json-api) as yourself with an `X-Api-Key` header; create as many as you like, enable/disable or delete each one, and they expire automatically (90 days by default, set by the admin). A key can be **read-only**: it may only read, every request that changes something is refused
 - Accounts lock temporarily after too many wrong passwords, on the web and over git (configurable)
 - User and group names cannot clash with the site's own URLs — see [Reserved names](#reserved-names)
 
 ### Admin Panel
 - **Users** — search/filter/paginate all accounts, create users directly, edit username/display name/email/password/role, enable or disable an account, and validate a pending (unconfirmed) registration — all from one modal, no page reloads
 - **Blocked emails** — wildcard email-pattern blocklist for sign-ups (e.g. `*@spam.net`)
+- **Audit log** — who did what: administrative actions, API key changes and (at most once an hour per key) API key use, filterable and paged
 - **Reserved names** — the user and group names nobody may take (see [Reserved names](#reserved-names))
 - **Git version** — the built-in Git engine updater (see [Git engine](#git-engine))
 - **Settings** — site-wide settings, editable at runtime with no restart required:
@@ -87,7 +88,8 @@ The check applies when a name is created or changed; existing accounts and group
 ### JSON API
 Everything the dashboard does through JavaScript is a plain JSON API under `/api`, usable from scripts too.
 
-- **Authentication:** send an API key in the `X-Api-Key` header (create one under **Dashboard → User → API keys**). The key acts as its owner, with the owner's rights — except that a key cannot manage API keys. A wrong, disabled or expired key always gets `401`.
+- **Authentication:** send an API key in the `X-Api-Key` header (create one under **Dashboard → User → API keys**). The key acts as its owner, with the owner's rights — except that a key cannot manage API keys. A wrong, disabled or expired key always gets `401`. A **read-only** key may only use `GET`; anything else gets `403`.
+- **Limits:** per IP address, 300 requests a minute by default (`ApiRequestsPerMinute`); beyond that the API answers `429` with a `Retry-After` header.
 - **Verbs:** only `GET` and `POST` are used (`POST /api/…/{id}/update`, `…/{id}/delete`).
 - **Documentation:** the OpenAPI description, with typed request/response shapes and per-endpoint summaries, is served at **`/api/openapi.json`**.
 
@@ -107,6 +109,7 @@ curl -H "X-Api-Key: gsk_..." https://git.yourdomain.com/api/users/alice/repos
 - Git push/pull protected by Basic Authentication (password or access token)
 - API keys and access tokens are stored as hashes only and shown once, when created
 - Temporary lockout after repeated failed logins (`MaxFailedLoginAttempts`, `LoginLockoutMinutes`)
+- Per-IP rate limits on the JSON API and on the sign-in, registration and password-reset forms (`ApiRequestsPerMinute`, `AuthRequestsPerMinute`); rejected requests get `429` with `Retry-After`
 - Data Protection API keys persisted to disk, so sessions and tokens survive app restarts
 
 ---
@@ -123,6 +126,7 @@ curl -H "X-Api-Key: gsk_..." https://git.yourdomain.com/api/users/alice/repos
 |-------------|---------|
 | .NET SDK | 10.0 or later |
 | OS | Windows (win-x64) |
+| Database | SQLite (built in, default) or SQL Server 2016+ / Express / LocalDB |
 
 No system-wide Git install needed — see [Git engine](#git-engine) below. No Docker required. No Postgres. No Redis. No message queue.
 
@@ -149,6 +153,10 @@ Edit `src/GitServer/appsettings.json`:
     "GitPathPrefix": "",
     "MaxFailedLoginAttempts": 5,
     "LoginLockoutMinutes": 15,
+    "ApiRequestsPerMinute": 300,
+    "AuthRequestsPerMinute": 10,
+    "TrustForwardedHeaders": false,
+    "DatabaseProvider": "Sqlite",
     "DefaultPrivateOnAutoCreate": true,
     "MaxPushSizeMb": 2048,
     "ExploreRepoPageSize": 20,
@@ -166,7 +174,8 @@ Edit `src/GitServer/appsettings.json`:
     "ProtectKeysWithDpapi": false
   },
   "ConnectionStrings": {
-    "Default": "Data Source=gitserver.db"
+    "Default": "Data Source=gitserver.db",
+    "SqlServer": "Server=.\\SQLEXPRESS;Database=GitServer;Trusted_Connection=True;TrustServerCertificate=True"
   },
   "EmailService": {
     "ClientId": "",
@@ -196,7 +205,10 @@ Edit `src/GitServer/appsettings.json`:
 | `GitServer:GitExecutableInstallRoot` | Where downloaded MinGit versions are extracted; relative paths resolve against the app's content root |
 | `Authentication:KeysPath` | Folder where Data Protection keys are persisted (antiforgery tokens, auth cookies) |
 | `Authentication:ProtectKeysWithDpapi` | Encrypt the keys at rest using Windows DPAPI |
-| `ConnectionStrings:Default` | SQLite connection string |
+| `GitServer:DatabaseProvider` | `Sqlite` (default) or `SqlServer` — see [Choosing a database](#choosing-a-database) |
+| `GitServer:ApiRequestsPerMinute` / `AuthRequestsPerMinute` | Requests per minute per IP address to the JSON API, and form posts per minute to sign-in / registration / password reset. `0` = no limit |
+| `GitServer:TrustForwardedHeaders` | Use `X-Forwarded-For` / `X-Forwarded-Proto` from a reverse proxy, so limits and the audit log see the visitor instead of the proxy. Enable only when the app is reachable exclusively through that proxy |
+| `ConnectionStrings:Sqlite` / `ConnectionStrings:SqlServer` | Connection string for the chosen provider; `ConnectionStrings:Default` is the fallback for either |
 | `EmailService:*` | SMTP settings used to send registration and password-reset emails; leave `SmtpHost` empty to disable outgoing email (registration links then just won't be delivered) |
 
 > Everything above except `EmailService` and the identity/DB plumbing is a startup-time default. The settings under **Admin → Settings** (registration, user repo creation, push-to-create, anonymous push, commit avatars, API key lifetime) and the reserved-name patterns live in the database instead, so an admin can change them from the browser without editing config or restarting the app.
@@ -233,12 +245,38 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # With "TrustForwardedHeaders": true GitServer uses these two headers for rate limits and the audit log
         # Required for git push/pull streaming
         proxy_request_buffering off;
         proxy_buffering off;
     }
 }
 ```
+
+---
+
+## Choosing a database
+
+SQLite is the default and needs nothing. To use **SQL Server** (full, Express or LocalDB) instead, set the provider and a connection string in `appsettings.json` (or `appsettings.Production.json`):
+
+```json
+"GitServer": { "DatabaseProvider": "SqlServer" },
+"ConnectionStrings": {
+  "SqlServer": "Server=.\\SQLEXPRESS;Database=GitServer;Trusted_Connection=True;TrustServerCertificate=True"
+}
+```
+
+- The connection string is an ordinary SQL Server one: `Server=.\SQLEXPRESS`, `Server=(localdb)\MSSQLLocalDB`, `Server=db.example.com;User Id=…;Password=…`, and so on. The database is created and migrated on first start.
+- Each provider has **its own migrations** (`Data/Migrations` for SQLite, `Data/MigrationsSqlServer` for SQL Server), applied automatically at startup. Names stay case-insensitive on both.
+- Switching provider starts an empty database — there is no data conversion between the two.
+- Changing the model means one migration per provider:
+
+```bash
+dotnet ef migrations add MyChange --context AppDbContext --project src/GitServer
+dotnet ef migrations add MyChange --context SqlServerAppDbContext -o Data/MigrationsSqlServer --project src/GitServer
+```
+
+  A test fails if either model has changes missing from its migrations.
 
 ---
 
@@ -269,7 +307,16 @@ The suite in `tests/GitServer.Tests` needs `git` on the PATH (or `GIT_TEST_EXECU
 pwsh tests/GitServer.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
 ```
 
-(Windows PowerShell works too: `powershell -File …/playwright.ps1 install chromium`.) The suite has five layers:
+(Windows PowerShell works too: `powershell -File …/playwright.ps1 install chromium`.)
+
+The whole suite can also run against **SQL Server** instead of SQLite — every test then gets its own throwaway database, dropped afterwards:
+
+```bash
+GITSERVER_TEST_DB=sqlserver dotnet test                                   # uses (localdb)\MSSQLLocalDB
+GITSERVER_TEST_DB=sqlserver GITSERVER_TEST_SQLSERVER="Server=.\SQLEXPRESS;Trusted_Connection=True;TrustServerCertificate=True" dotnet test
+```
+
+The suite has five layers:
 
 | Layer | What it proves |
 |---|---|
@@ -305,24 +352,24 @@ GitServer is a single ASP.NET Core 10 application built on Razor Pages.
 src/GitServer/
 ├── Controllers/        # Git HTTP protocol (upload-pack, receive-pack)
 │   └── Api/            # The JSON API under /api (typed contracts in ApiContracts.cs)
-├── Data/               # EF Core DbContext + SQLite migrations
-├── Extensions/         # Startup wiring: identity, API-key authentication, OpenAPI, git route prefix
+├── Data/               # EF Core DbContext; migrations per provider (Migrations = SQLite, MigrationsSqlServer)
+├── Extensions/         # Startup wiring: identity, API-key authentication, OpenAPI, rate limiting, git route prefix
 ├── Localization/       # One folder per language: strings.json + emails/*.html
-├── Middleware/         # Git Basic Auth middleware, site-settings enforcement
-├── Models/             # Domain models (User, Repository, Issue, Group, ApiKey, AccessToken, SiteSettings, …)
-├── Services/           # Business logic (Git, Repository, AccessPolicy, ApiKey, ReservedNames, UserSearch, TimeZone, …)
+├── Middleware/         # Git Basic Auth middleware, API-key guard (read-only keys), site-settings enforcement
+├── Models/             # Domain models (User, Repository, Issue, Group, ApiKey, AccessToken, AuditEntry, SiteSettings, …)
+├── Services/           # Business logic (Git, Repository, AccessPolicy, ApiKey, Audit, ReservedNames, UserSearch, TimeZone, …)
 ├── Pages/              # Razor Pages, all served under /dashboard (except the home page and repository pages)
 │   ├── Auth/           # Login, Register, password reset
 │   ├── Repo/           # Repository browser, commits, branches, tags, issues
 │   ├── User/           # Profile, account settings, API keys, access tokens, groups
-│   └── Admin/          # Users, blocked emails, reserved names, Git version updater, site settings
+│   └── Admin/          # Users, blocked emails, reserved names, audit log, Git version updater, site settings
 └── wwwroot/            # Static assets only (css, js, favicon)
 tests/GitServer.Tests/   # xUnit: policy, services, migrations, localization, end-to-end, API contract and browser tests
 ```
 
 **Stack:**
 - ASP.NET Core 10 Razor Pages
-- Entity Framework Core with SQLite
+- Entity Framework Core with SQLite (default) or SQL Server
 - ASP.NET Core Identity
 - A JSON API described with OpenAPI (`Microsoft.AspNetCore.OpenApi`); the pages render lists client-side from that API
 - Git operations run as plain `git.exe` subprocesses (`Process.Start`) — no native Git library dependency

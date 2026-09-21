@@ -14,6 +14,9 @@ public class ApiKey
 	public string KeyHash { get; set; } = "";
 
 	public bool IsEnabled { get; set; } = true;
+
+	/// <summary>A read-only key may only use safe requests (GET); anything that changes data is refused.</summary>
+	public bool IsReadOnly { get; set; }
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 	public DateTime ExpiresAt { get; set; }
 	public DateTime? LastUsedAt { get; set; }

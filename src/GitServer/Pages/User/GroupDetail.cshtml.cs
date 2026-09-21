@@ -102,8 +102,14 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 	{
 		if (!await LoadAsync(id)) return NotFound();
 
+		// Removed here instead of by database cascades so that every provider behaves the same: SQL Server does not allow the
+		// several cascade paths (group -> repositories -> access rows, group -> access rows) that SQLite follows implicitly.
+		await using var transaction = await db.Database.BeginTransactionAsync();
+		await db.RepositoryAccesses.Where(a => a.GroupId == id).ExecuteDeleteAsync();
+		await db.Repositories.Where(r => r.GroupOwnerId == id).ExecuteDeleteAsync();   // issues, comments and their access rows go with them
 		db.Groups.Remove(Group!);
 		await db.SaveChangesAsync();
+		await transaction.CommitAsync();
 
 		return RedirectToPage("/User/Groups");
 	}

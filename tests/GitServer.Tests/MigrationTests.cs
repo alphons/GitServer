@@ -50,7 +50,7 @@ public sealed class MigrationTests : IDisposable
 		db.Database.Migrate();
 
 		Assert.False(db.Database.HasPendingModelChanges(),
-			"The EF model differs from the migrations. Run: dotnet ef migrations add <Name> --project src/GitServer");
+			"The EF model differs from the migrations. Run: dotnet ef migrations add <Name> --context AppDbContext --project src/GitServer");
 	}
 
 	[Fact]

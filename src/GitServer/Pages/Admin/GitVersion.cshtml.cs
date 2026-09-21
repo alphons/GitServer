@@ -14,6 +14,7 @@ public class GitVersionModel(
 	GitProcessService gitProcess,
 	GitReleaseService gitReleases,
 	GitInstallerService gitInstaller,
+	AuditService audit,
 	LocalizationService L) : PageModel
 {
 	public List<GitInstallation> Installations { get; set; } = new();
@@ -88,6 +89,7 @@ public class GitVersionModel(
 		{
 			await gitInstaller.ActivateAsync(id);
 			Message = L["admin_gitversion_activated"];
+			await audit.WriteAsync("git.activate", "#" + id);
 		}
 		catch (GitInstallException ex)
 		{
@@ -107,6 +109,7 @@ public class GitVersionModel(
 		{
 			await gitInstaller.DeleteAsync(id);
 			Message = L["admin_gitversion_deleted"];
+			await audit.WriteAsync("git.delete", "#" + id);
 		}
 		catch (GitInstallException ex)
 		{

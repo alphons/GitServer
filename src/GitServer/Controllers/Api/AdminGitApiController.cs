@@ -18,7 +18,7 @@ namespace GitServer.Controllers.Api;
 public class AdminGitApiController(
 	UserManager<AppUser> userManager, AppDbContext db,
 	GitInstallProgressTracker progressTracker, IServiceScopeFactory scopeFactory,
-	LocalizationService L) : ControllerBase
+	AuditService audit, LocalizationService L) : ControllerBase
 {
 	private async Task<bool> IsAdminAsync() => AccessPolicy.IsSiteAdmin(await userManager.GetUserAsync(User));
 
@@ -32,6 +32,7 @@ public class AdminGitApiController(
 
 		var tagName = request.TagName;
 		var jobId = progressTracker.Start();
+		await audit.WriteAsync("git.install", tagName);
 
 		_ = Task.Run(async () =>
 		{

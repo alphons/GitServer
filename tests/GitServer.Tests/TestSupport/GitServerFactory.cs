@@ -21,6 +21,17 @@ public class GitServerFactory : WebApplicationFactory<Program>
 
 	public CapturingEmailService Mail { get; } = new();
 
+	/// <summary>Set GITSERVER_TEST_DB=sqlserver to run against SQL Server instead of SQLite: LocalDB by default, or the server
+	/// part of a connection string in GITSERVER_TEST_SQLSERVER (e.g. "Server=.;User Id=sa;Password=...;TrustServerCertificate=True").
+	/// Every factory gets its own throwaway database, dropped on dispose.</summary>
+	public static bool UsesSqlServer { get; } =
+		string.Equals(Environment.GetEnvironmentVariable("GITSERVER_TEST_DB"), "sqlserver", StringComparison.OrdinalIgnoreCase);
+
+	private static string SqlServerBase =>
+		Environment.GetEnvironmentVariable("GITSERVER_TEST_SQLSERVER") ?? @"Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True";
+
+	private string SqlServerDatabase { get; } = $"gitserver_e2e_{Guid.NewGuid():N}";
+
 	public string Root { get; } = Path.Combine(Path.GetTempPath(), $"gitserver-e2e-{Guid.NewGuid():N}");
 	public string ReposPath => Path.Combine(Root, "repos");
 
@@ -30,10 +41,19 @@ public class GitServerFactory : WebApplicationFactory<Program>
 
 		builder.UseContentRoot(TestPaths.AppProject);
 		builder.UseEnvironment("Testing");
-		builder.UseSetting("ConnectionStrings:Default", $"Data Source={Path.Combine(Root, "e2e.db")}");
+		if (UsesSqlServer)
+		{
+			builder.UseSetting("GitServer:DatabaseProvider", "SqlServer");
+			builder.UseSetting("ConnectionStrings:SqlServer", $"{SqlServerBase};Database={SqlServerDatabase}");   // wins over the SqlServer sample in appsettings.json
+		}
+		else
+			builder.UseSetting("ConnectionStrings:Default", $"Data Source={Path.Combine(Root, "e2e.db")}");
 		builder.UseSetting("GitServer:RepositoriesPath", ReposPath);
 		builder.UseSetting("GitServer:GitPathPrefix", "/git");
 		builder.UseSetting("GitServer:ContactEmail", "privacy@example.test");
+		// Limits are off unless a test turns them on: most tests sign in and call the API far more often than a person would.
+		builder.UseSetting("GitServer:ApiRequestsPerMinute", "0");
+		builder.UseSetting("GitServer:AuthRequestsPerMinute", "0");
 		builder.UseSetting("Authentication:KeysPath", Path.Combine(Root, "keys"));
 
 		builder.ConfigureTestServices(services =>
@@ -148,9 +168,27 @@ public class GitServerFactory : WebApplicationFactory<Program>
 		return repo;
 	}
 
+	private void DropSqlServerDatabase()
+	{
+		try
+		{
+			Microsoft.Data.SqlClient.SqlConnection.ClearAllPools();
+			using var connection = new Microsoft.Data.SqlClient.SqlConnection(SqlServerBase);
+			connection.Open();
+			using var command = connection.CreateCommand();
+			command.CommandText = $"IF DB_ID(N'{SqlServerDatabase}') IS NOT NULL BEGIN ALTER DATABASE [{SqlServerDatabase}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{SqlServerDatabase}]; END";
+			command.ExecuteNonQuery();
+		}
+		catch (Exception)
+		{
+			// a leftover test database is harmless; never fail a test run over cleanup
+		}
+	}
+
 	protected override void Dispose(bool disposing)
 	{
 		base.Dispose(disposing);
+		if (disposing && UsesSqlServer) DropSqlServerDatabase();
 		if (!disposing || !Directory.Exists(Root)) return;
 
 		foreach (var file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))

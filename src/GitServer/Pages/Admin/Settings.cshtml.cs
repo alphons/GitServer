@@ -9,6 +9,7 @@ namespace GitServer.Pages.Admin;
 public class SettingsModel(
 	UserManager<AppUser> userManager,
 	SiteSettingsService siteSettings,
+	AuditService audit,
 	LocalizationService L) : PageModel
 {
 	[BindProperty] public bool AllowRegistration { get; set; }
@@ -58,6 +59,8 @@ public class SettingsModel(
 			ApiKeyLifetimeDays = ApiKeyLifetimeDays,
 		});
 
+		await audit.WriteAsync("settings.update", null,
+			$"registration={AllowRegistration}, userRepos={AllowUserRepoCreation}, pushCreate={AllowPushToCreateRepositories}, anonPush={AllowAnonymousPush}, avatar={ShowCommitAuthorAvatar}, apiKeyDays={ApiKeyLifetimeDays}");
 		Message = L["admin_settings_saved"];
 		return Page();
 	}

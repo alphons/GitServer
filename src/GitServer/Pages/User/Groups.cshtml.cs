@@ -48,7 +48,7 @@ public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUs
 
 		// Group names double as a URL namespace segment alongside usernames, so they share the
 		// same character set and must be unique across both groups and users, not just per-owner.
-		if (!Regex.IsMatch(name, @"^[a-zA-Z0-9_\-]+$"))
+		if (name.Length > 100 || !Regex.IsMatch(name, @"^[a-zA-Z0-9_\-]+$"))
 		{
 			Message = L["error_invalid_group_name"];
 			IsError = true;

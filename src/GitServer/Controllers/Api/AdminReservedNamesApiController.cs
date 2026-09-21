@@ -18,7 +18,7 @@ namespace GitServer.Controllers.Api;
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 [ProducesResponseType(StatusCodes.Status403Forbidden)]
 public partial class AdminReservedNamesApiController(
-	UserManager<AppUser> userManager, AppDbContext db, ReservedNames reserved, LocalizationService L) : ControllerBase
+	UserManager<AppUser> userManager, AppDbContext db, ReservedNames reserved, AuditService audit, LocalizationService L) : ControllerBase
 {
 	// Same characters a user or group name may contain, plus the two wildcards, and at least one real character
 	// (so a pattern can never reserve every name at once).
@@ -61,6 +61,7 @@ public partial class AdminReservedNamesApiController(
 		var entity = new ReservedNamePattern { Pattern = pattern };
 		db.ReservedNamePatterns.Add(entity);
 		await db.SaveChangesAsync();
+		await audit.WriteAsync("reserved-name.add", pattern);
 		return new ReservedPatternDto(entity.Id, entity.Pattern);
 	}
 
@@ -80,8 +81,10 @@ public partial class AdminReservedNamesApiController(
 		var problem = await ValidateAsync(pattern, exceptId: id);
 		if (problem != null) return problem;
 
+		var before = entity.Pattern;
 		entity.Pattern = pattern;
 		await db.SaveChangesAsync();
+		await audit.WriteAsync("reserved-name.update", pattern, $"was {before}");
 		return new ReservedPatternDto(entity.Id, entity.Pattern);
 	}
 
@@ -96,6 +99,7 @@ public partial class AdminReservedNamesApiController(
 
 		db.ReservedNamePatterns.Remove(entity);
 		await db.SaveChangesAsync();
+		await audit.WriteAsync("reserved-name.delete", entity.Pattern);
 		return NoContent();
 	}
 

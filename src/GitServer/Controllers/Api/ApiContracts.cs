@@ -47,11 +47,19 @@ public record FileContentResponse(string? Content, string? Error);
 
 // ---- API keys ----------------------------------------------------------------------------------------------
 
-public record CreateApiKeyRequest(string? Name);
+/// <summary>ReadOnly: the key may only use GET; anything that changes data is refused with 403.</summary>
+public record CreateApiKeyRequest(string? Name, bool ReadOnly = false);
 public record SetApiKeyEnabledRequest(bool Enabled);
 
 public record ApiKeyDto(
-	int Id, string Name, string Prefix, bool IsEnabled, bool IsExpired, string Created, string Expires, string? LastUsed);
+	int Id, string Name, string Prefix, bool IsEnabled, bool IsReadOnly, bool IsExpired, string Created, string Expires, string? LastUsed);
 
 /// <summary>Key is the plain-text API key. It is only ever returned here, once, and cannot be retrieved again.</summary>
 public record CreatedApiKeyResponse(string Key, ApiKeyDto ApiKey);
+
+// ---- Audit log ---------------------------------------------------------------------------------------------
+
+/// <summary>One audit entry. Via is "web" (sign-in cookie) or "api-key".</summary>
+public record AuditEntryDto(int Id, string At, string Actor, string Action, string? Target, string? Details, string Via, string? Ip);
+
+public record AuditLogResponse(int Page, bool HasNext, IReadOnlyList<AuditEntryDto> Entries);

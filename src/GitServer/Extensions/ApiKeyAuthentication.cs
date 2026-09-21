@@ -13,6 +13,9 @@ namespace GitServer.Extensions;
 public static class ApiKeyAuthentication
 {
 	public const string Scheme = "ApiKey";
+
+	/// <summary>Present on the identity of a read-only key.</summary>
+	public const string ReadOnlyClaim = "gitserver:apikey-readonly";
 	private const string SmartScheme = "GitServer";
 
 	/// <summary>Requests that carry an X-Api-Key header are authenticated as the key's owner; every other request
@@ -32,6 +35,8 @@ public static class ApiKeyAuthentication
 	}
 
 	public static bool IsApiKeyRequest(this ClaimsPrincipal user) => user.Identity?.AuthenticationType == Scheme;
+
+	public static bool IsReadOnlyApiKey(this ClaimsPrincipal user) => user.HasClaim(ReadOnlyClaim, "true");
 }
 
 public class ApiKeyAuthenticationHandler(
@@ -43,12 +48,13 @@ public class ApiKeyAuthenticationHandler(
 	{
 		if (!Request.Headers.TryGetValue(ApiKeyService.HeaderName, out var header)) return AuthenticateResult.NoResult();
 
-		var user = await apiKeys.AuthenticateAsync(header.ToString().Trim());
-		if (user == null) return AuthenticateResult.Fail("Invalid API key.");
+		var found = await apiKeys.AuthenticateAsync(header.ToString().Trim());
+		if (found == null) return AuthenticateResult.Fail("Invalid API key.");
 
 		// Same claims as a cookie sign-in, so every controller sees the key's owner as the current user.
-		var principal = await signInManager.CreateUserPrincipalAsync(user);
+		var principal = await signInManager.CreateUserPrincipalAsync(found.User);
 		var identity = new ClaimsIdentity(principal.Claims, ApiKeyAuthentication.Scheme);
+		if (found.ReadOnly) identity.AddClaim(new Claim(ApiKeyAuthentication.ReadOnlyClaim, "true"));
 		return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name));
 	}
 }
