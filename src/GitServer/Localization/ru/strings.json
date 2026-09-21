@@ -67,6 +67,7 @@
   "error_invalid_or_expired_link": "Ссылка недействительна или истекла. Зарегистрируйтесь заново.",
   "error_passwords_do_not_match": "Пароли не совпадают.",
   "error_username_taken": "Это имя пользователя уже занято.",
+  "col_name": "Название",
   "settings_apikeys_title": "API-ключи",
   "settings_apikeys_help": "Передавайте API-ключ в заголовке X-Api-Key, чтобы обращаться к API от своего имени. Ключ может всё, что можете вы, кроме управления API-ключами. Храните его в секрете.",
   "settings_apikeys_lifetime": "Новые ключи действительны {0} дн.",

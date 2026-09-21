@@ -1,179 +1,179 @@
 @page "/dashboard/User/GroupDetail/{id:int}"
 @model GitServer.Pages.User.GroupDetailModel
 @{
-    ViewData["Title"] = Model.Group?.Name ?? L["nav_groups"];
+	ViewData["Title"] = Model.Group?.Name ?? L["nav_groups"];
 }
 <div class="container">
-    @if (Model.CurrentUser != null)
-    {
-        @await Html.PartialAsync("_ProfileHeader", Model.CurrentUser)
+	@if (Model.CurrentUser != null)
+	{
+		@await Html.PartialAsync("_ProfileHeader", Model.CurrentUser)
 
-        @await Html.PartialAsync("_UserNav", (Model.CurrentUser.UserName!, "groups", true))
-    }
+		@await Html.PartialAsync("_UserNav", (Model.CurrentUser.UserName!, "groups", true))
+	}
 
-    @if (!string.IsNullOrEmpty(Model.Message))
-    {
-        <div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
-    }
+	@if (!string.IsNullOrEmpty(Model.Message))
+	{
+		<div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+	}
 
-    <section class="settings-section">
-        <h2>@Model.Group!.Name</h2>
-        <p class="text-muted">@L["group_members_hint"]</p>
+	<section class="settings-section">
+		<h2>@Model.Group!.Name</h2>
+		<p class="text-muted">@L["group_members_hint"]</p>
 
-        @if (Model.Members.Count > 0)
-        {
-            <table class="data-table collaborators-table">
-                <thead>
-                    <tr>
-                        <th>@L["settings_collaborator_user"]</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var member in Model.Members)
-                    {
-                        <tr>
-                            <td>
-                                <a href="/dashboard/User/@member.User.UserName" class="collaborator-user">
-                                    <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
-                                    <span>
-                                        <strong>@member.User.UserName</strong>
-                                        @if (!string.IsNullOrEmpty(member.User.DisplayName))
-                                        {
-                                            <span class="text-muted"> — @member.User.DisplayName</span>
-                                        }
-                                    </span>
-                                </a>
-                            </td>
-                            <td>
-                                <form method="post" asp-page-handler="RemoveMember">
-                                    <input type="hidden" name="memberId" value="@member.Id" />
-                                    <button type="submit" class="btn btn-danger btn-sm">@L["delete_button"]</button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <p class="text-muted">@L["group_no_members"]</p>
-        }
+		@if (Model.Members.Count > 0)
+		{
+			<table class="data-table collaborators-table">
+				<thead>
+					<tr>
+						<th>@L["settings_collaborator_user"]</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var member in Model.Members)
+					{
+						<tr>
+							<td>
+								<a href="/dashboard/User/@member.User.UserName" class="collaborator-user">
+									<img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+									<span>
+										<strong>@member.User.UserName</strong>
+										@if (!string.IsNullOrEmpty(member.User.DisplayName))
+										{
+											<span class="text-muted"> — @member.User.DisplayName</span>
+										}
+									</span>
+								</a>
+							</td>
+							<td>
+								<form method="post" asp-page-handler="RemoveMember">
+									<input type="hidden" name="memberId" value="@member.Id" />
+									<button type="submit" class="btn btn-danger btn-sm">@L["delete_button"]</button>
+								</form>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		else
+		{
+			<p class="text-muted">@L["group_no_members"]</p>
+		}
 
-        <form method="post" asp-page-handler="AddMember" class="form-inline collaborator-add-form">
-            <div class="form-group collaborator-search">
-                <label for="memberName">@L["settings_collaborator_username"]</label>
-                <input asp-for="MemberName" id="memberName" type="text" class="form-control"
-                       autocomplete="off" placeholder="@L["settings_collaborator_search_placeholder"]" />
-                <div id="memberResults" class="collaborator-results"></div>
-            </div>
-            <button type="submit" class="btn btn-primary">@L["group_add_member"]</button>
-        </form>
-    </section>
+		<form method="post" asp-page-handler="AddMember" class="form-inline collaborator-add-form">
+			<div class="form-group collaborator-search">
+				<label for="memberName">@L["settings_collaborator_username"]</label>
+				<input asp-for="MemberName" id="memberName" type="text" class="form-control"
+					   autocomplete="off" placeholder="@L["settings_collaborator_search_placeholder"]" />
+				<div id="memberResults" class="collaborator-results"></div>
+			</div>
+			<button type="submit" class="btn btn-primary">@L["group_add_member"]</button>
+		</form>
+	</section>
 
-    <section class="settings-section">
-        <h2>@L["nav_groups"] — @L["group_repos_title"] (@Model.RepoTotalCount)</h2>
-        <div id="group-repos-container"></div>
-    </section>
+	<section class="settings-section">
+		<h2>@L["nav_groups"] — @L["group_repos_title"] (@Model.RepoTotalCount)</h2>
+		<div id="group-repos-container"></div>
+	</section>
 
-    <section class="settings-section">
-        <h2>@L["settings_danger_zone"]</h2>
-        <form method="post" asp-page-handler="Delete"
-              data-confirm="@L.Format("confirm_delete_group", Model.Group.Name)"
-              data-confirm-ok="@L["group_delete"]" data-confirm-cancel="@L["cancel"]">
-            <button type="submit" class="btn btn-danger">@L["group_delete"]</button>
-        </form>
-    </section>
+	<section class="settings-section">
+		<h2>@L["settings_danger_zone"]</h2>
+		<form method="post" asp-page-handler="Delete"
+			  data-confirm="@L.Format("confirm_delete_group", Model.Group.Name)"
+			  data-confirm-ok="@L["group_delete"]" data-confirm-cancel="@L["cancel"]">
+			<button type="submit" class="btn btn-danger">@L["group_delete"]</button>
+		</form>
+	</section>
 </div>
 
 @section Scripts {
-    <script src="~/js/repo-list.js" asp-append-version="true"></script>
-    <script>
-        (function () {
-            var input = document.getElementById('memberName');
-            var results = document.getElementById('memberResults');
-            var searchUrl = '/api/groups/@Model.Group!.Id/user-search';
-            var debounceTimer = null;
-            var currentRequest = null;
+	<script src="~/js/repo-list.js" asp-append-version="true"></script>
+	<script>
+		(function () {
+			var input = document.getElementById('memberName');
+			var results = document.getElementById('memberResults');
+			var searchUrl = '/api/groups/@Model.Group!.Id/user-search';
+			var debounceTimer = null;
+			var currentRequest = null;
 
-            function hideResults() {
-                results.innerHTML = '';
-                results.classList.remove('open');
-            }
+			function hideResults() {
+				results.innerHTML = '';
+				results.classList.remove('open');
+			}
 
-            function renderResults(users) {
-                if (!users.length) { hideResults(); return; }
-                results.innerHTML = '';
-                users.forEach(function (u) {
-                    var item = document.createElement('div');
-                    item.className = 'collaborator-result-item';
-                    var label = u.userName + (u.displayName ? ' — ' + u.displayName : '') +
-                        (u.email ? ' (' + u.email + ')' : '');
-                    item.textContent = label;
-                    item.addEventListener('click', function () {
-                        input.value = u.userName;
-                        hideResults();
-                    });
-                    results.appendChild(item);
-                });
-                results.classList.add('open');
-            }
+			function renderResults(users) {
+				if (!users.length) { hideResults(); return; }
+				results.innerHTML = '';
+				users.forEach(function (u) {
+					var item = document.createElement('div');
+					item.className = 'collaborator-result-item';
+					var label = u.userName + (u.displayName ? ' — ' + u.displayName : '') +
+						(u.email ? ' (' + u.email + ')' : '');
+					item.textContent = label;
+					item.addEventListener('click', function () {
+						input.value = u.userName;
+						hideResults();
+					});
+					results.appendChild(item);
+				});
+				results.classList.add('open');
+			}
 
-            input.addEventListener('input', function () {
-                var q = input.value.trim();
-                clearTimeout(debounceTimer);
-                if (q.length < 2) { hideResults(); return; }
+			input.addEventListener('input', function () {
+				var q = input.value.trim();
+				clearTimeout(debounceTimer);
+				if (q.length < 2) { hideResults(); return; }
 
-                debounceTimer = setTimeout(function () {
-                    if (currentRequest) currentRequest.abort();
-                    var controller = new AbortController();
-                    currentRequest = controller;
-                    fetch(searchUrl + '?q=' + encodeURIComponent(q), { signal: controller.signal })
-                        .then(function (r) { return r.json(); })
-                        .then(renderResults)
-                        .catch(function () { });
-                }, 200);
-            });
+				debounceTimer = setTimeout(function () {
+					if (currentRequest) currentRequest.abort();
+					var controller = new AbortController();
+					currentRequest = controller;
+					fetch(searchUrl + '?q=' + encodeURIComponent(q), { signal: controller.signal })
+						.then(function (r) { return r.json(); })
+						.then(renderResults)
+						.catch(function () { });
+				}, 200);
+			});
 
-            document.addEventListener('click', function (e) {
-                if (e.target !== input && !results.contains(e.target)) hideResults();
-            });
-        })();
+			document.addEventListener('click', function (e) {
+				if (e.target !== input && !results.contains(e.target)) hideResults();
+			});
+		})();
 
-        (function () {
-            var container = document.getElementById('group-repos-container');
-            if (!container) return;
+		(function () {
+			var container = document.getElementById('group-repos-container');
+			if (!container) return;
 
-            var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
-            {
-                ["prev"] = L["pagination_prev"],
-                ["next"] = L["pagination_next"],
-                ["private"] = L["badge_private"],
-                ["public"] = L["badge_public"],
-                ["readOnly"] = L["settings_readonly_label"],
-                ["empty"] = L["group_repos_empty"],
-                ["create"] = L["index_empty_create"],
-            }));
-            var el = RepoList.el;
+			var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+			{
+				["prev"] = L["pagination_prev"],
+				["next"] = L["pagination_next"],
+				["private"] = L["badge_private"],
+				["public"] = L["badge_public"],
+				["readOnly"] = L["settings_readonly_label"],
+				["empty"] = L["group_repos_empty"],
+				["create"] = L["index_empty_create"],
+			}));
+			var el = RepoList.el;
 
-            function render(data) {
-                container.textContent = '';
-                var empty = el('div');
-                empty.appendChild(el('p', 'text-muted', labels.empty));
-                var create = el('a', 'btn btn-primary', labels.create);
-                create.href = '/dashboard/Repo/New';
-                empty.appendChild(create);
-                RepoList.list(container, data.repos, data.page, data.hasNext, labels, load, empty);
-            }
+			function render(data) {
+				container.textContent = '';
+				var empty = el('div');
+				empty.appendChild(el('p', 'text-muted', labels.empty));
+				var create = el('a', 'btn btn-primary', labels.create);
+				create.href = '/dashboard/Repo/New';
+				empty.appendChild(create);
+				RepoList.list(container, data.repos, data.page, data.hasNext, labels, load, empty);
+			}
 
-            function load(rp) {
-                fetch('/api/groups/@Model.Group!.Id/repos?rp=' + rp)
-                    .then(function (r) { return r.json(); })
-                    .then(render);
-            }
+			function load(rp) {
+				fetch('/api/groups/@Model.Group!.Id/repos?rp=' + rp)
+					.then(function (r) { return r.json(); })
+					.then(render);
+			}
 
-            load(0);
-        })();
-    </script>
+			load(0);
+		})();
+	</script>
 }

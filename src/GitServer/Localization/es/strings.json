@@ -67,6 +67,7 @@
   "error_invalid_or_expired_link": "Este enlace no es válido o ha caducado. Regístrate de nuevo.",
   "error_passwords_do_not_match": "Las contraseñas no coinciden.",
   "error_username_taken": "Este nombre de usuario ya está en uso.",
+  "col_name": "Nombre",
   "settings_apikeys_title": "Claves de API",
   "settings_apikeys_help": "Envíe una clave de API en la cabecera X-Api-Key para llamar a la API como usted. Una clave puede hacer todo lo que usted puede, excepto gestionar claves de API. Manténgala en secreto.",
   "settings_apikeys_lifetime": "Las claves nuevas son válidas durante {0} días.",

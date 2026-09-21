@@ -67,6 +67,7 @@
   "error_invalid_or_expired_link": "هذا الرابط غير صالح أو منتهي الصلاحية. الرجاء التسجيل مرة أخرى.",
   "error_passwords_do_not_match": "كلمتا المرور غير متطابقتين.",
   "error_username_taken": "اسم المستخدم هذا مُستخدم بالفعل.",
+  "col_name": "الاسم",
   "settings_apikeys_title": "مفاتيح API",
   "settings_apikeys_help": "أرسل مفتاح API في ترويسة X-Api-Key لاستدعاء الواجهة باسمك. يمكن للمفتاح فعل كل ما تفعله أنت باستثناء إدارة مفاتيح API. احتفظ به سرًا.",
   "settings_apikeys_lifetime": "المفاتيح الجديدة صالحة لمدة {0} يومًا.",

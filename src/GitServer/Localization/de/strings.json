@@ -67,6 +67,7 @@
   "error_invalid_or_expired_link": "Dieser Link ist ungültig oder abgelaufen. Bitte registriere dich erneut.",
   "error_passwords_do_not_match": "Die Passwörter stimmen nicht überein.",
   "error_username_taken": "Dieser Benutzername ist bereits vergeben.",
+  "col_name": "Name",
   "settings_apikeys_title": "API-Schlüssel",
   "settings_apikeys_help": "Senden Sie einen API-Schlüssel im Header X-Api-Key, um die API als Sie selbst aufzurufen. Ein Schlüssel kann alles, was Sie können, außer API-Schlüssel verwalten. Halten Sie ihn geheim.",
   "settings_apikeys_lifetime": "Neue Schlüssel sind {0} Tage gültig.",

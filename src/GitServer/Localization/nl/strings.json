@@ -68,6 +68,7 @@
   "error_invalid_or_expired_link": "Deze link is ongeldig of verlopen. Registreer opnieuw.",
   "error_passwords_do_not_match": "De wachtwoorden komen niet overeen.",
   "error_username_taken": "Deze gebruikersnaam is al in gebruik.",
+  "col_name": "Naam",
   "settings_apikeys_title": "API-sleutels",
   "settings_apikeys_help": "Stuur een API-sleutel mee in de X-Api-Key-header om de API als jezelf aan te roepen. Een sleutel kan alles wat jij kunt, behalve API-sleutels beheren. Houd hem geheim.",
   "settings_apikeys_lifetime": "Nieuwe sleutels zijn {0} dagen geldig.",

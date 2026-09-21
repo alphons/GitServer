@@ -6,207 +6,207 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Services;
 
 public class RepositoryService(AppDbContext db, 
-    GitProcessService git, IOptions<GitServerOptions> options)
+	GitProcessService git, IOptions<GitServerOptions> options)
 {
-    private readonly AppDbContext _db = db;
-    private readonly GitProcessService _git = git;
-    private readonly string _reposPath = options.Value.RepositoriesPath;
+	private readonly AppDbContext _db = db;
+	private readonly GitProcessService _git = git;
+	private readonly string _reposPath = options.Value.RepositoriesPath;
 
 	public string GetRepoPath(string userName, string repoName) =>
-        Path.Combine(_reposPath, userName, repoName + ".git");
+		Path.Combine(_reposPath, userName, repoName + ".git");
 
-    public async Task<Repository> CreateAsync(string ownerId, string ownerName, string name, string? description, bool isPrivate)
-    {
-        var repo = new Repository
-        {
-            Name = name,
-            Description = description,
-            OwnerId = ownerId,
-            IsPrivate = isPrivate,
-        };
+	public async Task<Repository> CreateAsync(string ownerId, string ownerName, string name, string? description, bool isPrivate)
+	{
+		var repo = new Repository
+		{
+			Name = name,
+			Description = description,
+			OwnerId = ownerId,
+			IsPrivate = isPrivate,
+		};
 
-        _db.Repositories.Add(repo);
-        await _db.SaveChangesAsync();
+		_db.Repositories.Add(repo);
+		await _db.SaveChangesAsync();
 
-        var path = GetRepoPath(ownerName, name);
-        await _git.InitBare(path);
+		var path = GetRepoPath(ownerName, name);
+		await _git.InitBare(path);
 
-        return repo;
-    }
+		return repo;
+	}
 
-    public async Task<Repository> CreateForGroupAsync(int groupOwnerId, string groupName, string name, string? description, bool isPrivate)
-    {
-        var repo = new Repository
-        {
-            Name = name,
-            Description = description,
-            GroupOwnerId = groupOwnerId,
-            IsPrivate = isPrivate,
-        };
+	public async Task<Repository> CreateForGroupAsync(int groupOwnerId, string groupName, string name, string? description, bool isPrivate)
+	{
+		var repo = new Repository
+		{
+			Name = name,
+			Description = description,
+			GroupOwnerId = groupOwnerId,
+			IsPrivate = isPrivate,
+		};
 
-        _db.Repositories.Add(repo);
-        await _db.SaveChangesAsync();
+		_db.Repositories.Add(repo);
+		await _db.SaveChangesAsync();
 
-        var path = GetRepoPath(groupName, name);
-        await _git.InitBare(path);
+		var path = GetRepoPath(groupName, name);
+		await _git.InitBare(path);
 
-        return repo;
-    }
+		return repo;
+	}
 
-    public async Task DeleteAsync(Repository repo, string ownerName)
-    {
-        var path = GetRepoPath(ownerName, repo.Name);
-        if (Directory.Exists(path))
-        {
-            foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-                File.SetAttributes(file, FileAttributes.Normal);
-            Directory.Delete(path, recursive: true);
-        }
+	public async Task DeleteAsync(Repository repo, string ownerName)
+	{
+		var path = GetRepoPath(ownerName, repo.Name);
+		if (Directory.Exists(path))
+		{
+			foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+				File.SetAttributes(file, FileAttributes.Normal);
+			Directory.Delete(path, recursive: true);
+		}
 
-        _db.Repositories.Remove(repo);
-        await _db.SaveChangesAsync();
-    }
+		_db.Repositories.Remove(repo);
+		await _db.SaveChangesAsync();
+	}
 
-    /// <summary>
-    /// Looks up a repository case-insensitively (like GitHub): "Foo"/"foo"/"FOO" all resolve to
-    /// the one repository actually named "Foo", so pushing/pulling/browsing works with any casing
-    /// while the name is stored and displayed exactly as it was created.
-    /// </summary>
-    public async Task<Repository?> GetAsync(string ownerName, string repoName)
-    {
-        var normalizedOwner = ownerName.ToUpperInvariant();
-        return await _db.Repositories
-            .Include(r => r.Owner)
-            .Include(r => r.GroupOwner)
-            .FirstOrDefaultAsync(r => r.Name == repoName &&
-                ((r.Owner != null && r.Owner.NormalizedUserName == normalizedOwner) ||
-                 (r.GroupOwner != null && r.GroupOwner.Name == ownerName)));
-    }
+	/// <summary>
+	/// Looks up a repository case-insensitively (like GitHub): "Foo"/"foo"/"FOO" all resolve to
+	/// the one repository actually named "Foo", so pushing/pulling/browsing works with any casing
+	/// while the name is stored and displayed exactly as it was created.
+	/// </summary>
+	public async Task<Repository?> GetAsync(string ownerName, string repoName)
+	{
+		var normalizedOwner = ownerName.ToUpperInvariant();
+		return await _db.Repositories
+			.Include(r => r.Owner)
+			.Include(r => r.GroupOwner)
+			.FirstOrDefaultAsync(r => r.Name == repoName &&
+				((r.Owner != null && r.Owner.NormalizedUserName == normalizedOwner) ||
+				(r.GroupOwner != null && r.GroupOwner.Name == ownerName)));
+	}
 
-    public async Task<List<Repository>> GetPublicReposAsync(int skip = 0, int take = 20)
-    {
-        return await _db.Repositories
-            .Include(r => r.Owner)
-            .Include(r => r.GroupOwner)
-            .Where(r => !r.IsPrivate)
-            .OrderByDescending(r => r.UpdatedAt)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
-    }
+	public async Task<List<Repository>> GetPublicReposAsync(int skip = 0, int take = 20)
+	{
+		return await _db.Repositories
+			.Include(r => r.Owner)
+			.Include(r => r.GroupOwner)
+			.Where(r => !r.IsPrivate)
+			.OrderByDescending(r => r.UpdatedAt)
+			.Skip(skip)
+			.Take(take)
+			.ToListAsync();
+	}
 
-    public async Task<int> GetGroupRepoCountAsync(int groupId) =>
-        await _db.Repositories.CountAsync(r => r.GroupOwnerId == groupId);
+	public async Task<int> GetGroupRepoCountAsync(int groupId) =>
+		await _db.Repositories.CountAsync(r => r.GroupOwnerId == groupId);
 
-    public async Task<List<Repository>> GetGroupReposAsync(int groupId, int skip = 0, int take = int.MaxValue)
-    {
-        return await _db.Repositories
-            .Include(r => r.GroupOwner)
-            .Where(r => r.GroupOwnerId == groupId)
-            .OrderByDescending(r => r.UpdatedAt)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
-    }
+	public async Task<List<Repository>> GetGroupReposAsync(int groupId, int skip = 0, int take = int.MaxValue)
+	{
+		return await _db.Repositories
+			.Include(r => r.GroupOwner)
+			.Where(r => r.GroupOwnerId == groupId)
+			.OrderByDescending(r => r.UpdatedAt)
+			.Skip(skip)
+			.Take(take)
+			.ToListAsync();
+	}
 
-    private async Task<List<int>> GetAccessibleGroupIdsAsync(string userId) =>
-        await _db.Groups
-            .Where(g => g.OwnerId == userId || g.Members.Any(m => m.UserId == userId))
-            .Select(g => g.Id)
-            .ToListAsync();
+	private async Task<List<int>> GetAccessibleGroupIdsAsync(string userId) =>
+		await _db.Groups
+			.Where(g => g.OwnerId == userId || g.Members.Any(m => m.UserId == userId))
+			.Select(g => g.Id)
+			.ToListAsync();
 
-    private IQueryable<Repository> FilterByQuery(IQueryable<Repository> q, string? query)
-    {
-        if (string.IsNullOrWhiteSpace(query)) return q;
-        var lower = query.Trim().ToLower();
-        return q.Where(r =>
-            r.Name.ToLower().Contains(lower) ||
-            (r.Description != null && r.Description.ToLower().Contains(lower)));
-    }
+	private IQueryable<Repository> FilterByQuery(IQueryable<Repository> q, string? query)
+	{
+		if (string.IsNullOrWhiteSpace(query)) return q;
+		var lower = query.Trim().ToLower();
+		return q.Where(r =>
+			r.Name.ToLower().Contains(lower) ||
+			(r.Description != null && r.Description.ToLower().Contains(lower)));
+	}
 
-    public async Task<int> GetAccessibleGroupRepoCountAsync(string userId, string? query = null)
-    {
-        var groupIds = await GetAccessibleGroupIdsAsync(userId);
-        if (groupIds.Count == 0) return 0;
+	public async Task<int> GetAccessibleGroupRepoCountAsync(string userId, string? query = null)
+	{
+		var groupIds = await GetAccessibleGroupIdsAsync(userId);
+		if (groupIds.Count == 0) return 0;
 
-        var q = _db.Repositories.Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
-        return await FilterByQuery(q, query).CountAsync();
-    }
+		var q = _db.Repositories.Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
+		return await FilterByQuery(q, query).CountAsync();
+	}
 
-    /// <summary>Repositories owned by any group the user owns or is a member of.</summary>
-    public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId, string? query = null, int skip = 0, int take = int.MaxValue)
-    {
-        var groupIds = await GetAccessibleGroupIdsAsync(userId);
-        if (groupIds.Count == 0) return new List<Repository>();
+	/// <summary>Repositories owned by any group the user owns or is a member of.</summary>
+	public async Task<List<Repository>> GetAccessibleGroupReposAsync(string userId, string? query = null, int skip = 0, int take = int.MaxValue)
+	{
+		var groupIds = await GetAccessibleGroupIdsAsync(userId);
+		if (groupIds.Count == 0) return new List<Repository>();
 
-        var q = _db.Repositories
-            .Include(r => r.GroupOwner)
-            .Include(r => r.Accesses).ThenInclude(a => a.User)
-            .Include(r => r.Accesses).ThenInclude(a => a.Group)
-            .Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
+		var q = _db.Repositories
+			.Include(r => r.GroupOwner)
+			.Include(r => r.Accesses).ThenInclude(a => a.User)
+			.Include(r => r.Accesses).ThenInclude(a => a.Group)
+			.Where(r => r.GroupOwnerId != null && groupIds.Contains(r.GroupOwnerId.Value));
 
-        return await FilterByQuery(q, query)
-            .OrderBy(r => r.GroupOwner!.Name)
-            .ThenByDescending(r => r.UpdatedAt)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
-    }
+		return await FilterByQuery(q, query)
+			.OrderBy(r => r.GroupOwner!.Name)
+			.ThenByDescending(r => r.UpdatedAt)
+			.Skip(skip)
+			.Take(take)
+			.ToListAsync();
+	}
 
-    public async Task<int> GetUserRepoCountAsync(string userId, bool includePrivate, string? query = null)
-    {
-        var q = _db.Repositories.Where(r => r.OwnerId == userId);
+	public async Task<int> GetUserRepoCountAsync(string userId, bool includePrivate, string? query = null)
+	{
+		var q = _db.Repositories.Where(r => r.OwnerId == userId);
 
-        if (!includePrivate)
-            q = q.Where(r => !r.IsPrivate);
+		if (!includePrivate)
+			q = q.Where(r => !r.IsPrivate);
 
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var lower = query.Trim().ToLower();
-            q = q.Where(r =>
-                r.Name.ToLower().Contains(lower) ||
-                (r.Description != null && r.Description.ToLower().Contains(lower)));
-        }
+		if (!string.IsNullOrWhiteSpace(query))
+		{
+			var lower = query.Trim().ToLower();
+			q = q.Where(r =>
+				r.Name.ToLower().Contains(lower) ||
+				(r.Description != null && r.Description.ToLower().Contains(lower)));
+		}
 
-        return await q.CountAsync();
-    }
+		return await q.CountAsync();
+	}
 
-    public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null, int skip = 0, int take = int.MaxValue)
-    {
-        var q = _db.Repositories
-            .Include(r => r.Owner)
-            .Include(r => r.Accesses).ThenInclude(a => a.User)
-            .Include(r => r.Accesses).ThenInclude(a => a.Group)
-            .Where(r => r.OwnerId == userId);
+	public async Task<List<Repository>> GetUserReposAsync(string userId, bool includePrivate, string? query = null, int skip = 0, int take = int.MaxValue)
+	{
+		var q = _db.Repositories
+			.Include(r => r.Owner)
+			.Include(r => r.Accesses).ThenInclude(a => a.User)
+			.Include(r => r.Accesses).ThenInclude(a => a.Group)
+			.Where(r => r.OwnerId == userId);
 
-        if (!includePrivate)
-            q = q.Where(r => !r.IsPrivate);
+		if (!includePrivate)
+			q = q.Where(r => !r.IsPrivate);
 
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            var lower = query.Trim().ToLower();
-            q = q.Where(r =>
-                r.Name.ToLower().Contains(lower) ||
-                (r.Description != null && r.Description.ToLower().Contains(lower)));
-        }
+		if (!string.IsNullOrWhiteSpace(query))
+		{
+			var lower = query.Trim().ToLower();
+			q = q.Where(r =>
+				r.Name.ToLower().Contains(lower) ||
+				(r.Description != null && r.Description.ToLower().Contains(lower)));
+		}
 
-        return await q.OrderByDescending(r => r.UpdatedAt).Skip(skip).Take(take).ToListAsync();
-    }
+		return await q.OrderByDescending(r => r.UpdatedAt).Skip(skip).Take(take).ToListAsync();
+	}
 
-    public async Task<List<Repository>> SearchAsync(string query, int skip = 0, int take = 20)
-    {
-        var lower = query.ToLower();
-        return await _db.Repositories
-            .Include(r => r.Owner)
-            .Include(r => r.GroupOwner)
-            .Where(r => !r.IsPrivate && (
-                r.Name.ToLower().Contains(lower) ||
-                (r.Description != null && r.Description.ToLower().Contains(lower)) ||
-                (r.Owner != null && r.Owner.UserName!.ToLower().Contains(lower)) ||
-                (r.GroupOwner != null && r.GroupOwner.Name.ToLower().Contains(lower))))
-            .OrderByDescending(r => r.UpdatedAt)
-            .Skip(skip)
-            .Take(take)
-            .ToListAsync();
-    }
+	public async Task<List<Repository>> SearchAsync(string query, int skip = 0, int take = 20)
+	{
+		var lower = query.ToLower();
+		return await _db.Repositories
+			.Include(r => r.Owner)
+			.Include(r => r.GroupOwner)
+			.Where(r => !r.IsPrivate && (
+				r.Name.ToLower().Contains(lower) ||
+				(r.Description != null && r.Description.ToLower().Contains(lower)) ||
+				(r.Owner != null && r.Owner.UserName!.ToLower().Contains(lower)) ||
+				(r.GroupOwner != null && r.GroupOwner.Name.ToLower().Contains(lower))))
+			.OrderByDescending(r => r.UpdatedAt)
+			.Skip(skip)
+			.Take(take)
+			.ToListAsync();
+	}
 }

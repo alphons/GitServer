@@ -1,91 +1,91 @@
 @page "/dashboard/Group/{name}"
 @model GitServer.Pages.GroupProfile.IndexModel
 @{
-    ViewData["Title"] = Model.GroupEntity?.Name;
+	ViewData["Title"] = Model.GroupEntity?.Name;
 }
 <div class="container">
-    @if (Model.GroupEntity != null)
-    {
-        <div class="repo-header">
-            <div class="repo-title">
-                <strong>@Model.GroupEntity.Name</strong>
-                <span class="badge badge-group">@L["nav_groups"]</span>
-            </div>
-        </div>
+	@if (Model.GroupEntity != null)
+	{
+		<div class="repo-header">
+			<div class="repo-title">
+				<strong>@Model.GroupEntity.Name</strong>
+				<span class="badge badge-group">@L["nav_groups"]</span>
+			</div>
+		</div>
 
-        <section class="settings-section">
-            <h2>@L["group_repos_title"] (@Model.TotalCount)</h2>
-            @{
-                var prevUrl = $"?p={Model.CurrentPage - 1}";
-                var nextUrl = $"?p={Model.CurrentPage + 1}";
-            }
-            @if (Model.Repos.Any() && (Model.CurrentPage > 0 || Model.HasNextPage))
-            {
-                @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
-            }
-            @if (Model.Repos.Any())
-            {
-                <div class="repo-list">
-                    @foreach (var repo in Model.Repos)
-                    {
-                        <div class="repo-card">
-                            <div class="repo-card-header">
-                                <a class="repo-name" href="/@Model.GroupEntity.Name/@repo.Name">
-                                    @Model.GroupEntity.Name / @repo.Name
-                                </a>
-                                <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
-                                    @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
-                                </span>
-                                @if (repo.IsReadOnly)
-                                {
-                                    <span class="badge badge-warning">@L["settings_readonly_label"]</span>
-                                }
-                            </div>
-                            @if (!string.IsNullOrEmpty(repo.Description))
-                            {
-                                <p class="repo-description">@repo.Description</p>
-                            }
-                        </div>
-                    }
-                </div>
-                @if (Model.CurrentPage > 0 || Model.HasNextPage)
-                {
-                    @await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
-                }
-            }
-            else
-            {
-                <p class="text-muted">@L["group_repos_empty"]</p>
-            }
-        </section>
+		<section class="settings-section">
+			<h2>@L["group_repos_title"] (@Model.TotalCount)</h2>
+			@{
+				var prevUrl = $"?p={Model.CurrentPage - 1}";
+				var nextUrl = $"?p={Model.CurrentPage + 1}";
+			}
+			@if (Model.Repos.Any() && (Model.CurrentPage > 0 || Model.HasNextPage))
+			{
+				@await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
+			}
+			@if (Model.Repos.Any())
+			{
+				<div class="repo-list">
+					@foreach (var repo in Model.Repos)
+					{
+						<div class="repo-card">
+							<div class="repo-card-header">
+								<a class="repo-name" href="/@Model.GroupEntity.Name/@repo.Name">
+									@Model.GroupEntity.Name / @repo.Name
+								</a>
+								<span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
+									@(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
+								</span>
+								@if (repo.IsReadOnly)
+								{
+									<span class="badge badge-warning">@L["settings_readonly_label"]</span>
+								}
+							</div>
+							@if (!string.IsNullOrEmpty(repo.Description))
+							{
+								<p class="repo-description">@repo.Description</p>
+							}
+						</div>
+					}
+				</div>
+				@if (Model.CurrentPage > 0 || Model.HasNextPage)
+				{
+					@await Html.PartialAsync("_Pagination", (Model.CurrentPage, Model.HasNextPage, prevUrl, nextUrl))
+				}
+			}
+			else
+			{
+				<p class="text-muted">@L["group_repos_empty"]</p>
+			}
+		</section>
 
-        <section class="settings-section">
-            <h2>@L["group_members_title"]</h2>
-            <table class="data-table collaborators-table">
-                <tbody>
-                    <tr>
-                        <td>
-                            <a href="/dashboard/User/@Model.GroupEntity.Owner.UserName" class="collaborator-user">
-                                <img src="@Model.GroupEntity.Owner.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
-                                <span>@Model.GroupEntity.Owner.UserName</span>
-                            </a>
-                        </td>
-                        <td><span class="badge badge-muted">@L["new_repo_owner_label"]</span></td>
-                    </tr>
-                    @foreach (var member in Model.Members)
-                    {
-                        <tr>
-                            <td>
-                                <a href="/dashboard/User/@member.User.UserName" class="collaborator-user">
-                                    <img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
-                                    <span>@member.User.UserName</span>
-                                </a>
-                            </td>
-                            <td></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </section>
-    }
+		<section class="settings-section">
+			<h2>@L["group_members_title"]</h2>
+			<table class="data-table collaborators-table">
+				<tbody>
+					<tr>
+						<td>
+							<a href="/dashboard/User/@Model.GroupEntity.Owner.UserName" class="collaborator-user">
+								<img src="@Model.GroupEntity.Owner.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+								<span>@Model.GroupEntity.Owner.UserName</span>
+							</a>
+						</td>
+						<td><span class="badge badge-muted">@L["new_repo_owner_label"]</span></td>
+					</tr>
+					@foreach (var member in Model.Members)
+					{
+						<tr>
+							<td>
+								<a href="/dashboard/User/@member.User.UserName" class="collaborator-user">
+									<img src="@member.User.EffectiveAvatarUrl" class="avatar-img avatar-sm" alt="" />
+									<span>@member.User.UserName</span>
+								</a>
+							</td>
+							<td></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</section>
+	}
 </div>

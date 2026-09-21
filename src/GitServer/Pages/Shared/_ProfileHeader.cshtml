@@ -1,29 +1,29 @@
 @model GitServer.Models.AppUser
 @inject GitServer.Services.LocalizationService L
 <div class="profile-header">
-    <div class="profile-avatar">
-        <img src="@Model.EffectiveAvatarUrl" alt="@Model.UserName" class="avatar-img" />
-    </div>
-    <div class="profile-info">
-        <h1>@Model.DisplayName</h1>
-        <p class="text-muted">@@@Model.UserName</p>
-        @if (!string.IsNullOrEmpty(Model.Bio))
-        {
-            <p>@Model.Bio</p>
-        }
-        @if (!string.IsNullOrEmpty(Model.CompanyName) || !string.IsNullOrEmpty(Model.Country))
-        {
-            <p class="text-muted profile-company-country">
-                @if (!string.IsNullOrEmpty(Model.CompanyName))
-                {
-                    <span>&#127970; @Model.CompanyName</span>
-                }
-                @if (!string.IsNullOrEmpty(Model.Country))
-                {
-                    <span>&#127760; @L.CountryName(Model.Country)</span>
-                }
-            </p>
-        }
-        <p class="text-muted">@L["profile_member_since"] @TZ.ToLocal(Model.CreatedAt).ToString("MMMM yyyy")</p>
-    </div>
+	<div class="profile-avatar">
+		<img src="@Model.EffectiveAvatarUrl" alt="@Model.UserName" class="avatar-img" />
+	</div>
+	<div class="profile-info">
+		<h1>@Model.DisplayName</h1>
+		<p class="text-muted">@@@Model.UserName</p>
+		@if (!string.IsNullOrEmpty(Model.Bio))
+		{
+			<p>@Model.Bio</p>
+		}
+		@if (!string.IsNullOrEmpty(Model.CompanyName) || !string.IsNullOrEmpty(Model.Country))
+		{
+			<p class="text-muted profile-company-country">
+				@if (!string.IsNullOrEmpty(Model.CompanyName))
+				{
+					<span>&#127970; @Model.CompanyName</span>
+				}
+				@if (!string.IsNullOrEmpty(Model.Country))
+				{
+					<span>&#127760; @L.CountryName(Model.Country)</span>
+				}
+			</p>
+		}
+		<p class="text-muted">@L["profile_member_since"] @TZ.ToLocal(Model.CreatedAt).ToString("MMMM yyyy")</p>
+	</div>
 </div>

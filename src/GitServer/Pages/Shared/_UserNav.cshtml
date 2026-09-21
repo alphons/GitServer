@@ -1,19 +1,19 @@
 @model (string UserName, string ActiveTab, bool IsOwner)
 @inject GitServer.Services.LocalizationService L
 <div class="repo-nav">
-    <a class="repo-nav-link @(Model.ActiveTab == "repositories" ? "active" : "")"
-       href="/dashboard/User/@Model.UserName">@L["profile_repos"]</a>
-    @if (Model.IsOwner)
-    {
-        <a class="repo-nav-link @(Model.ActiveTab == "new" ? "active" : "")"
-           href="/dashboard/Repo/New">@L["nav_new"]</a>
-        <a class="repo-nav-link @(Model.ActiveTab == "groups" ? "active" : "")"
-           href="/dashboard/User/Groups">@L["nav_groups"]</a>
-        <a class="repo-nav-link @(Model.ActiveTab == "profile" ? "active" : "")"
-           href="/dashboard/User/Settings">@L["account_settings"]</a>
-        <a class="repo-nav-link @(Model.ActiveTab == "apikeys" ? "active" : "")"
-           href="/dashboard/User/ApiKeys">@L["settings_apikeys_title"]</a>
-        <a class="repo-nav-link @(Model.ActiveTab == "tokens" ? "active" : "")"
-           href="/dashboard/User/AccessTokens">@L["settings_tokens_title"]</a>
-    }
+	<a class="repo-nav-link @(Model.ActiveTab == "repositories" ? "active" : "")"
+	   href="/dashboard/User/@Model.UserName">@L["profile_repos"]</a>
+	@if (Model.IsOwner)
+	{
+		<a class="repo-nav-link @(Model.ActiveTab == "new" ? "active" : "")"
+		   href="/dashboard/Repo/New">@L["nav_new"]</a>
+		<a class="repo-nav-link @(Model.ActiveTab == "groups" ? "active" : "")"
+		   href="/dashboard/User/Groups">@L["nav_groups"]</a>
+		<a class="repo-nav-link @(Model.ActiveTab == "profile" ? "active" : "")"
+		   href="/dashboard/User/Settings">@L["account_settings"]</a>
+		<a class="repo-nav-link @(Model.ActiveTab == "apikeys" ? "active" : "")"
+		   href="/dashboard/User/ApiKeys">@L["settings_apikeys_title"]</a>
+		<a class="repo-nav-link @(Model.ActiveTab == "tokens" ? "active" : "")"
+		   href="/dashboard/User/AccessTokens">@L["settings_tokens_title"]</a>
+	}
 </div>

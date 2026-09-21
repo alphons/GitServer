@@ -67,6 +67,7 @@
   "error_invalid_or_expired_link": "このリンクは無効か期限切れです。再度登録してください。",
   "error_passwords_do_not_match": "パスワードが一致しません。",
   "error_username_taken": "このユーザー名は既に使用されています。",
+  "col_name": "名前",
   "settings_apikeys_title": "APIキー",
   "settings_apikeys_help": "X-Api-Key ヘッダーにAPIキーを付けて送信すると、自分としてAPIを呼び出せます。キーはAPIキーの管理を除き、あなたができるすべての操作を行えます。秘密に保管してください。",
   "settings_apikeys_lifetime": "新しいキーの有効期間は {0} 日です。",

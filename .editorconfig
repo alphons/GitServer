@@ -1,0 +1,25 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[*.{cs,cshtml,js,css}]
+indent_style = tab
+indent_size = 4
+
+[*.{json,csproj,slnx,yml,yaml,md}]
+indent_style = space
+indent_size = 2
+
+# Written by `dotnet ef`, which always indents with spaces; regenerating would undo any conversion.
+[**/Migrations/*.cs]
+generated_code = true
+indent_style = space
+indent_size = 4
+
+# Third-party markdown renderer, kept as shipped.
+[**/wwwroot/{js,css}/**/md4*.{js,css}]
+indent_style = unset

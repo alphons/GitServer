@@ -67,6 +67,7 @@
   "error_invalid_or_expired_link": "Ce lien est invalide ou expiré. Veuillez vous réinscrire.",
   "error_passwords_do_not_match": "Les mots de passe ne correspondent pas.",
   "error_username_taken": "Ce nom d'utilisateur est déjà pris.",
+  "col_name": "Nom",
   "settings_apikeys_title": "Clés API",
   "settings_apikeys_help": "Envoyez une clé API dans l'en-tête X-Api-Key pour appeler l'API en votre nom. Une clé peut tout faire comme vous, sauf gérer les clés API. Gardez-la secrète.",
   "settings_apikeys_lifetime": "Les nouvelles clés sont valables {0} jours.",

@@ -9,27 +9,27 @@ namespace GitServer.Services;
 /// appsettings.json's legacy GitServerOptions.AllowRegistration) on first access.</summary>
 public class SiteSettingsService(AppDbContext db, IOptions<GitServerOptions> options)
 {
-    public async Task<SiteSettings> GetAsync()
-    {
-        var settings = await db.SiteSettings.FirstOrDefaultAsync();
-        if (settings == null)
-        {
-            settings = new SiteSettings { AllowRegistration = options.Value.AllowRegistration };
-            db.SiteSettings.Add(settings);
-            await db.SaveChangesAsync();
-        }
-        return settings;
-    }
+	public async Task<SiteSettings> GetAsync()
+	{
+		var settings = await db.SiteSettings.FirstOrDefaultAsync();
+		if (settings == null)
+		{
+			settings = new SiteSettings { AllowRegistration = options.Value.AllowRegistration };
+			db.SiteSettings.Add(settings);
+			await db.SaveChangesAsync();
+		}
+		return settings;
+	}
 
-    public async Task SaveAsync(SiteSettings updated)
-    {
-        var settings = await GetAsync();
-        settings.AllowRegistration = updated.AllowRegistration;
-        settings.AllowUserRepoCreation = updated.AllowUserRepoCreation;
-        settings.AllowPushToCreateRepositories = updated.AllowPushToCreateRepositories;
-        settings.AllowAnonymousPush = updated.AllowAnonymousPush;
-        settings.ShowCommitAuthorAvatar = updated.ShowCommitAuthorAvatar;
-        settings.ApiKeyLifetimeDays = Math.Clamp(updated.ApiKeyLifetimeDays, 1, 3650);
-        await db.SaveChangesAsync();
-    }
+	public async Task SaveAsync(SiteSettings updated)
+	{
+		var settings = await GetAsync();
+		settings.AllowRegistration = updated.AllowRegistration;
+		settings.AllowUserRepoCreation = updated.AllowUserRepoCreation;
+		settings.AllowPushToCreateRepositories = updated.AllowPushToCreateRepositories;
+		settings.AllowAnonymousPush = updated.AllowAnonymousPush;
+		settings.ShowCommitAuthorAvatar = updated.ShowCommitAuthorAvatar;
+		settings.ApiKeyLifetimeDays = Math.Clamp(updated.ApiKeyLifetimeDays, 1, 3650);
+		await db.SaveChangesAsync();
+	}
 }

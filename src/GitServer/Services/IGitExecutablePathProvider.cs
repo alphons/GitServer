@@ -7,8 +7,8 @@ namespace GitServer.Services;
 /// admin git-updater feature without requiring an app restart.</summary>
 public interface IGitExecutablePathProvider
 {
-    string CurrentPath { get; }
-    void SetPath(string path);
+	string CurrentPath { get; }
+	void SetPath(string path);
 }
 
 /// <summary>Seeded at startup from the active GitInstallation row, if any. No other fallback:
@@ -17,17 +17,17 @@ public interface IGitExecutablePathProvider
 /// whatever "git" happens to resolve to on the server's PATH.</summary>
 public class GitExecutablePathProvider : IGitExecutablePathProvider
 {
-    private string _currentPath;
+	private string _currentPath;
 
-    public GitExecutablePathProvider(IServiceScopeFactory scopeFactory)
-    {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var active = db.GitInstallations.AsNoTracking().FirstOrDefault(i => i.IsActive);
-        _currentPath = active != null ? GitInstallerService.GetGitExePath(active.InstallPath) : "";
-    }
+	public GitExecutablePathProvider(IServiceScopeFactory scopeFactory)
+	{
+		using var scope = scopeFactory.CreateScope();
+		var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		var active = db.GitInstallations.AsNoTracking().FirstOrDefault(i => i.IsActive);
+		_currentPath = active != null ? GitInstallerService.GetGitExePath(active.InstallPath) : "";
+	}
 
-    public string CurrentPath => _currentPath;
+	public string CurrentPath => _currentPath;
 
-    public void SetPath(string path) => _currentPath = path;
+	public void SetPath(string path) => _currentPath = path;
 }

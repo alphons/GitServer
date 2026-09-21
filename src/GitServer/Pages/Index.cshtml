@@ -1,74 +1,74 @@
 @page
 @model GitServer.Pages.IndexModel
 @{
-    ViewData["Title"] = "Home";
+	ViewData["Title"] = "Home";
 }
 <div class="container">
-    @if (Model.CurrentUserName == null)
-    {
-        <section class="intro">
-            <h1>@L["home_intro_title"]</h1>
-            <p>@L["home_intro_text"]</p>
-            <p>
-                <a class="btn btn-primary" href="/dashboard/Auth/Register">@L["home_intro_register"]</a>
-                <a href="/dashboard/Terms">@L["terms_title"]</a>
-            </p>
-        </section>
-    }
-    <div class="page-header">
-        <h1>@L["index_recent_repos"]</h1>
-        <div class="header-actions">
-            <form method="get" action="/dashboard/explore" class="search-form">
-                <input name="q" type="search" class="form-control" placeholder="@L["search_placeholder"]" />
-                <button type="submit" class="btn btn-secondary">@L["search_button"]</button>
-            </form>
-        </div>
-    </div>
+	@if (Model.CurrentUserName == null)
+	{
+		<section class="intro">
+			<h1>@L["home_intro_title"]</h1>
+			<p>@L["home_intro_text"]</p>
+			<p>
+				<a class="btn btn-primary" href="/dashboard/Auth/Register">@L["home_intro_register"]</a>
+				<a href="/dashboard/Terms">@L["terms_title"]</a>
+			</p>
+		</section>
+	}
+	<div class="page-header">
+		<h1>@L["index_recent_repos"]</h1>
+		<div class="header-actions">
+			<form method="get" action="/dashboard/explore" class="search-form">
+				<input name="q" type="search" class="form-control" placeholder="@L["search_placeholder"]" />
+				<button type="submit" class="btn btn-secondary">@L["search_button"]</button>
+			</form>
+		</div>
+	</div>
 
-    @if (!Model.Repos.Any())
-    {
-        <div class="empty-state">
-            <p>@L["index_empty"] <a href="/dashboard/Repo/New">@L["index_empty_create"]</a></p>
-        </div>
-    }
-    else
-    {
-        <div class="repo-list">
-            @foreach (var repo in Model.Repos)
-            {
-                <div class="repo-card">
-                    <div class="repo-card-header">
-                        <a class="repo-name" href="/@repo.OwnerName/@repo.Name">
-                            @repo.OwnerName / @repo.Name
-                        </a>
-                        <span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
-                            @(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
-                        </span>
-                        @if (repo.IsReadOnly)
-                        {
-                            <span class="badge badge-warning">@L["settings_readonly_label"]</span>
-                        }
-                    </div>
-                    @if (!string.IsNullOrEmpty(repo.Description))
-                    {
-                        <p class="repo-description">@repo.Description</p>
-                    }
-                    <div class="repo-meta">
-                        <span class="text-muted">@L["updated_prefix"] @TZ.ToLocal(repo.UpdatedAt).ToString("d MMM yyyy HH:mm")</span>
-                        <span class="text-muted">@L["created_prefix"] @TZ.ToLocal(repo.CreatedAt).ToString("d MMM yyyy HH:mm")</span>
-                    </div>
-                </div>
-            }
-        </div>
-        <p class="text-muted">
-            @if (Model.CurrentUserName != null)
-            {
-                <a href="/dashboard/User/@Model.CurrentUserName">@L["index_all_my_repos"]</a>
-            }
-            else
-            {
-                <a href="/dashboard/explore">@L["index_all_repos"]</a>
-            }
-        </p>
-    }
+	@if (!Model.Repos.Any())
+	{
+		<div class="empty-state">
+			<p>@L["index_empty"] <a href="/dashboard/Repo/New">@L["index_empty_create"]</a></p>
+		</div>
+	}
+	else
+	{
+		<div class="repo-list">
+			@foreach (var repo in Model.Repos)
+			{
+				<div class="repo-card">
+					<div class="repo-card-header">
+						<a class="repo-name" href="/@repo.OwnerName/@repo.Name">
+							@repo.OwnerName / @repo.Name
+						</a>
+						<span class="badge @(repo.IsPrivate ? "badge-warning" : "badge-success")">
+							@(repo.IsPrivate ? L["badge_private"] : L["badge_public"])
+						</span>
+						@if (repo.IsReadOnly)
+						{
+							<span class="badge badge-warning">@L["settings_readonly_label"]</span>
+						}
+					</div>
+					@if (!string.IsNullOrEmpty(repo.Description))
+					{
+						<p class="repo-description">@repo.Description</p>
+					}
+					<div class="repo-meta">
+						<span class="text-muted">@L["updated_prefix"] @TZ.ToLocal(repo.UpdatedAt).ToString("d MMM yyyy HH:mm")</span>
+						<span class="text-muted">@L["created_prefix"] @TZ.ToLocal(repo.CreatedAt).ToString("d MMM yyyy HH:mm")</span>
+					</div>
+				</div>
+			}
+		</div>
+		<p class="text-muted">
+			@if (Model.CurrentUserName != null)
+			{
+				<a href="/dashboard/User/@Model.CurrentUserName">@L["index_all_my_repos"]</a>
+			}
+			else
+			{
+				<a href="/dashboard/explore">@L["index_all_repos"]</a>
+			}
+		</p>
+	}
 </div>
