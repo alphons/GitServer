@@ -86,15 +86,5 @@
 @section Scripts {
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-	<script>hljs.highlightAll();</script>
-	<script>
-		document.getElementById('copyRawBtn')?.addEventListener('click', async function () {
-			const code = document.querySelector('.code-view code');
-			if (!code) return;
-			await navigator.clipboard.writeText(code.innerText);
-			const original = this.title;
-			this.title = 'Copied!';
-			setTimeout(() => { this.title = original; }, 1500);
-		});
-	</script>
+	<script src="~/js/blob.js" asp-append-version="true"></script>
 }
