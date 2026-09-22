@@ -651,6 +651,23 @@ textarea.form-control { resize: vertical; }
 	padding: 0.75rem 1rem 1rem;
 }
 
+/* === Spinner (buttons that show progress while a request is in flight) === */
+.btn-spinner {
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-right: 0.5em;
+	border: 2px solid rgba(255, 255, 255, 0.4);
+	border-top-color: #fff;
+	border-radius: 50%;
+	vertical-align: -0.15em;
+	animation: btn-spinner-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spinner-spin {
+	to { transform: rotate(360deg); }
+}
+
 /* === Mobile responsive === */
 @media (max-width: 600px) {
 	.auth-card { padding: 1.25rem; }

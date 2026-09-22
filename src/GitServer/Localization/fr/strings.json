@@ -324,6 +324,8 @@
   "admin_dbmigration_test_connect_failed": "Impossible de se connecter à la base de données SQL Server.",
   "admin_dbmigration_test_not_fresh": "Cette base de données SQL Server a déjà des migrations appliquées. Visez une base de données neuve et vide.",
   "admin_dbmigration_test_ok": "Connecté. La base de données est vide et prête.",
+  "admin_dbmigration_test_busy": "Test en cours…",
+  "admin_dbmigration_run_busy": "Migration en cours…",
   "admin_dbmigration_run_success": "Migration réussie.",
   "admin_dbmigration_run_restart_hint": "Définissez maintenant GitServer:DatabaseProvider sur \"SqlServer\" dans appsettings.json et redémarrez l'app.",
   "admin_dbmigration_run_failed": "Échec de la migration",

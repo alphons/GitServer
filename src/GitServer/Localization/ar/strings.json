@@ -325,6 +325,8 @@
   "admin_dbmigration_test_connect_failed": "تعذّر الاتصال بقاعدة بيانات SQL Server.",
   "admin_dbmigration_test_not_fresh": "تحتوي قاعدة بيانات SQL Server هذه بالفعل على ترحيلات مطبّقة. اختر قاعدة بيانات جديدة وفارغة.",
   "admin_dbmigration_test_ok": "تم الاتصال. قاعدة البيانات فارغة وجاهزة لاستقبال البيانات.",
+  "admin_dbmigration_test_busy": "جارٍ الاختبار…",
+  "admin_dbmigration_run_busy": "جارٍ الترحيل…",
   "admin_dbmigration_run_success": "تم الترحيل بنجاح.",
   "admin_dbmigration_run_restart_hint": "اضبط الآن GitServer:DatabaseProvider على \"SqlServer\" في appsettings.json وأعد تشغيل التطبيق.",
   "admin_dbmigration_run_failed": "فشل الترحيل",

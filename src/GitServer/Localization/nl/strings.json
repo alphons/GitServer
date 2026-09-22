@@ -326,6 +326,8 @@
   "admin_dbmigration_test_connect_failed": "Kan geen verbinding maken met de SQL Server-database.",
   "admin_dbmigration_test_not_fresh": "Deze SQL Server-database heeft al migraties toegepast. Wijs een verse, lege database aan.",
   "admin_dbmigration_test_ok": "Verbinding gelukt. De database is leeg en klaar om te ontvangen.",
+  "admin_dbmigration_test_busy": "Bezig met testen…",
+  "admin_dbmigration_run_busy": "Bezig met overzetten…",
   "admin_dbmigration_run_success": "Overzetten geslaagd.",
   "admin_dbmigration_run_restart_hint": "Zet nu GitServer:DatabaseProvider op \"SqlServer\" in appsettings.json en herstart de app om ervan gebruik te maken.",
   "admin_dbmigration_run_failed": "Overzetten mislukt",

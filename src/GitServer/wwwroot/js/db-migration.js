@@ -12,6 +12,19 @@ document.addEventListener('DOMContentLoaded', function () {
 		return fetch(url, { method: 'POST', headers: { 'RequestVerificationToken': token } }).then(function (r) { return r.json(); });
 	}
 
+	function setBusy(btn, busy, busyLabel) {
+		if (busy) {
+			btn.dataset.originalText = btn.textContent;
+			btn.textContent = '';
+			var spinner = document.createElement('span');
+			spinner.className = 'btn-spinner';
+			btn.appendChild(spinner);
+			btn.appendChild(document.createTextNode(busyLabel));
+		} else {
+			btn.textContent = btn.dataset.originalText;
+		}
+	}
+
 	function showResult(message, isError) {
 		resultEl.textContent = '';
 		var p = document.createElement('p');
@@ -51,13 +64,18 @@ document.addEventListener('DOMContentLoaded', function () {
 	testBtn.addEventListener('click', function () {
 		testBtn.disabled = true;
 		runBtn.disabled = true;
+		setBusy(testBtn, true, labels.testBusy);
 		resultEl.textContent = '';
 		post(apiUrl + '/test').then(function (check) {
-			testBtn.disabled = false;
 			if (!check.canConnect) { showResult(check.error || labels.testFailed, true); return; }
 			if (!check.isFresh) { showResult(labels.testNotFresh, true); return; }
 			showResult(labels.testOk, false);
 			runBtn.disabled = false;
+		}).catch(function () {
+			showResult(labels.testFailed, true);
+		}).finally(function () {
+			testBtn.disabled = false;
+			setBusy(testBtn, false);
 		});
 	});
 
@@ -65,11 +83,17 @@ document.addEventListener('DOMContentLoaded', function () {
 		gsConfirm(labels.runConfirm, labels.runButton, labels.cancel, function () {
 			testBtn.disabled = true;
 			runBtn.disabled = true;
+			setBusy(runBtn, true, labels.runBusy);
 			resultEl.textContent = '';
 			post(apiUrl + '/run').then(function (result) {
 				if (!result.success) { showResult(labels.runFailed + ': ' + result.error, true); return; }
 				showResult(labels.runSuccess + ' ' + labels.runRestartHint, false);
 				showTable(result.tables);
+			}).catch(function () {
+				showResult(labels.runFailed, true);
+			}).finally(function () {
+				testBtn.disabled = false;
+				setBusy(runBtn, false);
 			});
 		});
 	});

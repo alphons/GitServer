@@ -325,6 +325,8 @@
   "admin_dbmigration_test_connect_failed": "SQL Serverデータベースに接続できませんでした。",
   "admin_dbmigration_test_not_fresh": "このSQL Serverデータベースにはすでにマイグレーションが適用されています。新しい空のデータベースを指定してください。",
   "admin_dbmigration_test_ok": "接続しました。データベースは空で準備ができています。",
+  "admin_dbmigration_test_busy": "テスト中…",
+  "admin_dbmigration_run_busy": "移行中…",
   "admin_dbmigration_run_success": "移行が完了しました。",
   "admin_dbmigration_run_restart_hint": "appsettings.jsonでGitServer:DatabaseProviderを\"SqlServer\"に設定し、アプリを再起動してください。",
   "admin_dbmigration_run_failed": "移行に失敗しました",

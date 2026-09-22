@@ -325,6 +325,8 @@
   "admin_dbmigration_test_connect_failed": "Не удалось подключиться к базе данных SQL Server.",
   "admin_dbmigration_test_not_fresh": "К этой базе данных SQL Server уже применены миграции. Укажите новую, пустую базу данных.",
   "admin_dbmigration_test_ok": "Подключено. База данных пуста и готова к приёму данных.",
+  "admin_dbmigration_test_busy": "Проверка…",
+  "admin_dbmigration_run_busy": "Миграция…",
   "admin_dbmigration_run_success": "Миграция успешно завершена.",
   "admin_dbmigration_run_restart_hint": "Теперь установите GitServer:DatabaseProvider в \"SqlServer\" в appsettings.json и перезапустите приложение.",
   "admin_dbmigration_run_failed": "Ошибка миграции",

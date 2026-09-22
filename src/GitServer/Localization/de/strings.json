@@ -324,6 +324,8 @@
   "admin_dbmigration_test_connect_failed": "Verbindung zur SQL Server-Datenbank fehlgeschlagen.",
   "admin_dbmigration_test_not_fresh": "Diese SQL Server-Datenbank hat bereits Migrationen angewendet. Eine frische, leere Datenbank angeben.",
   "admin_dbmigration_test_ok": "Verbunden. Die Datenbank ist leer und bereit.",
+  "admin_dbmigration_test_busy": "Wird getestet…",
+  "admin_dbmigration_run_busy": "Migration läuft…",
   "admin_dbmigration_run_success": "Migration erfolgreich.",
   "admin_dbmigration_run_restart_hint": "Jetzt GitServer:DatabaseProvider in appsettings.json auf \"SqlServer\" setzen und die App neu starten.",
   "admin_dbmigration_run_failed": "Migration fehlgeschlagen",

@@ -325,6 +325,8 @@
   "admin_dbmigration_test_connect_failed": "无法连接到 SQL Server 数据库。",
   "admin_dbmigration_test_not_fresh": "此 SQL Server 数据库已应用过迁移。请指定一个全新的空数据库。",
   "admin_dbmigration_test_ok": "已连接。数据库为空，可以接收数据。",
+  "admin_dbmigration_test_busy": "测试中…",
+  "admin_dbmigration_run_busy": "迁移中…",
   "admin_dbmigration_run_success": "迁移成功。",
   "admin_dbmigration_run_restart_hint": "现在请在 appsettings.json 中将 GitServer:DatabaseProvider 设为 \"SqlServer\" 并重启应用。",
   "admin_dbmigration_run_failed": "迁移失败",
