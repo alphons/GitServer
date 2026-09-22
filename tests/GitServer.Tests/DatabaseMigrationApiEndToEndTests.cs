@@ -25,7 +25,8 @@ public class DatabaseMigrationApiEndToEndTests : IClassFixture<GitServerFactory>
 
 		var html = await (await AsAsync(admin)).GetHtmlAsync($"{Api}/status");
 		var status = JsonDocument.Parse(html).RootElement;
-		Assert.True(status.GetProperty("isAvailable").GetBoolean());   // the test host runs on Sqlite
+		// Only available while this test host itself runs on Sqlite (the CI matrix also runs it on SqlServer).
+		Assert.Equal(!GitServerFactory.UsesSqlServer, status.GetProperty("isAvailable").GetBoolean());
 
 		Assert.Equal(HttpStatusCode.Unauthorized, (await factory.NewClient().GetAsync($"{Api}/status")).StatusCode);
 		Assert.Equal(HttpStatusCode.Forbidden, (await (await AsAsync(ordinary)).GetAsync($"{Api}/status")).StatusCode);

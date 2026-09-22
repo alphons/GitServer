@@ -30,7 +30,7 @@ public sealed class DatabaseMigrationToolTests
 		string sqliteConnectionString;
 		string aliceId, aliceUserName;
 		int repoId;
-		using (var factory = new GitServerFactory())
+		using (var factory = new GitServerFactory(forceSqlServer: false))   // this test needs a real SQLite source regardless of which provider the suite as a whole is running against
 		{
 			var alice = await factory.CreateUserAsync(Unique("alice"));
 			var repo = await factory.CreateRepoAsync(alice, "repo-one", isPrivate: true);
@@ -70,7 +70,7 @@ public sealed class DatabaseMigrationToolTests
 	public async Task RefusesToWrite_WhenTheTargetAlreadyHasRows()
 	{
 		string sqliteConnectionString;
-		using (var factory = new GitServerFactory())
+		using (var factory = new GitServerFactory(forceSqlServer: false))
 		{
 			await factory.CreateUserAsync(Unique("alice"));
 			sqliteConnectionString = $"Data Source={Path.Combine(factory.Root, "e2e.db")}";

@@ -35,13 +35,23 @@ public class GitServerFactory : WebApplicationFactory<Program>
 	public string Root { get; } = Path.Combine(Path.GetTempPath(), $"gitserver-e2e-{Guid.NewGuid():N}");
 	public string ReposPath => Path.Combine(Root, "repos");
 
+	/// <summary>Whether this particular factory uses SQL Server, defaulting to the ambient <see cref="UsesSqlServer"/>.
+	/// Overridable per instance for tests that need one provider specifically no matter which one the suite as a
+	/// whole is running against — e.g. the database-migration tool always needs a real SQLite source.</summary>
+	private readonly bool usesSqlServerForThis;
+
+	// xUnit's IClassFixture requires exactly one public constructor, so the override stays internal
+	// (used directly by tests that `new` this themselves, never through fixture injection).
+	public GitServerFactory() : this(null) { }
+	internal GitServerFactory(bool? forceSqlServer) => usesSqlServerForThis = forceSqlServer ?? UsesSqlServer;
+
 	protected override void ConfigureWebHost(IWebHostBuilder builder)
 	{
 		Directory.CreateDirectory(ReposPath);
 
 		builder.UseContentRoot(TestPaths.AppProject);
 		builder.UseEnvironment("Testing");
-		if (UsesSqlServer)
+		if (usesSqlServerForThis)
 		{
 			builder.UseSetting("GitServer:DatabaseProvider", "SqlServer");
 			builder.UseSetting("ConnectionStrings:SqlServer", $"{SqlServerBase};Database={SqlServerDatabase}");   // wins over the SqlServer sample in appsettings.json
@@ -188,7 +198,7 @@ public class GitServerFactory : WebApplicationFactory<Program>
 	protected override void Dispose(bool disposing)
 	{
 		base.Dispose(disposing);
-		if (disposing && UsesSqlServer) DropSqlServerDatabase();
+		if (disposing && usesSqlServerForThis) DropSqlServerDatabase();
 		if (!disposing || !Directory.Exists(Root)) return;
 
 		foreach (var file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))
