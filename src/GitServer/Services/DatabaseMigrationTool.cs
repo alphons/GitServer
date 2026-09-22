@@ -39,6 +39,20 @@ public static class DatabaseMigrationTool
 
 	public static async Task<DatabaseMigrationRunResult> RunAsync(string sqliteConnectionString, string sqlServerConnectionString)
 	{
+		try
+		{
+			return await RunCoreAsync(sqliteConnectionString, sqlServerConnectionString);
+		}
+		catch (Exception ex)
+		{
+			// A safety net around anything not already handled below, so the admin page always gets a normal
+			// error message back instead of a 500 — this runs against real, unpredictable production databases.
+			return new(false, "Migration failed: " + ex.Message, []);
+		}
+	}
+
+	private static async Task<DatabaseMigrationRunResult> RunCoreAsync(string sqliteConnectionString, string sqlServerConnectionString)
+	{
 		using var source = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlite(sqliteConnectionString).Options);
 		using var target = new SqlServerAppDbContext(new DbContextOptionsBuilder<SqlServerAppDbContext>().UseSqlServer(sqlServerConnectionString).Options);
 		// No tracking: otherwise EF's relationship fixup wires an already-copied entity (e.g. a Repository's Owner)
@@ -53,7 +67,14 @@ public static class DatabaseMigrationTool
 		if ((await target.Database.GetAppliedMigrationsAsync()).Any())
 			return new(false, "The SQL Server database already has migrations applied — this only writes to one it hasn't touched yet.", []);
 
-		await target.Database.MigrateAsync();
+		try
+		{
+			await target.Database.MigrateAsync();
+		}
+		catch (Exception ex)
+		{
+			return new(false, "Could not migrate the SQL Server database to the latest schema: " + ex.Message, []);
+		}
 
 		var entityTypes = TopologicalOrder(target.Model);
 		var results = new List<DatabaseMigrationTableResult>();
