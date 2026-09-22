@@ -21,7 +21,7 @@ public class GitAuthMiddlewareTests : IDisposable
 
 	[Theory]
 	[InlineData("/")]
-	[InlineData("/dashboard/explore")]
+	[InlineData("/dashboard/Explore")]
 	[InlineData("/dashboard/User/alice")]
 	[InlineData("/alice/repo")]                       // the web page, not the git URL
 	[InlineData("/git/alice/repo.git")]               // bare URL is redirected by the controller

@@ -13,8 +13,8 @@ public class HostSmokeTests : IClassFixture<GitServerFactory>
 
 	[Theory]
 	[InlineData("/")]
-	[InlineData("/dashboard/explore")]
-	[InlineData("/dashboard/explore/users")]
+	[InlineData("/dashboard/Explore")]
+	[InlineData("/dashboard/Explore/Users")]
 	[InlineData("/dashboard/Auth/Login")]
 	[InlineData("/dashboard/Auth/Register")]
 	[InlineData("/dashboard/Auth/ForgotPassword")]

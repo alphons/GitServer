@@ -54,10 +54,10 @@ public class GitServerOptions
 	/// Note: IIS's own limit in Web.Config (maxAllowedContentLength) is separate and not driven by this setting.</summary>
 	public long? MaxPushSizeMb { get; set; } = null;
 
-	/// <summary>Number of items per page on the /dashboard/explore repo listing.</summary>
+	/// <summary>Number of items per page on the /dashboard/Explore repo listing.</summary>
 	public int ExploreRepoPageSize { get; set; } = 10;
 
-	/// <summary>Number of items per page on the /dashboard/explore/users listing.</summary>
+	/// <summary>Number of items per page on the /dashboard/Explore/Users listing.</summary>
 	public int ExploreUserPageSize { get; set; } = 10;
 
 	/// <summary>Number of repos shown on the home page's "recent repositories" list.</summary>

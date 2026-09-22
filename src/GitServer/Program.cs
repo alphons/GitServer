@@ -94,7 +94,7 @@ using (var scope = app.Services.CreateScope())
 
 if (!app.Environment.IsDevelopment())
 {
-	app.UseExceptionHandler("/dashboard/error");
+	app.UseExceptionHandler("/dashboard/Error");
 	app.UseHsts();
 }
 

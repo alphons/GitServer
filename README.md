@@ -73,7 +73,7 @@ Because your code doesn't belong to anyone else.
   - API key lifetime in days (default 90) — applies to newly created keys
 
 ### Site layout
-- Everything you click on lives under **`/dashboard`** (`/dashboard/explore`, `/dashboard/user/<name>`, `/dashboard/admin/users`, …)
+- Everything you click on lives under **`/dashboard`** (`/dashboard/Explore`, `/dashboard/User/<name>`, `/dashboard/Admin/Users`, …)
 - Repositories keep their natural URLs: **`/<owner>/<repo>`** (also the git clone URL)
 - The JSON API lives under **`/api`**
 - The optional `GitPathPrefix` only moves the git Smart HTTP endpoints, never the API
@@ -197,7 +197,7 @@ Edit `src/GitServer/appsettings.json`:
 | `GitServer:MaxFailedLoginAttempts` / `LoginLockoutMinutes` | Wrong passwords in a row (web login and git over HTTPS) before an account is locked, and for how long |
 | `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
 | `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
-| `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/dashboard/explore` listings |
+| `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/dashboard/Explore` listings |
 | `GitServer:ProfileRepoPageSize` | Items per page on a user's profile repository list |
 | `GitServer:AdminUsersPageSize` | Items per page on the **Admin → Users** listing |
 | `GitServer:IndexRecentReposCount` | Repos shown in the home page's "recent repositories" list |

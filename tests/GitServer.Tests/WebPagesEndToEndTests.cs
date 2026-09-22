@@ -53,7 +53,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		await _f.CreateGroupRepoAsync(group, "visible-group-repo");
 		await _f.CreateGroupRepoAsync(group, "hidden-group-repo", isPrivate: true);
 
-		var html = await Anonymous().GetHtmlAsync("/dashboard/explore?q=" + Uri.EscapeDataString("-repo"));
+		var html = await Anonymous().GetHtmlAsync("/dashboard/Explore?q=" + Uri.EscapeDataString("-repo"));
 
 		Assert.Contains($"{alice.UserName} / visible-user-repo", html);
 		Assert.Contains($"{group.Name} / visible-group-repo", html);
@@ -196,11 +196,12 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Theory]
-	[InlineData("/User/alice", "/dashboard/User/alice")]
+	[InlineData("/user/alice", "/dashboard/User/alice")]
 	[InlineData("/Admin/Users", "/dashboard/Admin/Users")]
-	[InlineData("/auth/Login", "/dashboard/auth/Login")]
-	[InlineData("/explore", "/dashboard/explore")]
-	[InlineData("/explore/users", "/dashboard/explore/users")]
+	[InlineData("/auth/Login", "/dashboard/Auth/Login")]
+	[InlineData("/explore", "/dashboard/Explore")]
+	[InlineData("/explore/users", "/dashboard/Explore/Users")]
+	[InlineData("/EXPLORE/USERS", "/dashboard/Explore/Users")]
 	[InlineData("/Group/team?x=1", "/dashboard/Group/team?x=1")]
 	[InlineData("/Terms", "/dashboard/Terms")]
 	[InlineData("/Privacy", "/dashboard/Privacy")]
@@ -293,7 +294,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	[InlineData("ar")]
 	public async Task TheLanguageCookie_ChangesThePageText_AndTheHtmlLangAttribute(string language)
 	{
-		var html = await Anonymous().GetHtmlAsync("/dashboard/explore", language);
+		var html = await Anonymous().GetHtmlAsync("/dashboard/Explore", language);
 
 		Assert.Contains(Text(language, "nav_explore"), WebUtility.HtmlDecode(html));   // Razor writes non-Latin text as entities
 		Assert.Contains($"<html lang=\"{language}\"", html);
@@ -302,7 +303,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 	[Fact]
 	public async Task WithoutTheCookie_ThePageIsEnglish()
 	{
-		var html = await Anonymous().GetHtmlAsync("/dashboard/explore");
+		var html = await Anonymous().GetHtmlAsync("/dashboard/Explore");
 
 		Assert.Contains("<html lang=\"en\"", html);
 		Assert.Contains(En("nav_explore"), html);
@@ -615,9 +616,9 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		var admin = await _f.CreateUserAsync(Unique("admin"), isAdmin: true);
 		var user = await _f.CreateUserAsync(Unique("plain"));
 
-		Assert.Contains("href=\"/dashboard/Admin/Users\"", await (await AsAsync(admin)).GetHtmlAsync("/dashboard/explore"));
-		Assert.DoesNotContain("href=\"/dashboard/Admin/Users\"", await (await AsAsync(user)).GetHtmlAsync("/dashboard/explore"));
-		Assert.DoesNotContain("href=\"/dashboard/Admin/Users\"", await Anonymous().GetHtmlAsync("/dashboard/explore"));
+		Assert.Contains("href=\"/dashboard/Admin/Users\"", await (await AsAsync(admin)).GetHtmlAsync("/dashboard/Explore"));
+		Assert.DoesNotContain("href=\"/dashboard/Admin/Users\"", await (await AsAsync(user)).GetHtmlAsync("/dashboard/Explore"));
+		Assert.DoesNotContain("href=\"/dashboard/Admin/Users\"", await Anonymous().GetHtmlAsync("/dashboard/Explore"));
 	}
 
 	[Fact]
