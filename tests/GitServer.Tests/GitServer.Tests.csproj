@@ -32,4 +32,13 @@
 		<ProjectReference Include="..\..\src\GitServer\GitServer.csproj" />
 	</ItemGroup>
 
+	<!-- Caps concurrent test collections regardless of the machine's core count: each collection spins up its own
+	     in-process host (and BrowserTests a real Chromium too), so unbounded parallelism causes CPU contention that
+	     shows up as flaky timeouts in the browser tests rather than as anything wrong with the app itself. -->
+	<ItemGroup>
+		<None Include="xunit.runner.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
 </Project>
