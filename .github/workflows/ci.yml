@@ -19,6 +19,13 @@ jobs:
     runs-on: windows-latest
     # The suite takes about a minute; this only stops a hung git process from holding the runner.
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [Sqlite, SqlServer]
+    env:
+      # Empty (unset) means SQLite, the default; GitServerFactory only switches to SQL Server when this is "sqlserver".
+      GITSERVER_TEST_DB: ${{ matrix.database == 'SqlServer' && 'sqlserver' || '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -37,6 +44,11 @@ jobs:
         shell: pwsh
         run: pwsh tests/GitServer.Tests/bin/Release/net10.0/playwright.ps1 install chromium
 
+      # windows-latest ships (localdb)\MSSQLLocalDB but it isn't started by default.
+      - name: Start SQL Server LocalDB
+        if: matrix.database == 'SqlServer'
+        run: sqllocaldb start MSSQLLocalDB
+
       - name: Test
         run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --settings coverlet.runsettings
 
@@ -44,11 +56,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results
+          name: test-results-${{ matrix.database }}
           path: tests/GitServer.Tests/TestResults/*.trx
 
+      # The badges track the SQLite run; SQL Server runs the same suite and only needs to be green, not counted twice.
       - name: Extract test and coverage stats
-        if: always()
+        if: always() && matrix.database == 'Sqlite'
         id: stats
         shell: pwsh
         run: |
@@ -67,7 +80,7 @@ jobs:
           "coverage=$coverage" >> $env:GITHUB_OUTPUT
 
       - name: Update tests badge
-        if: always() && github.ref == 'refs/heads/master'
+        if: always() && matrix.database == 'Sqlite' && github.ref == 'refs/heads/master'
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
@@ -78,7 +91,7 @@ jobs:
           color: brightgreen
 
       - name: Update coverage badge
-        if: always() && github.ref == 'refs/heads/master'
+        if: always() && matrix.database == 'Sqlite' && github.ref == 'refs/heads/master'
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
