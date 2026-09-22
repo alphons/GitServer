@@ -1,0 +1,41 @@
+@page "/dashboard/Admin/DatabaseMigration"
+@model GitServer.Pages.Admin.DatabaseMigrationModel
+@{
+	ViewData["Title"] = L["admin_dbmigration_title"];
+}
+<div class="container">
+	<h1>@L["nav_admin"]</h1>
+
+	@await Html.PartialAsync("_AdminNav", "database-migration")
+
+	<h2>@L["admin_dbmigration_title"]</h2>
+	<p class="text-muted">@L["admin_dbmigration_hint"]</p>
+
+	<div id="dbmigration-unavailable" class="alert alert-danger" hidden></div>
+
+	<div id="dbmigration-actions" hidden>
+		<button type="button" id="dbmigration-test-btn" class="btn btn-secondary">@L["admin_dbmigration_test_button"]</button>
+		<button type="button" id="dbmigration-run-btn" class="btn btn-primary" disabled>@L["admin_dbmigration_run_button"]</button>
+	</div>
+
+	<div id="dbmigration-result"></div>
+	<form id="antiforgery-form">@Html.AntiForgeryToken()</form>
+	<script type="application/json" id="dbmigration-labels">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, string>
+		{
+			["unavailableProvider"] = L["admin_dbmigration_unavailable_provider"],
+			["unavailableConnectionString"] = L["admin_dbmigration_unavailable_connectionstring"],
+			["runConfirm"] = L["admin_dbmigration_run_confirm"],
+			["testFailed"] = L["admin_dbmigration_test_connect_failed"],
+			["testNotFresh"] = L["admin_dbmigration_test_not_fresh"],
+			["testOk"] = L["admin_dbmigration_test_ok"],
+			["runSuccess"] = L["admin_dbmigration_run_success"],
+			["runRestartHint"] = L["admin_dbmigration_run_restart_hint"],
+			["runFailed"] = L["admin_dbmigration_run_failed"],
+			["colTable"] = L["admin_dbmigration_col_table"],
+			["colRows"] = L["admin_dbmigration_col_rows"],
+		}))</script>
+</div>
+
+@section Scripts {
+	<script src="~/js/db-migration.js" asp-append-version="true"></script>
+}

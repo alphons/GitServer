@@ -63,3 +63,14 @@ public record CreatedApiKeyResponse(string Key, ApiKeyDto ApiKey);
 public record AuditEntryDto(int Id, string At, string Actor, string Action, string? Target, string? Details, string Via, string? Ip);
 
 public record AuditLogResponse(int Page, bool HasNext, IReadOnlyList<AuditEntryDto> Entries);
+
+// ---- Database migration -------------------------------------------------------------------------------------
+
+/// <summary>Whether Admin > Database migration should be shown at all: only makes sense while still on SQLite,
+/// with a SQL Server connection string already configured to migrate to.</summary>
+public record DatabaseMigrationStatusResponse(bool IsAvailable, bool SqlServerConfigured);
+
+public record DatabaseMigrationCheckResponse(bool CanConnect, bool IsFresh, string? Error);
+
+public record DatabaseMigrationTableResultDto(string Table, int Rows);
+public record DatabaseMigrationRunResponse(bool Success, string? Error, IReadOnlyList<DatabaseMigrationTableResultDto> Tables);

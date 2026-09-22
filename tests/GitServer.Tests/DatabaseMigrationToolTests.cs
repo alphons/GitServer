@@ -2,25 +2,17 @@ using GitServer.Data;
 using GitServer.Services;
 using GitServer.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Xunit;
 
 namespace GitServer.Tests;
 
-/// <summary>The "migrate-to-sqlserver" command-line tool that copies a SQLite database into an empty SQL Server one
+/// <summary>The Admin > Database migration tool that copies a SQLite database into an empty SQL Server one
 /// (see README > Choosing a database). Needs a real LocalDB, like <see cref="SqlServerMigrationTests"/>.</summary>
 public sealed class DatabaseMigrationToolTests
 {
 	private const string SqlServerBase = @"Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True";
 
 	private static string Unique(string stem) => stem + Guid.NewGuid().ToString("N")[..6];
-
-	private static IConfiguration Config(string sqliteConnectionString, string sqlServerConnectionString) =>
-		new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-		{
-			["ConnectionStrings:Sqlite"] = sqliteConnectionString,
-			["ConnectionStrings:SqlServer"] = sqlServerConnectionString,
-		}).Build();
 
 	private static async Task DropAsync(string database)
 	{
@@ -50,8 +42,14 @@ public sealed class DatabaseMigrationToolTests
 		var sqlServerConnectionString = $"{SqlServerBase};Database={database}";
 		try
 		{
-			var exitCode = await DatabaseMigrationTool.RunAsync(Config(sqliteConnectionString, sqlServerConnectionString));
-			Assert.Equal(0, exitCode);
+			var check = await DatabaseMigrationTool.CheckTargetAsync(sqlServerConnectionString);
+			Assert.True(check.CanConnect);
+			Assert.True(check.IsFresh);
+
+			var result = await DatabaseMigrationTool.RunAsync(sqliteConnectionString, sqlServerConnectionString);
+			Assert.True(result.Success, result.Error);
+			Assert.Contains(result.Tables, t => t.Table == "AspNetUsers" && t.Rows == 1);
+			Assert.Contains(result.Tables, t => t.Table == "Repositories" && t.Rows == 1);
 
 			using var target = new SqlServerAppDbContext(new DbContextOptionsBuilder<SqlServerAppDbContext>().UseSqlServer(sqlServerConnectionString).Options);
 			var copiedUser = await target.Users.SingleAsync(u => u.UserName == aliceUserName);
@@ -89,9 +87,12 @@ public sealed class DatabaseMigrationToolTests
 				await target.SaveChangesAsync();
 			}
 
-			var exitCode = await DatabaseMigrationTool.RunAsync(Config(sqliteConnectionString, sqlServerConnectionString));
+			var check = await DatabaseMigrationTool.CheckTargetAsync(sqlServerConnectionString);
+			Assert.True(check.CanConnect);
+			Assert.False(check.IsFresh);
 
-			Assert.Equal(1, exitCode);
+			var result = await DatabaseMigrationTool.RunAsync(sqliteConnectionString, sqlServerConnectionString);
+			Assert.False(result.Success);
 		}
 		finally
 		{
