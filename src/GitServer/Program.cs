@@ -6,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// A one-off data copy for switching providers (see README > Choosing a database), run instead of the app itself.
+if (args.Length > 0 && string.Equals(args[0], "migrate-to-sqlserver", StringComparison.OrdinalIgnoreCase))
+	Environment.Exit(await DatabaseMigrationTool.RunAsync(builder.Configuration));
+
 var gitOptions = builder.Configuration
 	.GetSection("GitServer")
 	.Get<GitServerOptions>() ?? new GitServerOptions();
