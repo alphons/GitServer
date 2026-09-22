@@ -25,8 +25,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}
 
+	// Appends instead of replacing, so a "Test connection" run after a migration still shows the migration's
+	// own result above it — each click adds to the log instead of wiping out what came before.
 	function showResult(message, isError) {
-		resultEl.textContent = '';
 		var p = document.createElement('p');
 		p.className = isError ? 'alert alert-danger' : 'alert alert-success';
 		p.textContent = message;
@@ -65,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		testBtn.disabled = true;
 		runBtn.disabled = true;
 		setBusy(testBtn, true, labels.testBusy);
-		resultEl.textContent = '';
 		post(apiUrl + '/test').then(function (check) {
 			if (!check.canConnect) { showResult(check.error || labels.testFailed, true); return; }
 			if (!check.isFresh) { showResult(labels.testNotFresh, true); return; }
@@ -84,7 +84,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			testBtn.disabled = true;
 			runBtn.disabled = true;
 			setBusy(runBtn, true, labels.runBusy);
-			resultEl.textContent = '';
 			post(apiUrl + '/run').then(function (result) {
 				if (!result.success) { showResult(labels.runFailed + ': ' + result.error, true); return; }
 				showResult(labels.runSuccess + ' ' + labels.runRestartHint, false);
