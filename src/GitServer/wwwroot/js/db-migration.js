@@ -62,14 +62,15 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 
 	runBtn.addEventListener('click', function () {
-		if (!confirm(labels.runConfirm)) return;
-		testBtn.disabled = true;
-		runBtn.disabled = true;
-		resultEl.textContent = '';
-		post(apiUrl + '/run').then(function (result) {
-			if (!result.success) { showResult(labels.runFailed + ': ' + result.error, true); return; }
-			showResult(labels.runSuccess + ' ' + labels.runRestartHint, false);
-			showTable(result.tables);
+		gsConfirm(labels.runConfirm, labels.runButton, labels.cancel, function () {
+			testBtn.disabled = true;
+			runBtn.disabled = true;
+			resultEl.textContent = '';
+			post(apiUrl + '/run').then(function (result) {
+				if (!result.success) { showResult(labels.runFailed + ': ' + result.error, true); return; }
+				showResult(labels.runSuccess + ' ' + labels.runRestartHint, false);
+				showTable(result.tables);
+			});
 		});
 	});
 
