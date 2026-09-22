@@ -195,6 +195,23 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/dashboard/User/no-such-user-anywhere")).StatusCode);
 	}
 
+	[Theory]
+	[InlineData("/User/alice", "/dashboard/User/alice")]
+	[InlineData("/Admin/Users", "/dashboard/Admin/Users")]
+	[InlineData("/auth/Login", "/dashboard/auth/Login")]
+	[InlineData("/explore", "/dashboard/explore")]
+	[InlineData("/explore/users", "/dashboard/explore/users")]
+	[InlineData("/Group/team?x=1", "/dashboard/Group/team?x=1")]
+	[InlineData("/Terms", "/dashboard/Terms")]
+	[InlineData("/Privacy", "/dashboard/Privacy")]
+	public async Task PreDashboardUrls_RedirectPermanently_ToTheirDashboardEquivalent(string oldPath, string newPath)
+	{
+		var response = await Anonymous().GetAsync(oldPath);
+
+		Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+		Assert.Equal(newPath, Location(response));
+	}
+
 	// ---- Profile page ------------------------------------------------------------------------------
 
 	[Fact]

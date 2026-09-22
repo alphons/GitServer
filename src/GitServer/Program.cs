@@ -101,6 +101,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseGitServerForwardedHeaders();
+app.UseMiddleware<LegacyUrlRedirectMiddleware>();
 app.UseRouting();
 app.UseRateLimiter();
 
