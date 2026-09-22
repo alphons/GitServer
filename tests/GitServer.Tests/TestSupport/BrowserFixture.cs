@@ -39,7 +39,9 @@ public sealed class BrowserFixture : IAsyncLifetime
 	public async Task<IPage> NewPageAsync(AppUser? signedInAs = null)
 	{
 		var context = await browser!.NewContextAsync(new BrowserNewContextOptions { BaseURL = Site.BaseUrl, Locale = "en-US" });
-		context.SetDefaultTimeout(30_000);   // generous: the rest of the suite runs in parallel and password hashing is slow under load
+		// Generous: the rest of the suite (13 other classes, each with their own in-process host) runs in parallel, and
+		// password hashing is deliberately slow — under a saturated CI/dev machine 30s was occasionally not enough.
+		context.SetDefaultTimeout(60_000);
 		var page = await context.NewPageAsync();
 		if (signedInAs != null)
 		{
