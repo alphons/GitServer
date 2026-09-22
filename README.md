@@ -270,13 +270,7 @@ SQLite is the default and needs nothing. To use **SQL Server** (full, Express or
 
 - The connection string is an ordinary SQL Server one: `Server=.\SQLEXPRESS`, `Server=(localdb)\MSSQLLocalDB`, `Server=db.example.com;User Id=…;Password=…`, and so on. The database is created and migrated on first start.
 - Each provider has **its own migrations** (`Data/Migrations` for SQLite, `Data/MigrationsSqlServer` for SQL Server), applied automatically at startup. Names stay case-insensitive on both.
-- Switching provider normally starts an empty database. To carry existing data over instead, run the migration tool **before** flipping `DatabaseProvider` to `SqlServer` in config (it reads `ConnectionStrings:Sqlite`/`Default` as the source and `ConnectionStrings:SqlServer` as the target from the same `appsettings.json`):
-
-```bash
-dotnet GitServer.dll migrate-to-sqlserver
-```
-
-  It applies the SQL Server migrations and copies every row across, preserving ids and relationships. It only writes to a SQL Server database that has no migrations applied yet (a genuinely fresh one) — point it at an existing, already-used database and it refuses instead of overwriting anything.
+- Switching provider normally starts an empty database. To carry existing data over instead, first put a `ConnectionStrings:SqlServer` in `appsettings.json` pointing at a fresh, empty SQL Server database (while `DatabaseProvider` is still `Sqlite`), then use **Admin → Database migration**: test the connection, then run the copy. It applies the SQL Server migrations and copies every row across, preserving ids and relationships, and refuses to touch a target that already has migrations applied. Only afterward flip `DatabaseProvider` to `SqlServer` and restart the app — a running process can't swap its own database provider, so that part is never automated.
 - Changing the model means one migration per provider:
 
 ```bash
