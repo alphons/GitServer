@@ -329,7 +329,7 @@ The suite has five layers:
 | **API contract** (`OpenApiEndToEndTests`) | The OpenAPI document exists, describes the `X-Api-Key` scheme and documents every `/api` endpoint with a summary — and fails if an endpoint is added without documentation or uses a verb other than `GET`/`POST` |
 | **Browser** (`BrowserTests`) | The JavaScript-driven pages in a real headless Chromium (Playwright) against the same app on a real port: profile lists and paging, API keys, access tokens, reserved names, group detail, admin users |
 
-All authorization decisions live in `Services/AccessPolicy.cs`; pages and middleware ask it instead of comparing `OwnerId` or `IsAdmin` themselves. CI runs the full suite on every push and pull request — see the badges at the top of this file.
+All authorization decisions live in `Services/AccessPolicy.cs`; pages and middleware ask it instead of comparing `OwnerId` or `IsAdmin` themselves. CI runs the full suite (both the SQLite and SQL Server matrix jobs) on a version tag push (`vX.Y`) or a manual run — see the badges at the top of this file.
 
 ---
 
