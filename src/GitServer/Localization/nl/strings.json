@@ -80,6 +80,7 @@
   "admin_audit_col_details": "Details",
   "admin_audit_col_ip": "IP-adres",
   "admin_audit_empty": "Er is nog niets vastgelegd.",
+  "admin_audit_export": "Exporteer CSV",
   "error_rate_limited": "Te veel verzoeken. Wacht even en probeer het opnieuw.",
   "col_name": "Naam",
   "settings_apikeys_title": "API-sleutels",

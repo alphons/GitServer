@@ -79,6 +79,7 @@
   "admin_audit_col_details": "Details",
   "admin_audit_col_ip": "IP-Adresse",
   "admin_audit_empty": "Es wurde noch nichts protokolliert.",
+  "admin_audit_export": "CSV exportieren",
   "error_rate_limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
   "col_name": "Name",
   "settings_apikeys_title": "API-Schlüssel",

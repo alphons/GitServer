@@ -79,6 +79,7 @@
   "admin_audit_col_details": "التفاصيل",
   "admin_audit_col_ip": "عنوان IP",
   "admin_audit_empty": "لم يتم تسجيل أي شيء بعد.",
+  "admin_audit_export": "تصدير CSV",
   "error_rate_limited": "طلبات كثيرة جدًا. يُرجى الانتظار قليلًا ثم إعادة المحاولة.",
   "col_name": "الاسم",
   "settings_apikeys_title": "مفاتيح API",

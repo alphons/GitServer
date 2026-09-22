@@ -156,6 +156,7 @@ Edit `src/GitServer/appsettings.json`:
     "ApiRequestsPerMinute": 300,
     "AuthRequestsPerMinute": 10,
     "TrustForwardedHeaders": false,
+    "AuditLogRetentionDays": 365,
     "DatabaseProvider": "Sqlite",
     "DefaultPrivateOnAutoCreate": true,
     "MaxPushSizeMb": 2048,
@@ -208,6 +209,7 @@ Edit `src/GitServer/appsettings.json`:
 | `GitServer:DatabaseProvider` | `Sqlite` (default) or `SqlServer` — see [Choosing a database](#choosing-a-database) |
 | `GitServer:ApiRequestsPerMinute` / `AuthRequestsPerMinute` | Requests per minute per IP address to the JSON API, and form posts per minute to sign-in / registration / password reset. `0` = no limit |
 | `GitServer:TrustForwardedHeaders` | Use `X-Forwarded-For` / `X-Forwarded-Proto` from a reverse proxy, so limits and the audit log see the visitor instead of the proxy. Enable only when the app is reachable exclusively through that proxy |
+| `GitServer:AuditLogRetentionDays` | Audit log entries older than this are pruned. `0` = keep forever. Entries can be downloaded as CSV from **Admin → Audit log** before they age out |
 | `ConnectionStrings:Sqlite` / `ConnectionStrings:SqlServer` | Connection string for the chosen provider; `ConnectionStrings:Default` is the fallback for either |
 | `EmailService:*` | SMTP settings used to send registration and password-reset emails; leave `SmtpHost` empty to disable outgoing email (registration links then just won't be delivered) |
 

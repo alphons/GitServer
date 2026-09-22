@@ -79,6 +79,7 @@
   "admin_audit_col_details": "Detalhes",
   "admin_audit_col_ip": "Endereço IP",
   "admin_audit_empty": "Ainda nada foi registado.",
+  "admin_audit_export": "Exportar CSV",
   "error_rate_limited": "Demasiados pedidos. Aguarde um momento e tente novamente.",
   "col_name": "Nome",
   "settings_apikeys_title": "Chaves de API",

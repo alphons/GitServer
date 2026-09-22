@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using GitServer.Data;
+using GitServer.Models;
+using GitServer.Services;
 using GitServer.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,5 +75,48 @@ public class AuditLogEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(admin.UserName, entries[0].GetProperty("actor").GetString());
 		Assert.Equal(HttpStatusCode.Unauthorized, (await factory.NewClient().GetAsync(AuditApi)).StatusCode);
 		Assert.Equal(HttpStatusCode.Forbidden, (await (await AsAsync(ordinary)).GetAsync(AuditApi)).StatusCode);
+	}
+
+	[Fact]
+	public async Task TheAuditLog_CanBeExportedAsCsv_FilteredTheSameWay_ByAdminsOnly()
+	{
+		var admin = await factory.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var ordinary = await factory.CreateUserAsync(Unique("plain"));
+		var session = await AsAsync(admin);
+		var pattern = Unique("find").ToLowerInvariant() + "*";
+		await session.SendJsonAsync("/dashboard/Admin/ReservedNames", HttpMethod.Post, "/api/admin/reserved-names", new { pattern });
+
+		var response = await session.GetAsync($"{AuditApi}/export?q={Uri.EscapeDataString(pattern[..^1].ToUpperInvariant())}");
+		Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
+		var csv = await response.Content.ReadAsStringAsync();
+		var rows = csv.TrimEnd().Split('\n');
+		Assert.Equal(2, rows.Length);                                    // header + the one matching entry
+		Assert.Contains("reserved-name.add", rows[1]);
+		Assert.Contains(pattern, rows[1]);
+
+		Assert.Equal(HttpStatusCode.Unauthorized, (await factory.NewClient().GetAsync($"{AuditApi}/export")).StatusCode);
+		Assert.Equal(HttpStatusCode.Forbidden, (await (await AsAsync(ordinary)).GetAsync($"{AuditApi}/export")).StatusCode);
+	}
+
+	[Fact]
+	public async Task ExpiredEntries_ArePruned_ButRecentOnesAndAZeroRetentionAreLeftAlone()
+	{
+		var admin = await factory.CreateUserAsync(Unique("boss"), isAdmin: true);
+		var oldPattern = Unique("stale").ToLowerInvariant() + "*";
+		var recentPattern = Unique("fresh").ToLowerInvariant() + "*";
+		var session = await AsAsync(admin);
+		await session.SendJsonAsync("/dashboard/Admin/ReservedNames", HttpMethod.Post, "/api/admin/reserved-names", new { pattern = oldPattern });
+		await session.SendJsonAsync("/dashboard/Admin/ReservedNames", HttpMethod.Post, "/api/admin/reserved-names", new { pattern = recentPattern });
+		await Db(async d =>
+		{
+			await d.AuditEntries.Where(a => a.Target == oldPattern).ExecuteUpdateAsync(s => s.SetProperty(a => a.At, DateTime.UtcNow.AddDays(-400)));
+			return true;
+		});
+
+		await factory.UseServicesAsync(sp => sp.GetRequiredService<AuditService>().PruneExpiredAsync());
+
+		var remaining = await Db(d => d.AuditEntries.Select(a => a.Target).ToListAsync());
+		Assert.DoesNotContain(oldPattern, remaining);
+		Assert.Contains(recentPattern, remaining);
 	}
 }

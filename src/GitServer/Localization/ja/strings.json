@@ -79,6 +79,7 @@
   "admin_audit_col_details": "詳細",
   "admin_audit_col_ip": "IPアドレス",
   "admin_audit_empty": "まだ何も記録されていません。",
+  "admin_audit_export": "CSVをエクスポート",
   "error_rate_limited": "リクエストが多すぎます。しばらく待ってからもう一度お試しください。",
   "col_name": "名前",
   "settings_apikeys_title": "APIキー",

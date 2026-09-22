@@ -80,6 +80,7 @@
   "admin_audit_col_details": "Details",
   "admin_audit_col_ip": "IP address",
   "admin_audit_empty": "Nothing has been recorded yet.",
+  "admin_audit_export": "Export CSV",
   "error_rate_limited": "Too many requests. Please wait a moment and try again.",
   "col_name": "Name",
   "settings_apikeys_title": "API keys",

@@ -25,6 +25,7 @@
 
 	<div class="search-form search-form-full">
 		<input id="audit-filter" type="search" class="form-control" placeholder="@L["explore_search_placeholder"]" autocomplete="off" />
+		<a id="audit-export" class="btn btn-secondary" href="/api/admin/audit/export">@L["admin_audit_export"]</a>
 	</div>
 	<div id="audit-list"></div>
 </div>
@@ -36,6 +37,7 @@
 			var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(labels));
 			var listEl = document.getElementById('audit-list');
 			var filterEl = document.getElementById('audit-filter');
+			var exportEl = document.getElementById('audit-export');
 			var timer = null;
 			var seq = 0;
 
@@ -105,6 +107,7 @@
 
 			function load(filter, page) {
 				var mine = ++seq;
+				exportEl.href = apiUrl + '/export?q=' + encodeURIComponent(filter);
 				fetch(apiUrl + '?q=' + encodeURIComponent(filter) + '&p=' + page)
 					.then(function (r) { return r.json(); })
 					.then(function (data) { if (mine === seq) render(data, filter); });

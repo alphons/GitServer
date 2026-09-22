@@ -79,6 +79,7 @@
   "admin_audit_col_details": "Подробности",
   "admin_audit_col_ip": "IP-адрес",
   "admin_audit_empty": "Пока ничего не записано.",
+  "admin_audit_export": "Экспорт в CSV",
   "error_rate_limited": "Слишком много запросов. Подождите немного и повторите попытку.",
   "col_name": "Название",
   "settings_apikeys_title": "API-ключи",

@@ -79,6 +79,7 @@
   "admin_audit_col_details": "详情",
   "admin_audit_col_ip": "IP 地址",
   "admin_audit_empty": "尚无任何记录。",
+  "admin_audit_export": "导出 CSV",
   "error_rate_limited": "请求过多，请稍候再试。",
   "col_name": "名称",
   "settings_apikeys_title": "API 密钥",

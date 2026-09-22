@@ -27,6 +27,9 @@ public class GitServerOptions
 	/// instead of the proxy's. Only enable this when the app is reachable exclusively through that proxy.</summary>
 	public bool TrustForwardedHeaders { get; set; }
 
+	/// <summary>Audit log entries older than this are pruned. 0 = keep forever.</summary>
+	public int AuditLogRetentionDays { get; set; } = 365;
+
 	/// <summary>Only used to seed SiteSettings.AllowRegistration the first time the app runs.
 	/// After that, the live value lives in the database and is managed from /dashboard/Admin/Settings.</summary>
 	public bool AllowRegistration { get; set; } = true;
