@@ -26,6 +26,7 @@
 				<thead>
 					<tr>
 						<th>@L["settings_collaborator_user"]</th>
+						<th>@L["group_role_label"]</th>
 						<th></th>
 					</tr>
 				</thead>
@@ -44,6 +45,17 @@
 										}
 									</span>
 								</a>
+							</td>
+							<td>
+								<form method="post" asp-page-handler="ChangeRole">
+									<input type="hidden" name="memberId" value="@member.Id" />
+									<select name="role" class="form-control form-control-sm" onchange="this.form.submit()" aria-label="@L["group_role_label"]">
+										@foreach (var role in Enum.GetValues<GitServer.Models.GroupRole>())
+										{
+											<option value="@role" selected="@(member.Role == role)">@RoleName(role)</option>
+										}
+									</select>
+								</form>
 							</td>
 							<td>
 								<form method="post" asp-page-handler="RemoveMember">
@@ -68,6 +80,15 @@
 					   autocomplete="off" placeholder="@L["settings_collaborator_search_placeholder"]" data-group-id="@Model.Group!.Id" />
 				<div id="memberResults" class="collaborator-results"></div>
 			</div>
+			<div class="form-group">
+				<label for="memberRole">@L["group_role_label"]</label>
+				<select asp-for="MemberRole" id="memberRole" class="form-control">
+					@foreach (var role in Enum.GetValues<GitServer.Models.GroupRole>())
+					{
+						<option value="@role">@RoleName(role)</option>
+					}
+				</select>
+			</div>
 			<button type="submit" class="btn btn-primary">@L["group_add_member"]</button>
 		</form>
 	</section>
@@ -87,6 +108,8 @@
 			}))</script>
 	</section>
 
+	@if (Model.IsOwner)
+	{
 	<section class="settings-section">
 		<h2>@L["settings_danger_zone"]</h2>
 		<form method="post" asp-page-handler="Delete"
@@ -95,7 +118,17 @@
 			<button type="submit" class="btn btn-danger">@L["group_delete"]</button>
 		</form>
 	</section>
+	}
 </div>
+
+@functions {
+	private string RoleName(GitServer.Models.GroupRole role) => role switch
+	{
+		GitServer.Models.GroupRole.Read => L["group_role_read"],
+		GitServer.Models.GroupRole.Admin => L["group_role_admin"],
+		_ => L["group_role_write"],
+	};
+}
 
 @section Scripts {
 	<script src="~/js/repo-list.js" asp-append-version="true"></script>

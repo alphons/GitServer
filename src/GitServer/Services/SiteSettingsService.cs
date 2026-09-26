@@ -29,6 +29,7 @@ public class SiteSettingsService(AppDbContext db, IOptions<GitServerOptions> opt
 		settings.AllowPushToCreateRepositories = updated.AllowPushToCreateRepositories;
 		settings.AllowAnonymousPush = updated.AllowAnonymousPush;
 		settings.ShowCommitAuthorAvatar = updated.ShowCommitAuthorAvatar;
+		settings.AllowWebhooksToPrivateNetworks = updated.AllowWebhooksToPrivateNetworks;
 		settings.ApiKeyLifetimeDays = Math.Clamp(updated.ApiKeyLifetimeDays, 1, 3650);
 		await db.SaveChangesAsync();
 	}

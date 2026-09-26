@@ -369,4 +369,82 @@ public class AccessPolicyTests : IDisposable
 		Assert.True(await _w.Access.CanCreateRepoInGroupAsync(group, member.Id));
 		Assert.False(await _w.Access.CanCreateRepoInGroupAsync(group, stranger.Id));
 	}
+
+	// ---- Group roles ------------------------------------------------------------------------------
+
+	[Fact]
+	public async Task GroupRoles_ReadMemberReads_WriteMemberPushes_AdminMemberAdministers()
+	{
+		var owner = _w.AddUser("owner");
+		var reader = _w.AddUser("reader");
+		var writer = _w.AddUser("writer");
+		var admin = _w.AddUser("admin");
+		var group = _w.AddGroup("Team", owner, reader, writer, admin);
+		_w.SetRole(group, reader, GroupRole.Read);
+		_w.SetRole(group, admin, GroupRole.Admin);
+		var repo = _w.AddGroupRepo(group, isPrivate: true);
+
+		Assert.True(await _w.Access.CanReadAsync(repo, reader.Id));
+		Assert.False(await _w.Access.CanWriteAsync(repo, reader.Id));
+		Assert.False(await _w.Access.CanCreateRepoInGroupAsync(group, reader.Id));
+
+		Assert.True(await _w.Access.CanWriteAsync(repo, writer.Id));
+		Assert.True(await _w.Access.CanCreateRepoInGroupAsync(group, writer.Id));
+		Assert.False(await _w.Access.CanAdministerAsync(repo, writer.Id));
+
+		Assert.True(await _w.Access.CanWriteAsync(repo, admin.Id));
+		Assert.True(await _w.Access.CanAdministerAsync(repo, admin.Id));
+		Assert.True(await _w.Access.CanDeleteAsync(repo, admin));
+	}
+
+	[Fact]
+	public async Task GetGroupRole_OwnerIsAdmin_MembersTheirRole_OthersNone()
+	{
+		var owner = _w.AddUser("owner");
+		var reader = _w.AddUser("reader");
+		var stranger = _w.AddUser("stranger");
+		var group = _w.AddGroup("Team", owner, reader);
+		_w.SetRole(group, reader, GroupRole.Read);
+
+		Assert.Equal(GroupRole.Admin, await _w.Access.GetGroupRoleAsync(group.Id, owner.Id));
+		Assert.Equal(GroupRole.Read, await _w.Access.GetGroupRoleAsync(group.Id, reader.Id));
+		Assert.Null(await _w.Access.GetGroupRoleAsync(group.Id, stranger.Id));
+		Assert.Null(await _w.Access.GetGroupRoleAsync(group.Id, null));
+	}
+
+	[Fact]
+	public async Task WriteAccessGrantedToAGroup_ReachesOnlyMembersWithTheWriteRole()
+	{
+		var repoOwner = _w.AddUser("repoOwner");
+		var groupOwner = _w.AddUser("groupOwner");
+		var reader = _w.AddUser("reader");
+		var writer = _w.AddUser("writer");
+		var group = _w.AddGroup("Team", groupOwner, reader, writer);
+		_w.SetRole(group, reader, GroupRole.Read);
+		var repo = _w.AddRepo(repoOwner, isPrivate: true);
+		_w.Grant(repo, group, AccessLevel.Write);
+
+		Assert.True(await _w.Access.CanReadAsync(repo, reader.Id));
+		Assert.False(await _w.Access.CanWriteAsync(repo, reader.Id));
+		Assert.True(await _w.Access.CanWriteAsync(repo, writer.Id));
+	}
+
+	[Fact]
+	public async Task ManagedGroups_AreOwnedOrAdministered_CreationGroupsAlsoNeedWrite()
+	{
+		var owner = _w.AddUser("owner");
+		var user = _w.AddUser("user");
+		var own = _w.AddGroup("Own", user);
+		var administered = _w.AddGroup("Administered", owner, user);
+		var writable = _w.AddGroup("Writable", owner, user);
+		var readable = _w.AddGroup("Readable", owner, user);
+		_w.SetRole(administered, user, GroupRole.Admin);
+		_w.SetRole(readable, user, GroupRole.Read);
+
+		Assert.Equal(new[] { "Administered", "Own" }, (await _w.Access.GetManagedGroupsAsync(user.Id)).Select(g => g.Name));
+		Assert.Equal(new[] { "Administered", "Own", "Writable" }, (await _w.Access.GetGroupsForRepoCreationAsync(user.Id)).Select(g => g.Name));
+		Assert.NotNull(await _w.Access.GetManagedGroupAsync(administered.Id, user.Id));
+		Assert.Null(await _w.Access.GetManagedGroupAsync(writable.Id, user.Id));
+		Assert.Null(await _w.Access.GetOwnedGroupAsync(administered.Id, user.Id));   // administering is not owning: no deleting
+	}
 }

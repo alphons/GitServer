@@ -22,12 +22,30 @@ public record UserReposResponse(
 
 public record GroupReposResponse(int Page, bool HasNext, IReadOnlyList<RepoCardDto> Repos);
 
-/// <summary>Where to put a fork: <see cref="Group"/> is the name of a group the caller owns, or null for their own
+/// <summary>Where to put a fork: <see cref="Group"/> is the name of a group where the caller may create repositories, or null for their own
 /// namespace; <see cref="Name"/> is null to keep the source's name.</summary>
 public record ForkRequest(string? Name = null, string? Group = null);
 
 /// <summary>The fork that was created.</summary>
 public record ForkResponse(string Owner, string Name, string Href, bool IsPrivate);
+
+// ---- Webhooks ----------------------------------------------------------------------------------------------
+
+/// <summary>A repository's webhook. The secret itself is never returned, only whether there is one.
+/// <see cref="Events"/> holds "push", "issues" and/or "issue_comment".</summary>
+public record WebhookDto(int Id, string Url, IReadOnlyList<string> Events, bool Active, bool HasSecret, string Created, WebhookDeliveryDto? LastDelivery);
+
+/// <summary>One delivery attempt. <see cref="StatusCode"/> is null when the receiver did not answer; <see cref="Error"/> says why.</summary>
+public record WebhookDeliveryDto(int Id, Guid DeliveryId, string Event, int Attempt, string At, int? StatusCode, string? Error, int DurationMs, bool Succeeded);
+
+/// <summary>A new webhook. <see cref="Events"/> defaults to ["push"]; an empty or missing secret sends no signature.</summary>
+public record CreateWebhookRequest(string? Url, string? Secret = null, IReadOnlyList<string>? Events = null, bool Active = true);
+
+/// <summary>Changes to a webhook; null leaves a field as it is. <see cref="Secret"/> "" removes the secret.</summary>
+public record UpdateWebhookRequest(string? Url = null, string? Secret = null, IReadOnlyList<string>? Events = null, bool? Active = null);
+
+/// <summary>The id of the queued delivery; its outcome appears in the deliveries list shortly after.</summary>
+public record WebhookPingResponse(Guid DeliveryId);
 
 // ---- Administration ----------------------------------------------------------------------------------------
 

@@ -65,6 +65,9 @@ public class GitServerFactory : WebApplicationFactory<Program>
 		builder.UseSetting("GitServer:ApiRequestsPerMinute", "0");
 		builder.UseSetting("GitServer:AuthRequestsPerMinute", "0");
 		builder.UseSetting("Authentication:KeysPath", Path.Combine(Root, "keys"));
+		// Webhook retries in a blink instead of 10 s and a minute.
+		builder.UseSetting("GitServer:WebhookRetryDelaysSeconds", "0.2,0.2");
+		builder.UseSetting("GitServer:WebhookTimeoutSeconds", "5");
 
 		builder.ConfigureTestServices(services =>
 		{

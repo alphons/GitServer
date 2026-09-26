@@ -32,7 +32,7 @@ public class NewModel(
 		CurrentUser = await userManager.GetUserAsync(User);
 		CreationDisabled = !(await siteSettings.GetAsync()).AllowUserRepoCreation;
 		if (CurrentUser != null)
-			OwnGroups = await access.GetOwnedGroupsAsync(CurrentUser.Id);
+			OwnGroups = await access.GetGroupsForRepoCreationAsync(CurrentUser.Id);
 		return Page();
 	}
 
@@ -48,7 +48,7 @@ public class NewModel(
 		var user = await userManager.GetUserAsync(User);
 		if (user == null) return Challenge();
 		CurrentUser = user;
-		OwnGroups = await access.GetOwnedGroupsAsync(user.Id);
+		OwnGroups = await access.GetGroupsForRepoCreationAsync(user.Id);
 
 		if (!RepositoryService.IsValidName(Name))
 		{

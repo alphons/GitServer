@@ -8,7 +8,7 @@ namespace GitServer.Pages.Repo;
 
 public class BlobModel(
 	RepositoryService repos, AccessPolicy access, 
-	GitProcessService git, 
+	GitProcessService git, LfsStore lfs,
 	UserManager<AppUser> userManager) : PageModel
 {
 	public string UserName { get; set; } = "";
@@ -19,6 +19,10 @@ public class BlobModel(
 	public new string Content { get; set; } = "";
 	public long FileSize { get; set; }
 	public bool IsBinary { get; set; }
+	/// <summary>Set when the file in git is a Git LFS pointer; the page then shows the real file.</summary>
+	public bool IsLfs { get; set; }
+	/// <summary>False when the pointer's object was never uploaded to this server.</summary>
+	public bool LfsObjectPresent { get; set; }
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string branch, string path)
 	{
@@ -38,6 +42,20 @@ public class BlobModel(
 
 		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
 		FileSize = await git.GetFileSize(repoPath, branch, path);
+
+		if (FileSize <= LfsStore.MaxPointerSize &&
+			LfsStore.ParsePointer(await git.GetFileContent(repoPath, branch, path)) is { } pointer)
+		{
+			IsLfs = true;
+			FileSize = pointer.Size;
+			LfsObjectPresent = lfs.GetSize(repoObj.OwnerName, repoObj.Name, pointer.Oid) == pointer.Size;
+			if (!LfsObjectPresent || FileSize > 1_048_576) { IsBinary = true; return Page(); }
+
+			using var reader = new StreamReader(lfs.OpenRead(repoObj.OwnerName, repoObj.Name, pointer.Oid));
+			Content = await reader.ReadToEndAsync();
+			if (Content.Contains('\0')) { IsBinary = true; Content = ""; }
+			return Page();
+		}
 
 		// Treat files >1MB or detected binary as binary
 		if (FileSize > 1_048_576)

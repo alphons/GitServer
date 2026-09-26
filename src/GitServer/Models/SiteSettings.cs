@@ -11,6 +11,10 @@ public class SiteSettings
 	public bool AllowAnonymousPush { get; set; }
 	public bool ShowCommitAuthorAvatar { get; set; } = true;
 
+	/// <summary>When false (the default), webhooks may only reach public internet addresses: not this machine,
+	/// not the local network. That stops a repository owner from using the server to probe internal services.</summary>
+	public bool AllowWebhooksToPrivateNetworks { get; set; }
+
 	/// <summary>How many days a newly created API key stays valid.</summary>
 	public int ApiKeyLifetimeDays { get; set; } = 90;
 }

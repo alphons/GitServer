@@ -11,7 +11,7 @@ public record ForkResult(Repository? Fork, ForkError Error, string? Message)
 }
 
 /// <summary>The rules for forking, shared by the fork page and the API: anyone who can read a repository may fork it,
-/// into their own namespace or a group they own, under a name that is free there.</summary>
+/// into their own namespace or a group where they may create repositories, under a name that is free there.</summary>
 public class ForkService(
 	RepositoryService repos, AccessPolicy access, SiteSettingsService siteSettings, AuditService audit, LocalizationService L)
 {
@@ -31,7 +31,7 @@ public class ForkService(
 		Group? group = null;
 		if (groupId.HasValue)
 		{
-			group = await access.GetOwnedGroupAsync(groupId.Value, user.Id);
+			group = (await access.GetGroupsForRepoCreationAsync(user.Id)).FirstOrDefault(g => g.Id == groupId.Value);
 			if (group == null) return Fail(ForkError.GroupNotFound, "error_group_not_found");
 		}
 

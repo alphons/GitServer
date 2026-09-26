@@ -13,6 +13,7 @@ public class SettingsModel(
 	RepositoryService repos, AccessPolicy access,
 	UserManager<AppUser> userManager,
 	AppDbContext db,
+	GitProcessService git,
 	LocalizationService L) : PageModel
 {
 
@@ -71,13 +72,23 @@ public class SettingsModel(
 			return Page();
 		}
 
+		var branch = string.IsNullOrWhiteSpace(DefaultBranch) ? "main" : DefaultBranch.Trim();
+		if (!GitProcessService.IsValidBranchName(branch))
+		{
+			Message = L["settings_error_branch_name"];
+			IsError = true;
+			return Page();
+		}
+
 		repoObj.Description = Description;
 		repoObj.IsPrivate = IsPrivate;
 		repoObj.IsReadOnly = IsReadOnly;
-		repoObj.DefaultBranch = string.IsNullOrEmpty(DefaultBranch) ? "main" : DefaultBranch;
+		repoObj.DefaultBranch = branch;
 		repoObj.UpdatedAt = DateTime.UtcNow;
 
 		await db.SaveChangesAsync();
+		// The default branch is what a clone checks out, so git's HEAD follows it (also before the branch is first pushed).
+		await git.SetHead(repos.GetRepoPath(repoObj.OwnerName, repoObj.Name), branch);
 
 		Message = L["success_settings_saved"];
 		return Page();

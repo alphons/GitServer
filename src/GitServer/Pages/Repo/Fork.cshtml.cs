@@ -35,7 +35,7 @@ public class ForkModel(
 		if (CurrentUser == null) return Challenge();
 		if (!await access.CanReadAsync(Repo, CurrentUser.Id)) return Forbid();
 
-		OwnGroups = await access.GetOwnedGroupsAsync(CurrentUser.Id);
+		OwnGroups = await access.GetGroupsForRepoCreationAsync(CurrentUser.Id);
 		return null;
 	}
 

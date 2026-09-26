@@ -25,7 +25,7 @@ public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUs
 		CurrentUser = await userManager.GetUserAsync(User);
 		if (CurrentUser == null) return;
 
-		Groups = await access.GetOwnedGroupsAsync(CurrentUser.Id, includeMembers: true);
+		Groups = await access.GetManagedGroupsAsync(CurrentUser.Id, includeMembers: true);
 	}
 
 	public async Task OnGetAsync()

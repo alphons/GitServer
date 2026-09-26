@@ -19,15 +19,18 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 	public int RepoTotalCount { get; set; }
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
+	/// <summary>Only the owner may delete the group; admin members manage everything else.</summary>
+	public bool IsOwner => Group != null && AccessPolicy.IsGroupOwner(Group, CurrentUser?.Id);
 
 	[BindProperty] public string? MemberName { get; set; }
+	[BindProperty] public GroupRole MemberRole { get; set; } = GroupRole.Write;
 
 	private async Task<bool> LoadAsync(int id)
 	{
 		CurrentUser = await userManager.GetUserAsync(User);
 		if (CurrentUser == null) return false;
 
-		Group = await access.GetOwnedGroupAsync(id, CurrentUser.Id);
+		Group = await access.GetManagedGroupAsync(id, CurrentUser.Id);
 		if (Group == null) return false;
 
 		Members = await db.GroupMembers
@@ -67,7 +70,7 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 			return Page();
 		}
 
-		if (member.Id == CurrentUser!.Id)
+		if (member.Id == Group!.OwnerId)
 		{
 			Message = L["error_group_member_is_owner"];
 			IsError = true;
@@ -76,7 +79,7 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 
 		if (!Members.Any(m => m.UserId == member.Id))
 		{
-			db.GroupMembers.Add(new GroupMember { GroupId = Group!.Id, UserId = member.Id });
+			db.GroupMembers.Add(new GroupMember { GroupId = Group!.Id, UserId = member.Id, Role = MemberRole });
 			await db.SaveChangesAsync();
 		}
 
@@ -98,9 +101,25 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 		return RedirectToPage(new { id });
 	}
 
+	public async Task<IActionResult> OnPostChangeRoleAsync(int id, int memberId, GroupRole role)
+	{
+		if (!await LoadAsync(id)) return NotFound();
+		if (!Enum.IsDefined(role)) return BadRequest();
+
+		var member = Members.FirstOrDefault(m => m.Id == memberId);
+		if (member != null)
+		{
+			member.Role = role;
+			await db.SaveChangesAsync();
+		}
+
+		return RedirectToPage(new { id });
+	}
+
 	public async Task<IActionResult> OnPostDeleteAsync(int id)
 	{
 		if (!await LoadAsync(id)) return NotFound();
+		if (!IsOwner) return Forbid();
 
 		// Removed here instead of by database cascades so that every provider behaves the same: SQL Server does not allow the
 		// several cascade paths (group -> repositories -> access rows, group -> access rows) that SQLite follows implicitly.

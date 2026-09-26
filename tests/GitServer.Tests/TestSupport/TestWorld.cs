@@ -93,6 +93,13 @@ public sealed class TestWorld : IDisposable
 		Db.SaveChanges();
 	}
 
+	/// <summary>Members join as <see cref="GroupRole.Write"/>; this changes one member's role.</summary>
+	public void SetRole(Group group, AppUser member, GroupRole role)
+	{
+		Db.GroupMembers.Single(m => m.GroupId == group.Id && m.UserId == member.Id).Role = role;
+		Db.SaveChanges();
+	}
+
 	public void Grant(Repository repo, Group group, AccessLevel level)
 	{
 		Db.RepositoryAccesses.Add(new RepositoryAccess { RepositoryId = repo.Id, GroupId = group.Id, Level = level });

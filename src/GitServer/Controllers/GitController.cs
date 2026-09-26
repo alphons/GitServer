@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 namespace GitServer.Controllers;
 
 [ApiController]
-public class GitController(GitProcessService git, IOptions<GitServerOptions> options, ILogger<GitController> logger, AppDbContext db) : ControllerBase
+public class GitController(
+	GitProcessService git, IOptions<GitServerOptions> options, ILogger<GitController> logger, AppDbContext db, WebhookService webhooks) : ControllerBase
 {
 
 	private string GetRepoPath(string user, string repo)
@@ -107,11 +108,18 @@ public class GitController(GitProcessService git, IOptions<GitServerOptions> opt
 
 		try
 		{
+			// Only worth the extra git call when someone listens: the refs before and after tell what the push changed.
+			var refsBefore = await webhooks.HasHooksAsync(repoObj.Id, WebhookEvents.Push) ? await git.GetRefs(repoPath) : null;
+
 			await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: false);
+			await git.EnsureHeadExists(repoPath, repoObj.DefaultBranch);
 
 			// Bijwerken van UpdatedAt na een push
 			repoObj.UpdatedAt = DateTime.UtcNow;
 			await db.SaveChangesAsync();
+
+			if (refsBefore != null)
+				await webhooks.PushAsync(repoObj, git, repoPath, refsBefore, await git.GetRefs(repoPath), HttpContext.Items["GitUser"] as AppUser);
 		}
 		catch (RepositoryDataMissingException ex)
 		{

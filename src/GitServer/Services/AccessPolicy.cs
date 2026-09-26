@@ -31,7 +31,19 @@ public class AccessPolicy(AppDbContext db)
 	public async Task<bool> IsGroupMemberAsync(int groupId, string userId) =>
 		await db.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId);
 
-	/// <summary>The group with this id, but only if the user owns it (the group management pages).</summary>
+	/// <summary>The user's role in the group: <see cref="GroupRole.Admin"/> for its owner, the member's role for a member,
+	/// null for anyone else.</summary>
+	public async Task<GroupRole?> GetGroupRoleAsync(int groupId, string? userId)
+	{
+		if (userId == null) return null;
+		if (await db.Groups.AnyAsync(g => g.Id == groupId && g.OwnerId == userId)) return GroupRole.Admin;
+		return await db.GroupMembers
+			.Where(m => m.GroupId == groupId && m.UserId == userId)
+			.Select(m => (GroupRole?)m.Role)
+			.FirstOrDefaultAsync();
+	}
+
+	/// <summary>The group with this id, but only if the user owns it (deleting the group).</summary>
 	public async Task<Group?> GetOwnedGroupAsync(int groupId, string userId) =>
 		await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId && g.OwnerId == userId);
 
@@ -42,20 +54,39 @@ public class AccessPolicy(AppDbContext db)
 		return await q.Where(g => g.OwnerId == userId).OrderBy(g => g.Name).ToListAsync();
 	}
 
-	/// <summary>May this user create a repository in the group's namespace (owner or member)?</summary>
+	/// <summary>The group with this id, but only if the user may manage it: its owner or an admin member (the group management pages).</summary>
+	public async Task<Group?> GetManagedGroupAsync(int groupId, string userId) =>
+		(await ManagedGroups(userId, GroupRole.Admin).Where(g => g.Id == groupId).ToListAsync()).FirstOrDefault();
+
+	/// <summary>Groups the user owns or is an admin of.</summary>
+	public async Task<List<Group>> GetManagedGroupsAsync(string userId, bool includeMembers = false)
+	{
+		var q = ManagedGroups(userId, GroupRole.Admin);
+		if (includeMembers) q = q.Include(g => g.Members);
+		return await q.OrderBy(g => g.Name).ToListAsync();
+	}
+
+	/// <summary>Groups the user may create or fork repositories into: owned, or member with at least write.</summary>
+	public async Task<List<Group>> GetGroupsForRepoCreationAsync(string userId) =>
+		await ManagedGroups(userId, GroupRole.Write).OrderBy(g => g.Name).ToListAsync();
+
+	private IQueryable<Group> ManagedGroups(string userId, GroupRole minimum) =>
+		db.Groups.Where(g => g.OwnerId == userId || g.Members.Any(m => m.UserId == userId && m.Role >= minimum));
+
+	/// <summary>May this user create a repository in the group's namespace (owner, or member with at least write)?</summary>
 	public async Task<bool> CanCreateRepoInGroupAsync(Group group, string userId) =>
-		IsGroupOwner(group, userId) || await IsGroupMemberAsync(group.Id, userId);
+		await GetGroupRoleAsync(group.Id, userId) >= GroupRole.Write;
 
 	// ---- Repositories -------------------------------------------------------------------------
 
-	/// <summary>True if the user owns the repository outright, or owns the group that owns it.
+	/// <summary>True if the user owns the repository outright, or owns or is an admin of the group that owns it.
 	/// Owners administer a repository (settings, collaborators, deletion).</summary>
 	public async Task<bool> IsOwnerAsync(Repository repo, string? userId)
 	{
 		if (userId == null) return false;
 		if (repo.OwnerId == userId) return true;
 		if (repo.GroupOwnerId == null) return false;
-		return await db.Groups.AnyAsync(g => g.Id == repo.GroupOwnerId && g.OwnerId == userId);
+		return await GetGroupRoleAsync(repo.GroupOwnerId.Value, userId) == GroupRole.Admin;
 	}
 
 	public Task<bool> CanAdministerAsync(Repository repo, string? userId) => IsOwnerAsync(repo, userId);
@@ -80,11 +111,12 @@ public class AccessPolicy(AppDbContext db)
 	{
 		if (repo.IsReadOnly) return false;
 		if (userId == null) return false;
-		if (await IsOwnerAsync(repo, userId)) return true;
-		if (repo.GroupOwnerId != null && await IsGroupMemberAsync(repo.GroupOwnerId.Value, userId)) return true;
+		if (repo.OwnerId == userId) return true;
+		if (repo.GroupOwnerId != null && await GetGroupRoleAsync(repo.GroupOwnerId.Value, userId) >= GroupRole.Write) return true;
+		// Write access granted to a group reaches its members with at least the write role; read members stay readers.
 		return await db.RepositoryAccesses
 			.AnyAsync(a => a.RepositoryId == repo.Id && a.Level == AccessLevel.Write &&
-				(a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))));
+				(a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId && m.Role >= GroupRole.Write))));
 	}
 
 	/// <summary>Issue authors can manage (close/reopen) their own issue; anyone with write access can

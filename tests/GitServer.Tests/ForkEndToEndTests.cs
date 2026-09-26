@@ -148,19 +148,20 @@ public class ForkEndToEndTests : IClassFixture<GitServerFactory>
 		var alice = await _f.CreateUserAsync(Unique("alice"));
 		var bob = await _f.CreateUserAsync(Unique("bob"));
 		var carol = await _f.CreateUserAsync(Unique("carol"));
-		var carolsTeam = await _f.CreateGroupAsync(Unique("team"), carol, bob);   // bob is a member, not the owner
+		var carolsTeam = await _f.CreateGroupAsync(Unique("team"), carol, bob);
+		await Db(async d => { (await d.GroupMembers.SingleAsync(m => m.GroupId == carolsTeam.Id && m.UserId == bob.Id)).Role = GroupRole.Read; return await d.SaveChangesAsync(); });   // bob may only read there
 		await _f.SeedHistoryAsync(alice, "tool");
 		await _f.CreateRepoAsync(bob, "tool");
 		var session = await AsAsync(bob);
 
 		var taken = await ForkApiAsync(session, alice.UserName!, "tool");
 		var invalid = await ForkApiAsync(session, alice.UserName!, "tool", new { name = "bad name!" });
-		var notOwnedGroup = await ForkApiAsync(session, alice.UserName!, "tool", new { name = "tool2", group = carolsTeam.Name });
+		var readOnlyGroup = await ForkApiAsync(session, alice.UserName!, "tool", new { name = "tool2", group = carolsTeam.Name });
 		var takenOnPage = await ForkPageAsync(session, alice.UserName!, "tool", ("Name", "tool"));
 
 		Assert.Equal(HttpStatusCode.Conflict, taken.StatusCode);
 		Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
-		Assert.Equal(HttpStatusCode.NotFound, notOwnedGroup.StatusCode);
+		Assert.Equal(HttpStatusCode.NotFound, readOnlyGroup.StatusCode);
 		Assert.Equal(HttpStatusCode.OK, takenOnPage.StatusCode);   // the form again, so the user can pick another name
 		Assert.Contains(En("error_repo_name_taken"), await takenOnPage.Content.ReadAsStringAsync());
 		Assert.False((await FindAsync(bob.UserName!, "tool"))!.IsFork);

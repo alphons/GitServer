@@ -38,10 +38,11 @@ public class GitAuthMiddleware(RequestDelegate next)
 			afterPrefix = context.Request.Path.Value ?? "";
 		}
 
-		// Expect /{user}/{repo}.git/(info/refs|git-upload-pack|git-receive-pack)
+		// Expect /{user}/{repo}.git/(info/refs|git-upload-pack|git-receive-pack|info/lfs/...)
 		var segments = afterPrefix.Split('/', StringSplitOptions.RemoveEmptyEntries);
+		var isLfs = segments.Length >= 4 && segments[2] == "info" && segments[3] == "lfs";
 		var isGitRequest = segments.Length >= 2 && segments[1].EndsWith(".git") &&
-			(afterPrefix.Contains("/info/refs") || afterPrefix.Contains("/git-upload-pack") || afterPrefix.Contains("/git-receive-pack"));
+			(isLfs || afterPrefix.Contains("/info/refs") || afterPrefix.Contains("/git-upload-pack") || afterPrefix.Contains("/git-receive-pack"));
 
 		if (!isGitRequest)
 		{
@@ -75,10 +76,12 @@ public class GitAuthMiddleware(RequestDelegate next)
 			: await db.Repositories.FirstOrDefaultAsync(r => r.GroupOwnerId == ownerGroup!.Id && r.Name == repoName);
 
 		// Check if this is a push (receive-pack) — path or query string
-		var isPush = context.Request.Path.Value?.Contains("receive-pack") == true
-			|| context.Request.Query["service"] == "git-receive-pack";
+		var isPush = isLfs
+			? await IsLfsWriteAsync(context.Request, segments)
+			: context.Request.Path.Value?.Contains("receive-pack") == true || context.Request.Query["service"] == "git-receive-pack";
 
-		if (repo == null && !isPush)
+		// Only a git push may create a repository on the fly; LFS traffic needs one that exists.
+		if (repo == null && (!isPush || isLfs))
 		{
 			context.Response.StatusCode = 404;
 			return;
@@ -87,7 +90,9 @@ public class GitAuthMiddleware(RequestDelegate next)
 		AppUser? authedUser = null;
 
 		// Try Basic auth
-		var authHeader = context.Request.Headers.Authorization.ToString();
+		// The first header only: a client can send it twice (git-lfs repeats it from both its config and the batch response),
+		// and joined together the two would no longer parse.
+		var authHeader = context.Request.Headers.Authorization.FirstOrDefault() ?? "";
 
 		if (authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
 		{
@@ -146,6 +151,32 @@ public class GitAuthMiddleware(RequestDelegate next)
 		context.Items["GitRepoName"] = repo!.Name;
 
 		await _next(context);
+	}
+
+	/// <summary>Does this Git LFS request need write access? Uploading objects, announcing an upload in a batch request and
+	/// the lock endpoints a push uses do; downloading and listing locks only read.</summary>
+	private static async Task<bool> IsLfsWriteAsync(HttpRequest request, string[] segments)
+	{
+		var rest = string.Join('/', segments.Skip(4));   // after "{owner}/{repo}.git/info/lfs/"
+		if (rest.StartsWith("locks", StringComparison.Ordinal)) return !HttpMethods.IsGet(request.Method);
+		if (HttpMethods.IsPut(request.Method)) return true;
+		if (rest != "objects/batch" || !HttpMethods.IsPost(request.Method)) return false;
+
+		// The operation is in the JSON body; buffer it so the controller can read it again. A batch request is small.
+		request.EnableBuffering(bufferThreshold: 64 * 1024, bufferLimit: 4 * 1024 * 1024);
+		try
+		{
+			using var doc = await System.Text.Json.JsonDocument.ParseAsync(request.Body);
+			return !(doc.RootElement.TryGetProperty("operation", out var op) && op.GetString() == "download");
+		}
+		catch (System.Text.Json.JsonException)
+		{
+			return true;   // unreadable: demand the stronger right; the controller will reject it anyway
+		}
+		finally
+		{
+			request.Body.Position = 0;
+		}
 	}
 
 	/// <summary>Turns a policy decision into the HTTP response. Returns true when the request may continue.</summary>

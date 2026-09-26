@@ -9,7 +9,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.19.0**
+**Current version: 1.20.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows VPS or your own hardware in minutes.
 
@@ -30,13 +30,15 @@ Because your code doesn't belong to anyone else.
 ## Features
 
 ### Repository Management
-- Create public and private Git repositories
+- Create public and private Git repositories — new ones start on `main`, and the default branch you set is what a clone checks out
 - Full HTTP/HTTPS Git protocol support — clone, push, pull with any standard Git client
 - Browse the file tree, view files and diffs directly in the browser
 - README rendering with full Markdown support
 - Download any branch as a ZIP archive
 - Branch and tag overview
-- **Forking** — anyone who can read a repository can fork it into their own account or a group they own: a full, independent copy of all branches and tags. A fork of a private repository stays private, the fork shows where it came from (only to those who may see the source), and it keeps working as an orphan when the source is deleted. Also available as `POST /api/repos/{owner}/{repo}/fork`
+- **Git LFS** — push and clone large files with the standard `git lfs` client (batch API, basic transfer). Objects are stored inside the repository's own folder, checked against their SHA-256 on upload, copied along when the repository is forked, and shown and downloaded as the real file in the browser. The same read/write rules as git itself apply; locking is not supported. ZIP downloads contain the LFS pointer files, not the large files
+- **Webhooks** — per repository, a signed JSON `POST` (`X-Hub-Signature-256`, HMAC-SHA256) on **push**, **issues** (opened/closed/reopened) and **issue comments**, in GitHub's payload shape. Deliveries run in the background, are retried (10 s and 60 s later by default) and the last 50 attempts per hook are listed with their status. By default webhooks may only reach public internet addresses; an admin setting allows the local network. Managed on the repository's **Webhooks** tab or through `/api/repos/{owner}/{repo}/webhooks`
+- **Forking** — anyone who can read a repository can fork it into their own account or a group where they have at least the write role: a full, independent copy of all branches and tags. A fork of a private repository stays private, the fork shows where it came from (only to those who may see the source), and it keeps working as an orphan when the source is deleted. Also available as `POST /api/repos/{owner}/{repo}/fork`
 
 ### Commit History
 - Paginated commit log per branch
@@ -51,6 +53,7 @@ Because your code doesn't belong to anyone else.
 ### User Management
 - User registration and authentication via ASP.NET Core Identity (email confirmation, password reset)
 - Groups with members, usable as a unit when granting repository access
+- **Group roles** — each member is **Read** (clone and browse), **Write** (also push, and create or fork repositories into the group) or **Admin** (also administer the group's repositories and manage its members). Only the group's owner can delete the group
 - Per-repository access control — grant individual users or whole groups **Read** or **Write** access to private repos
 - Per-user profile pages with bio, company, country and avatar (via Gravatar or a custom URL)
 - Account area with three tabs: **Account settings**, **API keys** and **Access tokens**
@@ -71,6 +74,7 @@ Because your code doesn't belong to anyone else.
   - Allow push to create repositories (auto-create on first `git push`)
   - Allow push for anonymous (unauthenticated) repositories
   - Show commit author avatar
+  - Allow webhooks to this machine and the local network (off by default)
   - API key lifetime in days (default 90) — applies to newly created keys
 
 ### Site layout
@@ -198,6 +202,8 @@ Edit `src/GitServer/appsettings.json`:
 | `GitServer:MaxFailedLoginAttempts` / `LoginLockoutMinutes` | Wrong passwords in a row (web login and git over HTTPS) before an account is locked, and for how long |
 | `GitServer:DefaultPrivateOnAutoCreate` | Visibility of repositories auto-created on first push |
 | `GitServer:MaxPushSizeMb` | Max request body size (MB) for a push; `null`/omitted = unlimited |
+| `GitServer:LfsMaxObjectSizeMb` | Largest Git LFS object accepted (MB); `null`/omitted = unlimited. A reverse proxy needs a matching limit (nginx: `client_max_body_size`) |
+| `GitServer:WebhookRetryDelaysSeconds` / `WebhookTimeoutSeconds` / `WebhookDeliveriesKept` | Seconds before each webhook retry (`"10,60"` = three attempts), how long a receiver gets to answer, and how many deliveries are kept per hook |
 | `GitServer:ExploreRepoPageSize` / `ExploreUserPageSize` | Items per page on the public `/dashboard/Explore` listings |
 | `GitServer:ProfileRepoPageSize` | Items per page on a user's profile repository list |
 | `GitServer:AdminUsersPageSize` | Items per page on the **Admin → Users** listing |
@@ -252,6 +258,8 @@ server {
         # Required for git push/pull streaming
         proxy_request_buffering off;
         proxy_buffering off;
+        # Git LFS uploads can be large; match GitServer:LfsMaxObjectSizeMb (0 = no limit)
+        client_max_body_size 0;
     }
 }
 ```
@@ -378,15 +386,6 @@ tests/GitServer.Tests/   # xUnit: policy, services, migrations, localization, en
 - A JSON API described with OpenAPI (`Microsoft.AspNetCore.OpenApi`); the pages render lists client-side from that API
 - Git operations run as plain `git.exe` subprocesses (`Process.Start`) — no native Git library dependency
 - Zero JavaScript frameworks — vanilla JS only
-
----
-
-## Roadmap
-
-- SSH key authentication
-- Webhook support
-- Organization/team accounts
-- Git LFS support
 
 ---
 

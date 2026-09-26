@@ -8,7 +8,7 @@ namespace GitServer.Pages.Repo;
 
 public class RawModel(
 	RepositoryService repos, AccessPolicy access,
-	GitProcessService git,
+	GitProcessService git, LfsStore lfs,
 	UserManager<AppUser> userManager) : PageModel
 {
 	private static readonly Dictionary<string, string> ContentTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -31,8 +31,14 @@ public class RawModel(
 		if (!ContentTypes.TryGetValue(ext, out var contentType)) contentType = "text/plain; charset=utf-8";
 
 		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
-		Response.ContentType = contentType;
 
+		// A Git LFS pointer is served as the file it stands for, when this server has it.
+		if (await git.GetFileSize(repoPath, branch, path) <= LfsStore.MaxPointerSize &&
+			LfsStore.ParsePointer(await git.GetFileContent(repoPath, branch, path)) is { } pointer &&
+			lfs.GetSize(repoObj.OwnerName, repoObj.Name, pointer.Oid) == pointer.Size)
+			return new FileStreamResult(lfs.OpenRead(repoObj.OwnerName, repoObj.Name, pointer.Oid), contentType) { EnableRangeProcessing = true };
+
+		Response.ContentType = contentType;
 		await git.StreamFileRaw(repoPath, branch, path, Response.Body);
 		return new EmptyResult();
 	}

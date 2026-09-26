@@ -136,12 +136,14 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 			_logger.LogWarning("git {args} exited {code}: {err}", arguments, proc.ExitCode, stderr);
 	}
 
-	public async Task InitBare(string repoPath)
+	/// <summary>Creates an empty bare repository whose HEAD is <paramref name="initialBranch"/>, whatever the machine's
+	/// init.defaultBranch says, so the first push of that branch is what a clone checks out.</summary>
+	public async Task InitBare(string repoPath, string initialBranch = "main")
 	{
 		Directory.CreateDirectory(repoPath);
 		var psi = new ProcessStartInfo(_gitExe)
 		{
-			Arguments = $"init --bare \"{repoPath}\"",
+			Arguments = $"init --bare --initial-branch={(IsValidBranchName(initialBranch) ? initialBranch : "main")} \"{repoPath}\"",
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
 			UseShellExecute = false,
@@ -245,6 +247,32 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 		return !int.TryParse(result.Trim(), out var count) || count == 0;
 	}
 
+	/// <summary>A branch name safe to put on a git command line and valid as a ref: letters, digits, '.', '_', '-' and '/',
+	/// not starting with '-' or '/', no "..", no trailing ".lock".</summary>
+	public static bool IsValidBranchName(string name) =>
+		System.Text.RegularExpressions.Regex.IsMatch(name, @"^[A-Za-z0-9._][A-Za-z0-9._/\-]*$") &&
+		!name.Contains("..") && !name.Contains("//") && !name.EndsWith('/') && !name.EndsWith(".lock") && name.Length <= 200;
+
+	/// <summary>Points HEAD (the branch a clone checks out) at <paramref name="branch"/>. False when the name is not valid.</summary>
+	public async Task<bool> SetHead(string repoPath, string branch)
+	{
+		if (!IsValidBranchName(branch)) return false;
+		await RunGitAsync(repoPath, $"symbolic-ref HEAD refs/heads/{branch}");
+		return true;
+	}
+
+	/// <summary>Makes sure HEAD names a branch that exists, once there are branches: <paramref name="preferred"/> when it
+	/// exists, otherwise the first one. Repairs repositories whose HEAD still says "master" while only "main" was
+	/// pushed — a clone of those checked out nothing.</summary>
+	public async Task EnsureHeadExists(string repoPath, string preferred)
+	{
+		var head = (await RunGitAsync(repoPath, "symbolic-ref HEAD")).Trim();
+		var branches = await GetBranches(repoPath);
+		if (branches.Count == 0 || (head.StartsWith("refs/heads/") && branches.Contains(head["refs/heads/".Length..]))) return;
+
+		await SetHead(repoPath, branches.Contains(preferred) ? preferred : branches[0]);
+	}
+
 	public async Task<string> GetDefaultBranch(string repoPath)
 	{
 		var result = await RunGitAsync(repoPath, "symbolic-ref HEAD");
@@ -335,6 +363,33 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 			.Where(b => b.Length > 0)
 			.Select(b => ParseCommit(b, ""))
 			.ToList();
+	}
+
+	/// <summary>Every branch and tag with the object it points at, e.g. "refs/heads/main" → sha.</summary>
+	public async Task<Dictionary<string, string>> GetRefs(string repoPath)
+	{
+		var result = await RunGitAsync(repoPath, "for-each-ref \"--format=%(objectname) %(refname)\"");
+		return result
+			.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+			.Select(l => l.Trim().Split(' ', 2))
+			.Where(p => p.Length == 2)
+			.ToDictionary(p => p[1], p => p[0]);
+	}
+
+	/// <summary>The commits a ref move brought in (at most <paramref name="max"/>, oldest first): before..after,
+	/// or the latest ones reachable from <paramref name="after"/> for a new ref.</summary>
+	public async Task<List<CommitInfo>> GetCommitsBetween(string repoPath, string? before, string after, int max)
+	{
+		var range = before == null ? after : $"{before}..{after}";
+		var result = await RunGitAsync(repoPath, $"log {CommitFormat} --max-count={max} {range} --");
+		var commits = result
+			.Split('\x1e', StringSplitOptions.RemoveEmptyEntries)
+			.Select(b => b.TrimStart('\n', '\r'))
+			.Where(b => b.Length > 0)
+			.Select(b => ParseCommit(b, ""))
+			.ToList();
+		commits.Reverse();
+		return commits;
 	}
 
 	public async Task<CommitDetail> GetCommitDetail(string repoPath, string sha)

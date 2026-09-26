@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace GitServer.Controllers.Api;
 
-/// <summary>Group management data (owner only): the group's repositories and member look-up.</summary>
+/// <summary>Group management data (owner or admin members only): the group's repositories and member look-up.</summary>
 [ApiController]
 [Authorize]
 [Route("api/groups/{id:int}")]
@@ -16,14 +16,14 @@ public class GroupsApiController(
 	UserSearchService userSearch, AccessPolicy access, UserManager<AppUser> userManager,
 	RepositoryService repos, IOptions<GitServerOptions> options) : ControllerBase
 {
-	/// <summary>Lists the group's repositories. Not found unless the caller owns the group.</summary>
+	/// <summary>Lists the group's repositories. Not found unless the caller owns or administers the group.</summary>
 	/// <param name="id">The group's id.</param>
 	/// <param name="rp">Page, starting at 0.</param>
 	[HttpGet("repos")]
 	[ProducesResponseType<GroupReposResponse>(StatusCodes.Status200OK)]
 	public async Task<ActionResult<GroupReposResponse>> Repos(int id, int rp = 0)
 	{
-		var group = await access.GetOwnedGroupAsync(id, userManager.GetUserId(User)!);
+		var group = await access.GetManagedGroupAsync(id, userManager.GetUserId(User)!);
 		if (group == null) return NotFound();
 
 		rp = Math.Max(rp, 0);
@@ -46,7 +46,7 @@ public class GroupsApiController(
 	public async Task<ActionResult<IReadOnlyList<UserSearchResult>>> SearchUsers(int id, string? q)
 	{
 		var userId = userManager.GetUserId(User)!;
-		if (await access.GetOwnedGroupAsync(id, userId) == null) return NotFound();
+		if (await access.GetManagedGroupAsync(id, userId) == null) return NotFound();
 
 		return Ok(await userSearch.SearchAsync(q, userId));
 	}

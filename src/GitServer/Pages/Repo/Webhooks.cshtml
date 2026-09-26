@@ -1,0 +1,108 @@
+@page "/{user}/{repo}/webhooks"
+@model GitServer.Pages.Repo.WebhooksModel
+@{
+	ViewData["Title"] = $"{L["webhooks_title"]} - {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+	<div class="repo-header">
+		<div class="repo-title">
+			<a href="/dashboard/@(Model.Repo!.GroupOwnerId != null ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
+			<a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+		</div>
+	</div>
+
+	@await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "webhooks"))
+
+	@if (!string.IsNullOrEmpty(Model.Message))
+	{
+		<div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+	}
+
+	<section class="settings-section">
+		<h2>@L["webhooks_title"]</h2>
+		<p class="text-muted">@L["webhooks_hint"]</p>
+
+		@if (Model.Hooks.Count == 0)
+		{
+			<p class="text-muted">@L["webhooks_empty"]</p>
+		}
+		@foreach (var hook in Model.Hooks)
+		{
+			var last = hook.Deliveries.FirstOrDefault();
+			<div class="webhook-item">
+				<div class="webhook-summary">
+					<code class="webhook-url">@hook.Url</code>
+					<span class="badge @(hook.IsActive ? "badge-success" : "badge-muted")">@(hook.IsActive ? L["webhook_active"] : L["webhook_inactive"])</span>
+					@foreach (var name in WebhookService.EventNames(hook.Events))
+					{
+						<span class="badge badge-muted">@name</span>
+					}
+					@if (last != null)
+					{
+						<span class="badge @(last.Succeeded ? "badge-success" : "badge-danger")">@(last.StatusCode?.ToString() ?? L["webhook_no_answer"])</span>
+					}
+				</div>
+
+				<details class="webhook-details">
+					<summary>@L["webhook_edit"]</summary>
+					<form method="post" asp-page-handler="Update" asp-route-id="@hook.Id">
+						@await Html.PartialAsync("_WebhookFields", (hook.Url, hook.Events, hook.IsActive, hook.Secret.Length > 0, $"hook{hook.Id}"))
+						<div class="form-actions">
+							<button type="submit" class="btn btn-primary">@L["save_button"]</button>
+						</div>
+					</form>
+				</details>
+
+				<details class="webhook-details" open="@(hook.Deliveries.Count > 0 && !hook.Deliveries.First().Succeeded)">
+					<summary>@L["webhook_deliveries"] (@hook.Deliveries.Count)</summary>
+					@if (hook.Deliveries.Count == 0)
+					{
+						<p class="text-muted">@L["webhook_no_deliveries"]</p>
+					}
+					else
+					{
+						<table class="data-table">
+							<thead>
+								<tr><th>@L["webhook_delivery_at"]</th><th>@L["webhook_delivery_event"]</th><th>@L["webhook_delivery_result"]</th><th>ms</th></tr>
+							</thead>
+							<tbody>
+								@foreach (var d in hook.Deliveries)
+								{
+									<tr>
+										<td>@TZ.FormatDateTime(d.At)</td>
+										<td>@d.Event @(d.Attempt > 1 ? $"(#{d.Attempt})" : "")</td>
+										<td>
+											<span class="badge @(d.Succeeded ? "badge-success" : "badge-danger")">@(d.StatusCode?.ToString() ?? L["webhook_no_answer"])</span>
+											@if (d.Error != null) { <span class="text-muted">@d.Error</span> }
+										</td>
+										<td>@d.DurationMs</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					}
+				</details>
+
+				<div class="webhook-actions">
+					<form method="post" asp-page-handler="Ping" asp-route-id="@hook.Id">
+						<button type="submit" class="btn btn-secondary btn-sm">@L["webhook_ping"]</button>
+					</form>
+					<form method="post" asp-page-handler="Delete" asp-route-id="@hook.Id"
+						  data-confirm="@L["webhook_confirm_delete"]" data-confirm-ok="@L["delete_button"]" data-confirm-cancel="@L["cancel"]">
+						<button type="submit" class="btn btn-danger btn-sm">@L["delete_button"]</button>
+					</form>
+				</div>
+			</div>
+		}
+	</section>
+
+	<section class="settings-section">
+		<h2>@L["webhook_add"]</h2>
+		<form method="post" asp-page-handler="Create">
+			@await Html.PartialAsync("_WebhookFields", (Model.Url ?? "", WebhookEvents.Push, true, false, "new"))
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary">@L["webhook_add"]</button>
+			</div>
+		</form>
+	</section>
+</div>

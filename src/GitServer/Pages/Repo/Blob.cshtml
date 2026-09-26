@@ -46,6 +46,11 @@
 				}
 				<span class="separator">&middot;</span>
 				<span>@Model.FileSize bytes</span>
+				@if (Model.IsLfs)
+				{
+					<span class="separator">&middot;</span>
+					<span class="badge badge-muted" title="@L["lfs_stored_hint"]">@L["lfs_stored"]</span>
+				}
 			</div>
 			<div class="file-view-actions">
 				<a class="file-action-link" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath">Raw</a>
@@ -69,6 +74,10 @@
 			<div class="file-image">
 				<img src="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath" alt="@Model.FilePath" />
 			</div>
+		}
+		else if (Model.IsLfs && !Model.LfsObjectPresent)
+		{
+			<div class="file-binary-notice">@L["lfs_object_missing"]</div>
 		}
 		else if (Model.IsBinary)
 		{

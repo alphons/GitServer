@@ -81,4 +81,18 @@ public class GitServerOptions
 	/// release tag. Relative paths are resolved against the app's content root; use an absolute
 	/// path (e.g. on another drive) to keep installs alongside RepositoriesPath instead.</summary>
 	public string GitExecutableInstallRoot { get; set; } = "App_Data\\git";
+
+	/// <summary>Seconds to wait before each retry of a failed webhook delivery, comma-separated; the number of
+	/// entries is the number of retries. "10,60" tries three times: now, 10 s later and a minute after that.</summary>
+	public string WebhookRetryDelaysSeconds { get; set; } = "10,60";
+
+	/// <summary>How long a webhook receiver gets to answer before the attempt counts as failed.</summary>
+	public int WebhookTimeoutSeconds { get; set; } = 10;
+
+	/// <summary>Largest Git LFS object accepted, in MB; null for no limit. A reverse proxy in front needs a matching body
+	/// size limit (nginx: client_max_body_size).</summary>
+	public long? LfsMaxObjectSizeMb { get; set; } = null;
+
+	/// <summary>How many recent deliveries are kept per webhook for its "recent deliveries" list.</summary>
+	public int WebhookDeliveriesKept { get; set; } = 50;
 }

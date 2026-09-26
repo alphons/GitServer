@@ -12,7 +12,8 @@ namespace GitServer.Pages.Repo.Issues;
 public class NewIssueModel(
 	RepositoryService repos, AccessPolicy access, 
 	AppDbContext db, 
-	UserManager<AppUser> userManager) : PageModel
+	UserManager<AppUser> userManager,
+	WebhookService webhooks) : PageModel
 {
 
 	public string UserName { get; set; } = "";
@@ -52,6 +53,7 @@ public class NewIssueModel(
 		};
 		db.Issues.Add(issue);
 		await db.SaveChangesAsync();
+		await webhooks.IssueAsync(repoObj, issue, "opened", (await userManager.GetUserAsync(User))!);
 
 		return RedirectToPage("/Repo/Issues/Detail", new { user, repo, id = issue.Id });
 	}

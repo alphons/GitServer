@@ -58,7 +58,7 @@ public class RepositoryService(AppDbContext db,
 	public static bool IsValidName(string name) => Regex.IsMatch(name, @"^[a-zA-Z0-9_\-\.]+$");
 
 	/// <summary>Creates <paramref name="name"/> under the group, or the user when there is none, as a full bare copy of <paramref name="source"/>.
-	/// The fork is private exactly when the source is, and takes over its description and default branch — not its
+	/// Git LFS objects are copied too. The fork is private exactly when the source is, and takes over its description and default branch — not its
 	/// issues, collaborators or read-only flag. On failure nothing is left behind and the exception propagates.</summary>
 	public async Task<Repository> ForkAsync(Repository source, AppUser user, Group? group, string name)
 	{
@@ -83,7 +83,9 @@ public class RepositoryService(AppDbContext db,
 
 		try
 		{
-			await _git.CloneBare(GetRepoPath(source.OwnerName, source.Name), targetPath);
+			var sourcePath = GetRepoPath(source.OwnerName, source.Name);
+			await _git.CloneBare(sourcePath, targetPath);
+			LfsStore.CopyObjects(sourcePath, targetPath);   // a clone brings the pointers, not the large files they point to
 		}
 		catch
 		{

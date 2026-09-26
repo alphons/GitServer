@@ -17,6 +17,7 @@ public class SettingsModel(
 	[BindProperty] public bool AllowPushToCreateRepositories { get; set; }
 	[BindProperty] public bool AllowAnonymousPush { get; set; }
 	[BindProperty] public bool ShowCommitAuthorAvatar { get; set; }
+	[BindProperty] public bool AllowWebhooksToPrivateNetworks { get; set; }
 	[BindProperty] public int ApiKeyLifetimeDays { get; set; } = 90;
 	public string? Message { get; set; }
 
@@ -34,6 +35,7 @@ public class SettingsModel(
 		AllowPushToCreateRepositories = settings.AllowPushToCreateRepositories;
 		AllowAnonymousPush = settings.AllowAnonymousPush;
 		ShowCommitAuthorAvatar = settings.ShowCommitAuthorAvatar;
+		AllowWebhooksToPrivateNetworks = settings.AllowWebhooksToPrivateNetworks;
 		ApiKeyLifetimeDays = settings.ApiKeyLifetimeDays;
 	}
 
@@ -56,11 +58,12 @@ public class SettingsModel(
 			AllowPushToCreateRepositories = AllowPushToCreateRepositories,
 			AllowAnonymousPush = AllowAnonymousPush,
 			ShowCommitAuthorAvatar = ShowCommitAuthorAvatar,
+			AllowWebhooksToPrivateNetworks = AllowWebhooksToPrivateNetworks,
 			ApiKeyLifetimeDays = ApiKeyLifetimeDays,
 		});
 
 		await audit.WriteAsync("settings.update", null,
-			$"registration={AllowRegistration}, userRepos={AllowUserRepoCreation}, pushCreate={AllowPushToCreateRepositories}, anonPush={AllowAnonymousPush}, avatar={ShowCommitAuthorAvatar}, apiKeyDays={ApiKeyLifetimeDays}");
+			$"registration={AllowRegistration}, userRepos={AllowUserRepoCreation}, pushCreate={AllowPushToCreateRepositories}, anonPush={AllowAnonymousPush}, avatar={ShowCommitAuthorAvatar}, privateWebhooks={AllowWebhooksToPrivateNetworks}, apiKeyDays={ApiKeyLifetimeDays}");
 		Message = L["admin_settings_saved"];
 		return Page();
 	}

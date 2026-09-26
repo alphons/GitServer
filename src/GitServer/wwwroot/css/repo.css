@@ -511,3 +511,39 @@
 	.branch-item { flex-direction: column; align-items: flex-start; }
 	.file-breadcrumb { font-size: 0.8125rem; }
 }
+
+/* === Webhooks === */
+.webhook-item {
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 0.75rem 1rem;
+	margin-bottom: 0.75rem;
+}
+
+.webhook-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.375rem;
+}
+
+.webhook-url {
+	overflow-wrap: anywhere;
+	margin-right: 0.25rem;
+}
+
+.webhook-details {
+	margin-top: 0.5rem;
+}
+
+.webhook-details summary {
+	cursor: pointer;
+	color: var(--text-muted);
+	font-size: 0.875rem;
+}
+
+.webhook-actions {
+	display: flex;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}

@@ -14,7 +14,7 @@ public class RepoForkApiController(
 	RepositoryService repos, AccessPolicy access, ForkService forks, UserManager<AppUser> userManager) : ControllerBase
 {
 	/// <summary>Forks a repository: a full copy of its branches and tags, private exactly when the source is.
-	/// Anyone who can read the repository may fork it, into their own namespace or a group they own.</summary>
+	/// Anyone who can read the repository may fork it, into their own namespace or a group where they have at least the write role.</summary>
 	/// <param name="user">The source repository's owner.</param>
 	/// <param name="repo">The source repository's name.</param>
 	/// <param name="request">Optional target name and group.</param>
@@ -36,9 +36,9 @@ public class RepoForkApiController(
 		int? groupId = null;
 		if (!string.IsNullOrWhiteSpace(request?.Group))
 		{
-			var group = (await access.GetOwnedGroupsAsync(me.Id))
+			var group = (await access.GetGroupsForRepoCreationAsync(me.Id))
 				.FirstOrDefault(g => string.Equals(g.Name, request.Group.Trim(), StringComparison.OrdinalIgnoreCase));
-			groupId = group?.Id ?? -1;   // unknown or not owned: ForkService reports it as "group not found"
+			groupId = group?.Id ?? -1;   // unknown, or no write role there: ForkService reports it as "group not found"
 		}
 
 		var result = await forks.ForkAsync(source, me, groupId, request?.Name);

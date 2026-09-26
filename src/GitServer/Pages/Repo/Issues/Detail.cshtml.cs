@@ -11,7 +11,8 @@ namespace GitServer.Pages.Repo.Issues;
 public class DetailModel(
 	RepositoryService repos, AccessPolicy access,
 	AppDbContext db,
-	UserManager<AppUser> userManager) : PageModel
+	UserManager<AppUser> userManager,
+	WebhookService webhooks) : PageModel
 {
 
 
@@ -62,14 +63,16 @@ public class DetailModel(
 
 		if (!string.IsNullOrWhiteSpace(CommentBody))
 		{
-			db.IssueComments.Add(new IssueComment
+			var comment = new IssueComment
 			{
 				IssueId = id,
 				AuthorId = userManager.GetUserId(User)!,
 				Body = CommentBody,
-			});
+			};
+			db.IssueComments.Add(comment);
 			issue.UpdatedAt = DateTime.UtcNow;
 			await db.SaveChangesAsync();
+			await webhooks.IssueCommentAsync(repoObj, issue, comment, (await userManager.GetUserAsync(User))!);
 		}
 
 		return RedirectToPage(new { user, repo, id });
@@ -84,6 +87,7 @@ public class DetailModel(
 		issue.IsClosed = true;
 		issue.UpdatedAt = DateTime.UtcNow;
 		await db.SaveChangesAsync();
+		await webhooks.IssueAsync(repoObj, issue, "closed", (await userManager.GetUserAsync(User))!);
 
 		return RedirectToPage(new { user, repo, id });
 	}
@@ -97,6 +101,7 @@ public class DetailModel(
 		issue.IsClosed = false;
 		issue.UpdatedAt = DateTime.UtcNow;
 		await db.SaveChangesAsync();
+		await webhooks.IssueAsync(repoObj, issue, "reopened", (await userManager.GetUserAsync(User))!);
 
 		return RedirectToPage(new { user, repo, id });
 	}

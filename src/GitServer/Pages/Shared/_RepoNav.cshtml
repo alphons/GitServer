@@ -13,6 +13,8 @@
 	   href="/@Model.UserName/@Model.RepoName/issues">Issues</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "collaborators" ? "active" : "")"
 	   href="/@Model.UserName/@Model.RepoName/collaborators">@L["settings_collaborators"]</a>
+	<a class="repo-nav-link @(Model.ActiveTab == "webhooks" ? "active" : "")"
+	   href="/@Model.UserName/@Model.RepoName/webhooks">@L["webhooks_title"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "settings" ? "active" : "")"
 	   href="/@Model.UserName/@Model.RepoName/settings">@L["repo_nav_settings"]</a>
 </div>

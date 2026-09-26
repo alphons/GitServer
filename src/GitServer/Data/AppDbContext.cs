@@ -24,6 +24,8 @@ public class AppDbContext : IdentityDbContext<AppUser>
 	public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 	public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 	public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+	public DbSet<Webhook> Webhooks => Set<Webhook>();
+	public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
 	protected override void OnModelCreating(ModelBuilder builder)
 	{
@@ -52,6 +54,23 @@ public class AppDbContext : IdentityDbContext<AppUser>
 		});
 
 		builder.Entity<AuditEntry>(e => e.HasIndex(a => a.At));
+
+		builder.Entity<Webhook>(e =>
+		{
+			e.HasOne(w => w.Repository)
+			.WithMany()
+			.HasForeignKey(w => w.RepositoryId)
+			.OnDelete(DeleteBehavior.Cascade);
+		});
+
+		builder.Entity<WebhookDelivery>(e =>
+		{
+			e.HasIndex(d => new { d.WebhookId, d.At });
+			e.HasOne(d => d.Webhook)
+			.WithMany(w => w.Deliveries)
+			.HasForeignKey(d => d.WebhookId)
+			.OnDelete(DeleteBehavior.Cascade);
+		});
 
 		builder.Entity<ApiKey>(e =>
 		{

@@ -58,6 +58,7 @@ builder.Services.AddSingleton<GitInstallProgressTracker>();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<ForkService>();
+builder.Services.AddScoped<LfsStore>();
 builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();
@@ -75,6 +76,11 @@ builder.Services.AddHttpClient("GitHubReleases", c =>
 	c.DefaultRequestHeaders.UserAgent.ParseAdd("GitServer-Updater");
 	c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
 });
+builder.Services.AddScoped<WebhookService>();
+builder.Services.AddSingleton<WebhookQueue>();
+builder.Services.AddHostedService<WebhookDispatcher>();
+builder.Services.AddHttpClient(WebhookDispatcher.HttpClientName)
+	.ConfigurePrimaryHttpMessageHandler(WebhookNetworkGuard.CreateHandler);
 
 // MVC + Razor Pages
 builder.Services.AddControllersWithViews(o =>
