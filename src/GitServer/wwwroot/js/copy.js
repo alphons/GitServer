@@ -26,7 +26,7 @@ function showCopied() {
 	const btn = document.querySelector('.clone-url-box .btn');
 	if (!btn) return;
 	const orig = btn.textContent;
-	btn.textContent = 'Gekopieerd!';
+	btn.textContent = btn.dataset.copied || orig;
 	btn.style.background = 'var(--success)';
 	btn.style.borderColor = 'var(--success)';
 	btn.style.color = '#fff';

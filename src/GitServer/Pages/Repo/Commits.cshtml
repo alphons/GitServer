@@ -55,9 +55,9 @@
 							<span>@commit.Author</span>
 						}
 					</div>
-					<div class="commit-tree text-muted"><span class="commit-side-label">Tree</span> <code>@commit.Tree[..7]</code></div>
+					<div class="commit-tree text-muted"><span class="commit-side-label">@L["commit_tree"]</span> <code>@commit.Tree[..7]</code></div>
 					<div class="commit-parents text-muted">
-						<span class="commit-side-label">Parents</span>
+						<span class="commit-side-label">@L["commit_parents"]</span>
 						@foreach (var parent in commit.Parents)
 						{
 							<a class="commit-sha" href="/@Model.UserName/@Model.RepoName/commit/@parent">@parent[..7]</a>

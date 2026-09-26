@@ -2,15 +2,15 @@
 @inject GitServer.Services.LocalizationService L
 <div class="repo-nav">
 	<a class="repo-nav-link @(Model.ActiveTab == "code" ? "active" : "")"
-	   href="/@Model.UserName/@Model.RepoName">Code</a>
+	   href="/@Model.UserName/@Model.RepoName">@L["repo_nav_code"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "commits" ? "active" : "")"
-	   href="/@Model.UserName/@Model.RepoName/commits">Commits</a>
+	   href="/@Model.UserName/@Model.RepoName/commits">@L["repo_nav_commits"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "branches" ? "active" : "")"
-	   href="/@Model.UserName/@Model.RepoName/branches">Branches</a>
+	   href="/@Model.UserName/@Model.RepoName/branches">@L["branches_title"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "tags" ? "active" : "")"
 	   href="/@Model.UserName/@Model.RepoName/tags">@L["tags_title"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "issues" ? "active" : "")"
-	   href="/@Model.UserName/@Model.RepoName/issues">Issues</a>
+	   href="/@Model.UserName/@Model.RepoName/issues">@L["repo_nav_issues"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "collaborators" ? "active" : "")"
 	   href="/@Model.UserName/@Model.RepoName/collaborators">@L["settings_collaborators"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "webhooks" ? "active" : "")"

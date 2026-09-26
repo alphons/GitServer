@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (!code) return;
 		await navigator.clipboard.writeText(code.innerText);
 		const original = this.title;
-		this.title = 'Copied!';
+		this.title = this.dataset.copied || original;
 		setTimeout(() => { this.title = original; }, 1500);
 	});
 });

@@ -45,7 +45,7 @@
 			{
 				<span class="version-badge">git @(await GitProcess.GetVersion())</span>
 			}
-			<button class="navbar-toggle" id="navToggle" aria-label="Menu">
+			<button class="navbar-toggle" id="navToggle" aria-label="@L["nav_menu"]">
 				<span></span><span></span><span></span>
 			</button>
 			<div class="navbar-menu" id="navMenu">
@@ -68,7 +68,7 @@
 					<a class="btn btn-ghost nav-link" href="/dashboard/Auth/Login">@L["nav_login"]</a>
 					<a class="btn btn-primary nav-link" href="/dashboard/Auth/Register">@L["nav_register"]</a>
 				}
-				<select class="lang-select" onchange="window.location='/dashboard/set-language?lang='+this.value+'&returnUrl='+encodeURIComponent(window.location.pathname)" aria-label="Language">
+				<select class="lang-select" onchange="window.location='/dashboard/set-language?lang='+this.value+'&returnUrl='+encodeURIComponent(window.location.pathname)" aria-label="@L["nav_language"]">
 					@foreach (var (code, name) in L.AvailableLanguages())
 					{
 						if (code == L.CurrentLanguage)

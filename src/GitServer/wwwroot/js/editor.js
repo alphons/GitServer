@@ -1,4 +1,4 @@
-// Simple Markdown toolbar voor issue editor
+// Simple Markdown toolbar for the issue editor
 (function () {
 	const textareas = document.querySelectorAll('.editor-textarea');
 

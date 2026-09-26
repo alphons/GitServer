@@ -38,14 +38,14 @@
 	<div class="file-view">
 		<div class="file-view-header">
 			<div class="file-view-info text-muted">
-				<span>Code</span>
+				<span>@L["repo_nav_code"]</span>
 				@if (!isImage && !Model.IsBinary)
 				{
 					<span class="separator">&middot;</span>
-					<span>@lineCount lines</span>
+					<span>@L.Format("file_lines", lineCount)</span>
 				}
 				<span class="separator">&middot;</span>
-				<span>@Model.FileSize bytes</span>
+				<span>@L.Format("file_bytes", Model.FileSize)</span>
 				@if (Model.IsLfs)
 				{
 					<span class="separator">&middot;</span>
@@ -53,14 +53,14 @@
 				}
 			</div>
 			<div class="file-view-actions">
-				<a class="file-action-link" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath">Raw</a>
-				<button type="button" class="icon-btn" id="copyRawBtn" title="Copy Raw File" aria-label="Copy Raw File">
+				<a class="file-action-link" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath">@L["file_raw"]</a>
+				<button type="button" class="icon-btn" id="copyRawBtn" title="@L["file_copy_raw"]" aria-label="@L["file_copy_raw"]" data-copied="@L["file_copied"]">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<rect x="9" y="9" width="11" height="11" rx="1" />
 						<path d="M5 15V5a1 1 0 0 1 1-1h10" />
 					</svg>
 				</button>
-				<a class="icon-btn" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath" download title="Download Raw File" aria-label="Download Raw File">
+				<a class="icon-btn" href="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath" download title="@L["file_download_raw"]" aria-label="@L["file_download_raw"]">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M12 3v12" />
 						<path d="M7 10l5 5 5-5" />
@@ -81,7 +81,7 @@
 		}
 		else if (Model.IsBinary)
 		{
-			<div class="file-binary-notice">Binair bestand &mdash; kan niet worden weergegeven.</div>
+			<div class="file-binary-notice">@L["file_binary"]</div>
 		}
 		else
 		{

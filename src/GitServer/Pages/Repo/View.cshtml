@@ -62,7 +62,7 @@ git commit -m "first commit"
 git push -u origin @Model.DefaultBranch</pre>
 
 			<p>@L["repo_empty_push"]</p>
-			<pre class="code-block">cd bestaande-repo
+			<pre class="code-block">cd @L["repo_empty_existing_dir"]
 git remote add origin @Model.CloneUrl
 git push -u origin @Model.DefaultBranch</pre>
 		</div>
@@ -81,7 +81,7 @@ git push -u origin @Model.DefaultBranch</pre>
 			<div class="repo-actions">
 				<div class="clone-url-box">
 					<input id="cloneUrl" type="text" readonly value="@Model.CloneUrl" class="form-control clone-input" />
-					<button class="btn btn-secondary" onclick="copyCloneUrl()">@L["copy_button"]</button>
+					<button class="btn btn-secondary" onclick="copyCloneUrl()" data-copied="@L["file_copied"]">@L["copy_button"]</button>
 				</div>
 				@{var archiveBranch = Model.CurrentBranch;}
 				<a class="btn btn-secondary" href="/@Model.UserName/@Model.RepoName/archive/@archiveBranch">

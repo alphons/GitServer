@@ -114,7 +114,7 @@ public class GitController(
 			await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: false);
 			await git.EnsureHeadExists(repoPath, repoObj.DefaultBranch);
 
-			// Bijwerken van UpdatedAt na een push
+			// A push counts as an update of the repository
 			repoObj.UpdatedAt = DateTime.UtcNow;
 			await db.SaveChangesAsync();
 

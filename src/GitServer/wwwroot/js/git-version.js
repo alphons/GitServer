@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
 						if (p.failed) {
 							progressBox.hidden = true;
 							errorBox.hidden = false;
-							errorBox.textContent = p.error || 'Install failed.';
+							errorBox.textContent = p.error || installBtn.dataset.errorFailed;
 							installBtn.disabled = false;
 						} else {
 							progressText.textContent = '100%';
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				.catch(function () {
 					progressBox.hidden = true;
 					errorBox.hidden = false;
-					errorBox.textContent = 'Could not start the install.';
+					errorBox.textContent = installBtn.dataset.errorStart;
 					installBtn.disabled = false;
 				});
 		});

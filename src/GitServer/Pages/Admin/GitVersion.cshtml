@@ -38,7 +38,8 @@
 			@if (!alreadyInstalled)
 			{
 				<button type="button" id="install-btn" class="btn btn-primary"
-						data-tag-name="@Model.LatestRelease.TagName">@L["admin_gitversion_install"]</button>
+						data-tag-name="@Model.LatestRelease.TagName"
+						data-error-start="@L["admin_gitversion_install_start_failed"]" data-error-failed="@L["admin_gitversion_install_failed"]">@L["admin_gitversion_install"]</button>
 			}
 			else
 			{
@@ -120,7 +121,7 @@
 	<div class="browse-modal">
 		<div class="browse-modal-header">
 			<span id="browse-breadcrumb" class="browse-breadcrumb"></span>
-			<button type="button" id="browse-modal-close" class="btn btn-ghost btn-sm" aria-label="Close">&times;</button>
+			<button type="button" id="browse-modal-close" class="btn btn-ghost btn-sm" aria-label="@L["dialog_close"]">&times;</button>
 		</div>
 		<div class="browse-modal-body">
 			<ul id="browse-list" class="browse-list"></ul>
