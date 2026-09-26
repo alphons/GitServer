@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    tags: ['v*']
+    tags: ['GitServer-*', 'v*']
   workflow_dispatch:
 
 permissions:
@@ -79,7 +79,7 @@ jobs:
           "coverage=$coverage" >> $env:GITHUB_OUTPUT
 
       - name: Update tests badge
-        if: always() && matrix.database == 'Sqlite' && startsWith(github.ref, 'refs/tags/v')
+        if: always() && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
@@ -90,7 +90,7 @@ jobs:
           color: brightgreen
 
       - name: Update coverage badge
-        if: always() && matrix.database == 'Sqlite' && startsWith(github.ref, 'refs/tags/v')
+        if: always() && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}

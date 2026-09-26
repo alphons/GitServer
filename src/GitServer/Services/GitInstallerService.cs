@@ -53,8 +53,26 @@ public class GitInstallerService(
 			throw new GitInstallException($"{release.TagName} is already installed.");
 
 		var installPath = Path.Combine(InstallRootPath, release.TagName);
+		// The folder can outlive its database row (a fresh or reset database, a switch to SQL Server). A working
+		// install is simply registered again; a broken leftover (e.g. an interrupted extract) is replaced.
 		if (Directory.Exists(installPath))
-			throw new GitInstallException($"Install folder for {release.TagName} already exists.");
+		{
+			var existingExe = GetGitExePath(installPath);
+			if (File.Exists(existingExe))
+			{
+				try
+				{
+					var existingVersion = await GetExecutableVersionAsync(existingExe, ct);
+					logger.LogInformation("Adopting existing MinGit {tag} at {path}, reports version {version}", release.TagName, installPath, existingVersion);
+					return await RegisterAsync(release.TagName, installPath, existingVersion, ct);
+				}
+				catch (Exception ex) when (ex is not OperationCanceledException)
+				{
+					logger.LogWarning(ex, "Existing MinGit folder {path} does not work; reinstalling", installPath);
+				}
+			}
+			DeleteDirectory(installPath);
+		}
 
 		var tempZip = Path.Combine(Path.GetTempPath(), $"mingit-{Guid.NewGuid():N}.zip");
 		try
@@ -90,23 +108,7 @@ public class GitInstallerService(
 			var actualVersion = await GetExecutableVersionAsync(gitExePath, ct);
 			logger.LogInformation("Installed MinGit {tag} at {path}, reports version {version}", release.TagName, installPath, actualVersion);
 
-			var installation = new GitInstallation
-			{
-				Version = actualVersion,
-				TagName = release.TagName,
-				InstallPath = installPath,
-				InstalledAt = DateTime.UtcNow,
-				IsActive = false,
-			};
-			db.GitInstallations.Add(installation);
-			await db.SaveChangesAsync(ct);
-
-			// First install ever: make it active right away instead of leaving the admin with
-			// a working download that git.exe still isn't actually configured to use.
-			if (await db.GitInstallations.CountAsync(ct) == 1)
-				await ActivateAsync(installation.Id, ct);
-
-			return installation;
+			return await RegisterAsync(release.TagName, installPath, actualVersion, ct);
 		}
 		catch
 		{
@@ -119,6 +121,34 @@ public class GitInstallerService(
 			if (File.Exists(tempZip))
 				File.Delete(tempZip);
 		}
+	}
+
+	private async Task<GitInstallation> RegisterAsync(string tagName, string installPath, string version, CancellationToken ct)
+	{
+		var installation = new GitInstallation
+		{
+			Version = version,
+			TagName = tagName,
+			InstallPath = installPath,
+			InstalledAt = DateTime.UtcNow,
+			IsActive = false,
+		};
+		db.GitInstallations.Add(installation);
+		await db.SaveChangesAsync(ct);
+
+		// First install ever: make it active right away instead of leaving the admin with
+		// a working download that git.exe still isn't actually configured to use.
+		if (await db.GitInstallations.CountAsync(ct) == 1)
+			await ActivateAsync(installation.Id, ct);
+
+		return installation;
+	}
+
+	private static void DeleteDirectory(string path)
+	{
+		foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+			File.SetAttributes(file, FileAttributes.Normal);
+		Directory.Delete(path, recursive: true);
 	}
 
 	public async Task ActivateAsync(int installationId, CancellationToken ct = default)
