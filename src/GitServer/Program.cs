@@ -57,6 +57,7 @@ builder.Services.AddSingleton<IGitExecutablePathProvider, GitExecutablePathProvi
 builder.Services.AddSingleton<GitInstallProgressTracker>();
 builder.Services.AddScoped<GitProcessService>();
 builder.Services.AddScoped<RepositoryService>();
+builder.Services.AddScoped<ForkService>();
 builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();

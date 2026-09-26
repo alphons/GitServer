@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Regex = System.Text.RegularExpressions.Regex;
 
 namespace GitServer.Pages.Repo;
 
@@ -51,7 +50,7 @@ public class NewModel(
 		CurrentUser = user;
 		OwnGroups = await access.GetOwnedGroupsAsync(user.Id);
 
-		if (!Regex.IsMatch(Name, @"^[a-zA-Z0-9_\-\.]+$"))
+		if (!RepositoryService.IsValidName(Name))
 		{
 			ErrorMessage = L["error_invalid_repo_name"];
 			return Page();

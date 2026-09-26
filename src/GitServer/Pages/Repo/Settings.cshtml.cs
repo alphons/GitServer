@@ -62,6 +62,15 @@ public class SettingsModel(
 		if (repoObj == null) return NotFound();
 		if (!isOwner) return Forbid();
 
+		// Making the fork public would publish the private source's code.
+		if (!IsPrivate && repoObj.ForkedFrom is { IsPrivate: true })
+		{
+			IsPrivate = true;
+			Message = L["settings_fork_must_stay_private"];
+			IsError = true;
+			return Page();
+		}
+
 		repoObj.Description = Description;
 		repoObj.IsPrivate = IsPrivate;
 		repoObj.IsReadOnly = IsReadOnly;

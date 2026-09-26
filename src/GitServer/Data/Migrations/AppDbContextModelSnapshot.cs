@@ -424,7 +424,13 @@ namespace GitServer.Data.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ForkedFromId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int?>("GroupOwnerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsFork")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsPrivate")
@@ -445,6 +451,8 @@ namespace GitServer.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ForkedFromId");
 
                     b.HasIndex("GroupOwnerId", "Name")
                         .IsUnique()
@@ -765,6 +773,11 @@ namespace GitServer.Data.Migrations
 
             modelBuilder.Entity("GitServer.Models.Repository", b =>
                 {
+                    b.HasOne("GitServer.Models.Repository", "ForkedFrom")
+                        .WithMany("Forks")
+                        .HasForeignKey("ForkedFromId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("GitServer.Models.Group", "GroupOwner")
                         .WithMany("Repositories")
                         .HasForeignKey("GroupOwnerId")
@@ -774,6 +787,8 @@ namespace GitServer.Data.Migrations
                         .WithMany("Repositories")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("ForkedFrom");
 
                     b.Navigation("GroupOwner");
 
@@ -882,6 +897,8 @@ namespace GitServer.Data.Migrations
             modelBuilder.Entity("GitServer.Models.Repository", b =>
                 {
                     b.Navigation("Accesses");
+
+                    b.Navigation("Forks");
 
                     b.Navigation("Issues");
                 });

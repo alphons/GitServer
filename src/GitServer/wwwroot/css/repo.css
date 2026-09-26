@@ -11,6 +11,16 @@
 	flex-wrap: wrap;
 }
 
+.repo-fork-button {
+	margin-left: auto;
+}
+
+.repo-fork-source {
+	color: var(--text-muted);
+	font-size: 0.8125rem;
+	margin-top: 0.25rem;
+}
+
 .repo-desc {
 	color: var(--text-muted);
 	font-size: 0.875rem;

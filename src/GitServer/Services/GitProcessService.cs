@@ -154,6 +154,38 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 		await proc.WaitForExitAsync();
 	}
 
+	/// <summary>Makes <paramref name="targetPath"/> a standalone bare copy of <paramref name="sourcePath"/> (all branches and
+	/// tags, no shared objects or hardlinks), so either one can later be deleted without affecting the other.
+	/// Throws when git fails; the caller removes a half-written target.</summary>
+	public async Task CloneBare(string sourcePath, string targetPath)
+	{
+		if (!Directory.Exists(sourcePath))
+			throw new RepositoryDataMissingException(sourcePath);
+
+		var psi = new ProcessStartInfo(_gitExe)
+		{
+			Arguments = $"clone --bare --no-hardlinks \"{sourcePath}\" \"{targetPath}\"",
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			UseShellExecute = false,
+			CreateNoWindow = true,
+		};
+		psi.Environment["HOME"] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+		ApplySafeDirectory(psi);
+
+		using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git");
+		var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+		var stderrTask = proc.StandardError.ReadToEndAsync();
+		await proc.WaitForExitAsync();
+		await stdoutTask;
+		var stderr = await stderrTask;
+		if (proc.ExitCode != 0)
+			throw new InvalidOperationException($"git clone exited {proc.ExitCode}: {stderr.Trim()}");
+
+		// The clone remembers the source's path on disk as "origin"; a fork has no business knowing it.
+		await RunGitAsync(targetPath, "remote remove origin");
+	}
+
 	// Keyed by executable path so a runtime git.exe switch (admin git-updater) picks up the
 	// new version immediately instead of serving the previously active version's cached value.
 	private static readonly ConcurrentDictionary<string, Lazy<Task<string>>> _versionCache = new();

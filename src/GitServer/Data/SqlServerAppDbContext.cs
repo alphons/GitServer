@@ -8,6 +8,15 @@ namespace GitServer.Data;
 /// must never run against SQL Server. Everything else asks for <see cref="AppDbContext"/>.</summary>
 public class SqlServerAppDbContext(DbContextOptions options) : AppDbContext(options);
 
+/// <summary>Lets <c>dotnet ef migrations add ... --context GitServer.Data.AppDbContext</c> build the SQLite model. Without it
+/// the tools would take <see cref="SqlServerAppDbContextFactory"/> (its context derives from AppDbContext) and write SQL Server
+/// migrations into Data/Migrations.</summary>
+public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
+{
+	public AppDbContext CreateDbContext(string[] args) =>
+		new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite("Data Source=design-time.db").Options);
+}
+
 /// <summary>Lets <c>dotnet ef migrations add ... --context SqlServerAppDbContext</c> build the model without a running server.</summary>
 public class SqlServerAppDbContextFactory : IDesignTimeDbContextFactory<SqlServerAppDbContext>
 {

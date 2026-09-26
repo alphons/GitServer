@@ -94,6 +94,12 @@ public class AppDbContext : IdentityDbContext<AppUser>
 			.WithMany(g => g.Repositories)
 			.HasForeignKey(r => r.GroupOwnerId)
 			.OnDelete(redundantCascade);
+			// A fork outlives its source. SQL Server refuses SET NULL on a self-reference, so the code clears
+			// ForkedFromId itself before deleting (see RepositoryService.DetachForksAsync).
+			e.HasOne(r => r.ForkedFrom)
+			.WithMany(r => r.Forks)
+			.HasForeignKey(r => r.ForkedFromId)
+			.OnDelete(sqlServer ? DeleteBehavior.NoAction : DeleteBehavior.SetNull);
 		});
 
 		builder.Entity<RepositoryAccess>(e =>

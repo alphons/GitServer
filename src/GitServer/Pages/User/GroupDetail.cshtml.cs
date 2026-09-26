@@ -106,6 +106,7 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 		// several cascade paths (group -> repositories -> access rows, group -> access rows) that SQLite follows implicitly.
 		await using var transaction = await db.Database.BeginTransactionAsync();
 		await db.RepositoryAccesses.Where(a => a.GroupId == id).ExecuteDeleteAsync();
+		await repos.DetachForksAsync(db.Repositories.Where(r => r.GroupOwnerId == id).Select(r => r.Id));   // forks elsewhere survive
 		await db.Repositories.Where(r => r.GroupOwnerId == id).ExecuteDeleteAsync();   // issues, comments and their access rows go with them
 		db.Groups.Remove(Group!);
 		await db.SaveChangesAsync();

@@ -22,6 +22,14 @@ public class Repository
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 	public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+	/// <summary>True for a repository created as a fork, even after its source is deleted (then <see cref="ForkedFromId"/> is null).</summary>
+	public bool IsFork { get; set; }
+
+	/// <summary>The repository this one was forked from, or null when it is not a fork or its source was deleted.</summary>
+	public int? ForkedFromId { get; set; }
+	public Repository? ForkedFrom { get; set; }
+	public ICollection<Repository> Forks { get; set; } = new List<Repository>();
+
 	public ICollection<RepositoryAccess> Accesses { get; set; } = new List<RepositoryAccess>();
 	public ICollection<Issue> Issues { get; set; } = new List<Issue>();
 

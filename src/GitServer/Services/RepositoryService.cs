@@ -2,6 +2,7 @@ using GitServer.Data;
 using GitServer.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Regex = System.Text.RegularExpressions.Regex;
 
 namespace GitServer.Services;
 
@@ -53,15 +54,71 @@ public class RepositoryService(AppDbContext db,
 		return repo;
 	}
 
+	/// <summary>Letters, digits, '-', '_' and '.': safe as a URL segment and as a folder name.</summary>
+	public static bool IsValidName(string name) => Regex.IsMatch(name, @"^[a-zA-Z0-9_\-\.]+$");
+
+	/// <summary>Creates <paramref name="name"/> under the group, or the user when there is none, as a full bare copy of <paramref name="source"/>.
+	/// The fork is private exactly when the source is, and takes over its description and default branch — not its
+	/// issues, collaborators or read-only flag. On failure nothing is left behind and the exception propagates.</summary>
+	public async Task<Repository> ForkAsync(Repository source, AppUser user, Group? group, string name)
+	{
+		var targetPath = GetRepoPath(group?.Name ?? user.UserName!, name);
+		// Never clone over (and on failure clean up) a folder that isn't ours, e.g. one left on disk by hand.
+		if (Directory.Exists(targetPath))
+			throw new IOException($"'{targetPath}' already exists on disk.");
+
+		var fork = new Repository
+		{
+			Name = name,
+			Description = source.Description,
+			Owner = group == null ? user : null,
+			GroupOwner = group,
+			IsPrivate = source.IsPrivate,
+			DefaultBranch = source.DefaultBranch,
+			IsFork = true,
+			ForkedFromId = source.Id,
+		};
+		_db.Repositories.Add(fork);
+		await _db.SaveChangesAsync();
+
+		try
+		{
+			await _git.CloneBare(GetRepoPath(source.OwnerName, source.Name), targetPath);
+		}
+		catch
+		{
+			DeleteFolder(targetPath);
+			_db.Repositories.Remove(fork);
+			await _db.SaveChangesAsync();
+			throw;
+		}
+
+		return fork;
+	}
+
+	public async Task<int> GetForkCountAsync(int repoId) =>
+		await _db.Repositories.CountAsync(r => r.ForkedFromId == repoId);
+
+	/// <summary>Turns the forks of these repositories into orphans (IsFork stays true) so the sources can be deleted.
+	/// SQLite would do this itself (ON DELETE SET NULL); SQL Server can't for a self-reference.</summary>
+	public async Task DetachForksAsync(IQueryable<int> sourceIds) =>
+		await _db.Repositories
+			.Where(r => r.ForkedFromId != null && sourceIds.Contains(r.ForkedFromId.Value))
+			.ExecuteUpdateAsync(s => s.SetProperty(r => r.ForkedFromId, (int?)null));
+
+	private static void DeleteFolder(string path)
+	{
+		if (!Directory.Exists(path)) return;
+		foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+			File.SetAttributes(file, FileAttributes.Normal);
+		Directory.Delete(path, recursive: true);
+	}
+
 	public async Task DeleteAsync(Repository repo, string ownerName)
 	{
-		var path = GetRepoPath(ownerName, repo.Name);
-		if (Directory.Exists(path))
-		{
-			foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
-				File.SetAttributes(file, FileAttributes.Normal);
-			Directory.Delete(path, recursive: true);
-		}
+		await DetachForksAsync(_db.Repositories.Where(r => r.Id == repo.Id).Select(r => r.Id));
+
+		DeleteFolder(GetRepoPath(ownerName, repo.Name));
 
 		_db.Repositories.Remove(repo);
 		await _db.SaveChangesAsync();
@@ -78,6 +135,8 @@ public class RepositoryService(AppDbContext db,
 		return await _db.Repositories
 			.Include(r => r.Owner)
 			.Include(r => r.GroupOwner)
+			.Include(r => r.ForkedFrom).ThenInclude(f => f!.Owner)
+			.Include(r => r.ForkedFrom).ThenInclude(f => f!.GroupOwner)
 			.FirstOrDefaultAsync(r => r.Name == repoName &&
 				((r.Owner != null && r.Owner.NormalizedUserName == normalizedOwner) ||
 				(r.GroupOwner != null && r.GroupOwner.Name == ownerName)));

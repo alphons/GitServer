@@ -22,6 +22,13 @@ public record UserReposResponse(
 
 public record GroupReposResponse(int Page, bool HasNext, IReadOnlyList<RepoCardDto> Repos);
 
+/// <summary>Where to put a fork: <see cref="Group"/> is the name of a group the caller owns, or null for their own
+/// namespace; <see cref="Name"/> is null to keep the source's name.</summary>
+public record ForkRequest(string? Name = null, string? Group = null);
+
+/// <summary>The fork that was created.</summary>
+public record ForkResponse(string Owner, string Name, string Href, bool IsPrivate);
+
 // ---- Administration ----------------------------------------------------------------------------------------
 
 public record AdminUserDto(

@@ -26,6 +26,9 @@ public class ViewModel(
 	public string CloneUrl { get; set; } = "";
 	public string DefaultBranch { get; set; } = "main";
 	public string ReadmePath { get; set; } = "";
+	public int ForkCount { get; set; }
+	/// <summary>Link the source of a fork only for viewers who may read it: a private source's name is not for everyone.</summary>
+	public bool ShowForkSource { get; set; }
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, string? path)
 	{
@@ -39,6 +42,9 @@ public class ViewModel(
 
 		var userId = userManager.GetUserId(User);
 		if (!await access.CanReadAsync(Repo, userId)) return Forbid();
+
+		ForkCount = await repos.GetForkCountAsync(Repo.Id);
+		ShowForkSource = Repo.ForkedFrom != null && await access.CanReadAsync(Repo.ForkedFrom, userId);
 
 		var repoPath = repos.GetRepoPath(Repo.OwnerName, Repo.Name);
 		CloneUrl = $"{Request.Scheme}://{Request.Host}{_options.NormalizedGitPathPrefix}/{Repo.OwnerName}/{Repo.Name}.git";

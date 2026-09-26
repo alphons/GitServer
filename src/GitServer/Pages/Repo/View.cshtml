@@ -19,7 +19,28 @@
 			{
 				<span class="badge badge-warning">@L["settings_readonly_label"]</span>
 			}
+			<a class="btn btn-secondary btn-sm repo-fork-button" href="/@Model.UserName/@Model.RepoName/fork">
+				@L["fork_button"] <span class="badge badge-muted">@Model.ForkCount</span>
+			</a>
 		</div>
+		@if (Model.Repo.IsFork)
+		{
+			<p class="repo-fork-source">
+				@if (Model.ShowForkSource)
+				{
+					var source = Model.Repo.ForkedFrom!;
+					@L["fork_forked_from"] <a href="/@source.OwnerName/@source.Name">@source.OwnerName/@source.Name</a>
+				}
+				else if (Model.Repo.ForkedFromId == null)
+				{
+					@L["fork_source_deleted"]
+				}
+				else
+				{
+					@L["fork_source_hidden"]
+				}
+			</p>
+		}
 		@if (!string.IsNullOrEmpty(Model.Repo.Description))
 		{
 			<p class="repo-desc">@Model.Repo.Description</p>
