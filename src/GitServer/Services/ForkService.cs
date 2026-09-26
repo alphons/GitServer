@@ -15,6 +15,8 @@ public record ForkResult(Repository? Fork, ForkError Error, string? Message)
 public class ForkService(
 	RepositoryService repos, AccessPolicy access, SiteSettingsService siteSettings, AuditService audit, LocalizationService L)
 {
+	/// <param name="source">The repository to fork.</param>
+	/// <param name="user">Who forks; the fork goes under their name unless a group is given.</param>
 	/// <param name="groupId">The group to fork into, or null for the user's own namespace.</param>
 	/// <param name="name">The fork's name; null or empty keeps the source's name.</param>
 	public async Task<ForkResult> ForkAsync(Repository source, AppUser user, int? groupId, string? name)

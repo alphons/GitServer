@@ -24,7 +24,7 @@ public class WebhooksModel(
 	public bool IsError { get; set; }
 
 	// Checkboxes post "false" through a hidden field when unticked, so every flag starts false and the form decides.
-	[BindProperty] public string? Url { get; set; }
+	[BindProperty] public new string? Url { get; set; }   // the form field is "Url"; PageModel.Url (the URL helper) is not used here
 	[BindProperty] public string? Secret { get; set; }
 	[BindProperty] public bool EventPush { get; set; }
 	[BindProperty] public bool EventIssues { get; set; }

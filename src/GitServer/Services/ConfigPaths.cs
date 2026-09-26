@@ -11,6 +11,7 @@ public static partial class ConfigPaths
 	[GeneratedRegex(@"^([A-Za-z]:[\\/]|\\\\)")]
 	private static partial Regex WindowsOnlyRegex();
 
+	/// <param name="value">The configured folder.</param>
 	/// <param name="setting">The configuration key, for the error message, e.g. "GitServer:RepositoriesPath".</param>
 	/// <param name="contentRoot">Relative paths resolve against this (the app's folder), not the current directory.</param>
 	public static string Resolve(string value, string setting, string contentRoot)

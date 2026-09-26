@@ -50,7 +50,10 @@ public class WebhookService(
 		}
 	}
 
+	/// <param name="repo">The repository the issue belongs to.</param>
+	/// <param name="issue">The issue.</param>
 	/// <param name="action">"opened", "closed" or "reopened".</param>
+	/// <param name="actor">Who did it.</param>
 	public async Task IssueAsync(Repository repo, Issue issue, string action, AppUser actor)
 	{
 		var hooks = await HooksAsync(repo.Id, WebhookEvents.Issues);
