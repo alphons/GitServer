@@ -9,7 +9,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.18.0**
+**Current version: 1.19.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows VPS or your own hardware in minutes.
 
@@ -36,6 +36,7 @@ Because your code doesn't belong to anyone else.
 - README rendering with full Markdown support
 - Download any branch as a ZIP archive
 - Branch and tag overview
+- **Forking** — anyone who can read a repository can fork it into their own account or a group they own: a full, independent copy of all branches and tags. A fork of a private repository stays private, the fork shows where it came from (only to those who may see the source), and it keeps working as an orphan when the source is deleted. Also available as `POST /api/repos/{owner}/{repo}/fork`
 
 ### Commit History
 - Paginated commit log per branch
@@ -292,6 +293,7 @@ GitServer doesn't require a system-wide Git install. Under **Admin → Git versi
 - Each install is trimmed down to just `mingw64\bin` (git.exe, its runtime DLLs and the actual subcommand binaries) plus `mingw64\share\licenses` for attribution — everything else (docs, the interactive GUI credential manager, submodule/mergetool scripts never used by a server) is stripped to save space
 - Browse the kept license files for the current install right from the same page
 - Old or manually-deleted installs are detected and cleaned up automatically
+- An install folder that is still on disk but unknown to the database (e.g. after a database reset or a switch to SQL Server) is adopted again instead of downloaded; a broken leftover is replaced
 
 Until an admin installs a version, Git operations simply report "not installed" instead of failing — the rest of the app keeps working.
 
@@ -329,7 +331,7 @@ The suite has five layers:
 | **API contract** (`OpenApiEndToEndTests`) | The OpenAPI document exists, describes the `X-Api-Key` scheme and documents every `/api` endpoint with a summary — and fails if an endpoint is added without documentation or uses a verb other than `GET`/`POST` |
 | **Browser** (`BrowserTests`) | The JavaScript-driven pages in a real headless Chromium (Playwright) against the same app on a real port: profile lists and paging, API keys, access tokens, reserved names, group detail, admin users |
 
-All authorization decisions live in `Services/AccessPolicy.cs`; pages and middleware ask it instead of comparing `OwnerId` or `IsAdmin` themselves. CI runs the full suite (both the SQLite and SQL Server matrix jobs) on a version tag push (`vX.Y`) or a manual run — see the badges at the top of this file.
+All authorization decisions live in `Services/AccessPolicy.cs`; pages and middleware ask it instead of comparing `OwnerId` or `IsAdmin` themselves. CI runs the full suite (both the SQLite and SQL Server matrix jobs) on a version tag push (`GitServer-X.Y.Z`; older releases used `vX.Y`) or a manual run — see the badges at the top of this file.
 
 ---
 
@@ -385,7 +387,6 @@ tests/GitServer.Tests/   # xUnit: policy, services, migrations, localization, en
 - Webhook support
 - Organization/team accounts
 - Git LFS support
-- Repository forking
 
 ---
 
