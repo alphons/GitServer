@@ -439,5 +439,7 @@
   "lfs_stored": "Almacenado con Git LFS",
   "lfs_stored_hint": "Git guarda un pequeño puntero; el archivo en sí está en el almacenamiento Git LFS de este servidor.",
   "lfs_object_missing": "Este archivo está almacenado con Git LFS, pero su contenido nunca se subió a este servidor.",
-  "settings_error_branch_name": "Nombre de rama no válido. Usa letras, dígitos, '.', '_', '-' y '/'."
+  "settings_error_branch_name": "Nombre de rama no válido. Usa letras, dígitos, '.', '_', '-' y '/'.",
+  "admin_gitversion_system_path": "Ejecutable de Git",
+  "admin_gitversion_system_managed": "Este servidor usa el git del sistema (instalado con el gestor de paquetes o definido con GitServer:GitExecutable). Actualízalo allí; el instalador de MinGit es solo para Windows."
 }

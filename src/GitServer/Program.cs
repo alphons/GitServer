@@ -19,9 +19,11 @@ builder.WebHost.ConfigureKestrel(o =>
 	o.Limits.MinRequestBodyDataRate = null;
 });
 
-// Options
+// Options. Folder settings are resolved once here, so a Windows-only path on Linux stops the app at startup with a clear message.
+var repositoriesPath = ConfigPaths.Resolve(gitOptions.RepositoriesPath, "GitServer:RepositoriesPath", builder.Environment.ContentRootPath);
 builder.Services.Configure<GitServerOptions>(
 	builder.Configuration.GetSection("GitServer"));
+builder.Services.PostConfigure<GitServerOptions>(o => o.RepositoriesPath = repositoriesPath);
 
 // Database
 var provider = gitOptions.DatabaseProvider.Trim().ToLowerInvariant();
@@ -48,7 +50,7 @@ builder.Services.AddGitServerApiKeys();
 builder.Services.AddGitServerOpenApi();
 builder.Services.AddGitServerRateLimiting();
 
-builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"));
+builder.Services.AddProtectedBase(builder.Configuration.GetSection("Authentication"), builder.Environment.ContentRootPath);
 builder.Services.AddEmailService(builder.Configuration);
 
 // Services

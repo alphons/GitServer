@@ -15,6 +15,8 @@ public class TestGitExecutablePathProvider : IGitExecutablePathProvider
 
 	public void SetPath(string path) => CurrentPath = path;
 
+	public bool IsManagedByInstaller { get; set; } = true;
+
 	private static string Resolve()
 	{
 		var overridePath = Environment.GetEnvironmentVariable("GIT_TEST_EXECUTABLE");

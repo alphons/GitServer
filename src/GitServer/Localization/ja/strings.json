@@ -440,5 +440,7 @@
   "lfs_stored": "Git LFS で保存",
   "lfs_stored_hint": "Git には小さなポインターのみが保存され、ファイル本体はこのサーバーの Git LFS ストレージにあります。",
   "lfs_object_missing": "このファイルは Git LFS で保存されていますが、内容がこのサーバーにアップロードされていません。",
-  "settings_error_branch_name": "ブランチ名が無効です。英字、数字、'.'、'_'、'-'、'/' を使用してください。"
+  "settings_error_branch_name": "ブランチ名が無効です。英字、数字、'.'、'_'、'-'、'/' を使用してください。",
+  "admin_gitversion_system_path": "Git 実行ファイル",
+  "admin_gitversion_system_managed": "このサーバーはシステムの git を使用しています（パッケージマネージャーでインストール、または GitServer:GitExecutable で指定）。更新はそちらで行ってください。MinGit インストーラーは Windows 専用です。"
 }

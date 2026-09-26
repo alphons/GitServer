@@ -19,12 +19,13 @@ public class GitInstallerService(
 	IOptions<GitServerOptions> options,
 	ILogger<GitInstallerService> logger)
 {
+	public const string SystemManagedMessage = "Git is provided by the operating system or the GitExecutable setting here; the MinGit installer is only for Windows.";
+
 	private string InstallRootPath
 	{
 		get
 		{
-			var configured = options.Value.GitExecutableInstallRoot;
-			return Path.IsPathRooted(configured) ? configured : Path.Combine(env.ContentRootPath, configured);
+			return ConfigPaths.Resolve(options.Value.GitExecutableInstallRoot, "GitServer:GitExecutableInstallRoot", env.ContentRootPath);
 		}
 	}
 
@@ -46,6 +47,9 @@ public class GitInstallerService(
 
 	public async Task<GitInstallation> DownloadAndInstallAsync(GitRelease release, IProgress<(long downloaded, long total)>? progress = null, CancellationToken ct = default)
 	{
+		if (!pathProvider.IsManagedByInstaller)
+			throw new GitInstallException(SystemManagedMessage);
+
 		if (release.AssetUrl is null)
 			throw new GitInstallException("This release has no MinGit 64-bit asset.");
 
@@ -153,6 +157,9 @@ public class GitInstallerService(
 
 	public async Task ActivateAsync(int installationId, CancellationToken ct = default)
 	{
+		if (!pathProvider.IsManagedByInstaller)
+			throw new GitInstallException(SystemManagedMessage);
+
 		var installation = await db.GitInstallations.FindAsync([installationId], ct)
 			?? throw new GitInstallException("Installation not found.");
 

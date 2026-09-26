@@ -18,6 +18,14 @@
 
 	<p>@L["admin_gitversion_current"]: <strong>@Model.CurrentVersion</strong></p>
 
+	@if (!Model.IsManagedByInstaller)
+	{
+		<p>@L["admin_gitversion_system_path"]: <code>@Model.GitPath</code></p>
+		<p class="text-muted">@L["admin_gitversion_system_managed"]</p>
+	}
+	else
+	{
+
 	<form method="post" asp-page-handler="CheckUpdate" style="display:inline">
 		<button type="submit" class="btn btn-primary">@L["admin_gitversion_check_update"]</button>
 	</form>
@@ -104,6 +112,7 @@
 	else
 	{
 		<p class="text-muted">@L["admin_gitversion_no_installations"]</p>
+	}
 	}
 </div>
 

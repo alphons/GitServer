@@ -10,7 +10,7 @@ namespace GitServer.Tests;
 /// (see README > Choosing a database). Needs a real LocalDB, like <see cref="SqlServerMigrationTests"/>.</summary>
 public sealed class DatabaseMigrationToolTests
 {
-	private const string SqlServerBase = @"Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True";
+	private static string SqlServerBase => GitServerFactory.SqlServerBase;   // LocalDB, or GITSERVER_TEST_SQLSERVER (the Linux CI container)
 
 	private static string Unique(string stem) => stem + Guid.NewGuid().ToString("N")[..6];
 

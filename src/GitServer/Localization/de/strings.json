@@ -439,5 +439,7 @@
   "lfs_stored": "Mit Git LFS gespeichert",
   "lfs_stored_hint": "Git enthält nur einen kleinen Verweis; die Datei selbst liegt im Git-LFS-Speicher dieses Servers.",
   "lfs_object_missing": "Diese Datei ist mit Git LFS gespeichert, ihr Inhalt wurde aber nie auf diesen Server hochgeladen.",
-  "settings_error_branch_name": "Ungültiger Branch-Name. Verwende Buchstaben, Ziffern, '.', '_', '-' und '/'."
+  "settings_error_branch_name": "Ungültiger Branch-Name. Verwende Buchstaben, Ziffern, '.', '_', '-' und '/'.",
+  "admin_gitversion_system_path": "Git-Programm",
+  "admin_gitversion_system_managed": "Dieser Server verwendet das Git des Systems (mit dem Paketmanager installiert oder über GitServer:GitExecutable festgelegt). Aktualisiere es dort; der MinGit-Installer ist nur für Windows."
 }

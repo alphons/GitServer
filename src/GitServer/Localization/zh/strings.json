@@ -440,5 +440,7 @@
   "lfs_stored": "使用 Git LFS 存储",
   "lfs_stored_hint": "Git 中只保存一个小指针；文件本身存放在此服务器的 Git LFS 存储中。",
   "lfs_object_missing": "此文件使用 Git LFS 存储，但其内容从未上传到此服务器。",
-  "settings_error_branch_name": "分支名称无效。请使用字母、数字、'.'、'_'、'-' 和 '/'。"
+  "settings_error_branch_name": "分支名称无效。请使用字母、数字、'.'、'_'、'-' 和 '/'。",
+  "admin_gitversion_system_path": "Git 可执行文件",
+  "admin_gitversion_system_managed": "此服务器使用系统自带的 git（通过包管理器安装，或由 GitServer:GitExecutable 指定）。请在那里更新；MinGit 安装程序仅适用于 Windows。"
 }

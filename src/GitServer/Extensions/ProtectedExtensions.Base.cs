@@ -1,14 +1,15 @@
-﻿using Microsoft.AspNetCore.DataProtection;
+﻿using GitServer.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace GitServer.Extensions;
 
 public static partial class ProtectedExtensions
 {
 	public static IServiceCollection AddProtectedBase(this IServiceCollection services,
-		IConfigurationSection section)
+		IConfigurationSection section, string contentRoot)
 	{
 		var builder = services.AddDataProtection()
-			.PersistKeysToFileSystem(new DirectoryInfo(section["KeysPath"]!))
+			.PersistKeysToFileSystem(new DirectoryInfo(ConfigPaths.Resolve(section["KeysPath"]!, "Authentication:KeysPath", contentRoot)))
 			.SetApplicationName(section["ApplicationName"]!);
 
 		if (section.GetValue<bool>("ProtectKeysWithDpapi"))

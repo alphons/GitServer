@@ -441,5 +441,7 @@
   "lfs_stored": "Opgeslagen met Git LFS",
   "lfs_stored_hint": "Git bevat een kleine verwijzing; het bestand zelf staat in de Git LFS-opslag van deze server.",
   "lfs_object_missing": "Dit bestand is opgeslagen met Git LFS, maar de inhoud is nooit naar deze server geüpload.",
-  "settings_error_branch_name": "Ongeldige branchnaam. Gebruik letters, cijfers, '.', '_', '-' en '/'."
+  "settings_error_branch_name": "Ongeldige branchnaam. Gebruik letters, cijfers, '.', '_', '-' en '/'.",
+  "admin_gitversion_system_path": "Git-programma",
+  "admin_gitversion_system_managed": "Deze server gebruikt de git van het systeem (geïnstalleerd met de pakketbeheerder, of ingesteld met GitServer:GitExecutable). Werk git daar bij; de MinGit-installer is alleen voor Windows."
 }

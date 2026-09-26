@@ -2,7 +2,8 @@ namespace GitServer.Services;
 
 public class GitServerOptions
 {
-	public string RepositoriesPath { get; set; } = "C:\\GitRepos";
+	/// <summary>Where the bare repositories live. Relative paths resolve against the app's folder (see ConfigPaths).</summary>
+	public string RepositoriesPath { get; set; } = Path.Combine("App_Data", "repos");
 
 	/// <summary>"Sqlite" (default) or "SqlServer". ConnectionStrings:Default is a connection string for that provider.
 	/// Each provider has its own migrations, applied at startup.</summary>
@@ -80,7 +81,11 @@ public class GitServerOptions
 	/// <summary>Where the admin git-updater extracts downloaded MinGit versions, one subfolder per
 	/// release tag. Relative paths are resolved against the app's content root; use an absolute
 	/// path (e.g. on another drive) to keep installs alongside RepositoriesPath instead.</summary>
-	public string GitExecutableInstallRoot { get; set; } = "App_Data\\git";
+	public string GitExecutableInstallRoot { get; set; } = Path.Combine("App_Data", "git");
+
+	/// <summary>A git executable to use instead of the MinGit installer, e.g. "/usr/bin/git" or "C:\Program Files\Git\bin\git.exe".
+	/// Empty: on Windows the admin installs MinGit under Admin → Git version; on Linux and macOS "git" from the PATH is used.</summary>
+	public string? GitExecutable { get; set; }
 
 	/// <summary>Seconds to wait before each retry of a failed webhook delivery, comma-separated; the number of
 	/// entries is the number of retries. "10,60" tries three times: now, 10 s later and a minute after that.</summary>

@@ -440,5 +440,7 @@
   "lfs_stored": "مخزّن باستخدام Git LFS",
   "lfs_stored_hint": "يحتفظ Git بمؤشر صغير فقط؛ أما الملف نفسه فمحفوظ في مخزن Git LFS على هذا الخادم.",
   "lfs_object_missing": "هذا الملف مخزّن باستخدام Git LFS، لكن محتواه لم يُرفع إلى هذا الخادم قط.",
-  "settings_error_branch_name": "اسم الفرع غير صالح. استخدم الحروف والأرقام و'.' و'_' و'-' و'/'."
+  "settings_error_branch_name": "اسم الفرع غير صالح. استخدم الحروف والأرقام و'.' و'_' و'-' و'/'.",
+  "admin_gitversion_system_path": "ملف Git التنفيذي",
+  "admin_gitversion_system_managed": "يستخدم هذا الخادم git الخاص بالنظام (المثبّت عبر مدير الحزم أو المحدد عبر GitServer:GitExecutable). حدّثه من هناك؛ مثبّت MinGit مخصص لنظام Windows فقط."
 }

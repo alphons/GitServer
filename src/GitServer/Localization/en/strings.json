@@ -440,5 +440,7 @@
   "lfs_stored": "Stored with Git LFS",
   "lfs_stored_hint": "Git holds a small pointer; the file itself is kept in this server's Git LFS storage.",
   "lfs_object_missing": "This file is stored with Git LFS, but its content was never uploaded to this server.",
-  "settings_error_branch_name": "Invalid branch name. Use letters, digits, '.', '_', '-' and '/'."
+  "settings_error_branch_name": "Invalid branch name. Use letters, digits, '.', '_', '-' and '/'.",
+  "admin_gitversion_system_path": "Git executable",
+  "admin_gitversion_system_managed": "This server uses the system's own git (installed with the package manager, or set with GitServer:GitExecutable). Update it there; the MinGit installer is only for Windows."
 }

@@ -15,16 +15,32 @@ concurrency:
 
 jobs:
   test:
-    runs-on: windows-latest
-    # The suite takes about a minute; this only stops a hung git process from holding the runner.
-    timeout-minutes: 20
+    runs-on: ${{ matrix.os }}
+    # The suite takes a few minutes; this only stops a hung git process from holding the runner.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, ubuntu-latest]
         database: [Sqlite, SqlServer]
+    # Linux has no LocalDB: SQL Server runs as a container there, for both legs (the database-migration tool tests
+    # need one even when the rest of the suite runs on SQLite). An empty image starts no container (Windows).
+    services:
+      mssql:
+        image: ${{ matrix.os == 'ubuntu-latest' && 'mcr.microsoft.com/mssql/server:2022-latest' || '' }}
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "GitServer-CI-1"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P GitServer-CI-1 -Q 'SELECT 1' || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 20
     env:
       # Empty (unset) means SQLite, the default; GitServerFactory only switches to SQL Server when this is "sqlserver".
       GITSERVER_TEST_DB: ${{ matrix.database == 'SqlServer' && 'sqlserver' || '' }}
+      # Empty on Windows, where the tests use LocalDB.
+      GITSERVER_TEST_SQLSERVER: ${{ matrix.os == 'ubuntu-latest' && 'Server=localhost,1433;User Id=sa;Password=GitServer-CI-1;TrustServerCertificate=True' || '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -41,11 +57,11 @@ jobs:
 
       - name: Install browser for the UI tests
         shell: pwsh
-        run: pwsh tests/GitServer.Tests/bin/Release/net10.0/playwright.ps1 install chromium
+        run: pwsh tests/GitServer.Tests/bin/Release/net10.0/playwright.ps1 install ${{ runner.os == 'Linux' && '--with-deps' || '' }} chromium
 
       # windows-latest ships (localdb)\MSSQLLocalDB but it isn't started by default.
       - name: Start SQL Server LocalDB
-        if: matrix.database == 'SqlServer'
+        if: runner.os == 'Windows'
         run: sqllocaldb start MSSQLLocalDB
 
       - name: Test
@@ -55,12 +71,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ matrix.database }}
+          name: test-results-${{ matrix.os }}-${{ matrix.database }}
           path: tests/GitServer.Tests/TestResults/*.trx
 
-      # The badges track the SQLite run; SQL Server runs the same suite and only needs to be green, not counted twice.
+      # The badges track the Windows SQLite run; the other legs run the same suite and only need to be green, not counted again.
       - name: Extract test and coverage stats
-        if: always() && matrix.database == 'Sqlite'
+        if: always() && matrix.os == 'windows-latest' && matrix.database == 'Sqlite'
         id: stats
         shell: pwsh
         run: |
@@ -79,7 +95,7 @@ jobs:
           "coverage=$coverage" >> $env:GITHUB_OUTPUT
 
       - name: Update tests badge
-        if: always() && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
+        if: always() && matrix.os == 'windows-latest' && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
@@ -90,7 +106,7 @@ jobs:
           color: brightgreen
 
       - name: Update coverage badge
-        if: always() && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
+        if: always() && matrix.os == 'windows-latest' && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}

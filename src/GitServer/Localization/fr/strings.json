@@ -439,5 +439,7 @@
   "lfs_stored": "Stocké avec Git LFS",
   "lfs_stored_hint": "Git contient un petit pointeur ; le fichier lui-même est conservé dans le stockage Git LFS de ce serveur.",
   "lfs_object_missing": "Ce fichier est stocké avec Git LFS, mais son contenu n’a jamais été envoyé sur ce serveur.",
-  "settings_error_branch_name": "Nom de branche invalide. Utilisez des lettres, des chiffres, '.', '_', '-' et '/'."
+  "settings_error_branch_name": "Nom de branche invalide. Utilisez des lettres, des chiffres, '.', '_', '-' et '/'.",
+  "admin_gitversion_system_path": "Exécutable Git",
+  "admin_gitversion_system_managed": "Ce serveur utilise le git du système (installé avec le gestionnaire de paquets ou défini par GitServer:GitExecutable). Mettez-le à jour là ; l’installateur MinGit est réservé à Windows."
 }

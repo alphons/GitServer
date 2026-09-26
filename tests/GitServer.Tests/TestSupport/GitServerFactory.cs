@@ -27,8 +27,11 @@ public class GitServerFactory : WebApplicationFactory<Program>
 	public static bool UsesSqlServer { get; } =
 		string.Equals(Environment.GetEnvironmentVariable("GITSERVER_TEST_DB"), "sqlserver", StringComparison.OrdinalIgnoreCase);
 
-	private static string SqlServerBase =>
-		Environment.GetEnvironmentVariable("GITSERVER_TEST_SQLSERVER") ?? @"Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True";
+	// Empty counts as unset: CI passes the variable to every leg and leaves it empty on Windows.
+	public static string SqlServerBase =>
+		Environment.GetEnvironmentVariable("GITSERVER_TEST_SQLSERVER") is { Length: > 0 } configured
+			? configured
+			: @"Server=(localdb)\MSSQLLocalDB;Trusted_Connection=True;TrustServerCertificate=True";
 
 	private string SqlServerDatabase { get; } = $"gitserver_e2e_{Guid.NewGuid():N}";
 

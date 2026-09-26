@@ -18,7 +18,7 @@ namespace GitServer.Controllers.Api;
 public class AdminGitApiController(
 	UserManager<AppUser> userManager, AppDbContext db,
 	GitInstallProgressTracker progressTracker, IServiceScopeFactory scopeFactory,
-	AuditService audit, LocalizationService L) : ControllerBase
+	AuditService audit, LocalizationService L, IGitExecutablePathProvider pathProvider) : ControllerBase
 {
 	private async Task<bool> IsAdminAsync() => AccessPolicy.IsSiteAdmin(await userManager.GetUserAsync(User));
 
@@ -26,9 +26,11 @@ public class AdminGitApiController(
 	/// poll <c>GET installs/{jobId}</c> for the progress, so a UI can show a live progress bar instead of blocking the request.</summary>
 	[HttpPost("installs")]
 	[ProducesResponseType<StartInstallResponse>(StatusCodes.Status200OK)]
+	[ProducesResponseType<ErrorResponse>(StatusCodes.Status409Conflict)]
 	public async Task<ActionResult<StartInstallResponse>> StartInstall([FromBody] StartInstallRequest request)
 	{
 		if (!await IsAdminAsync()) return Forbid();
+		if (!pathProvider.IsManagedByInstaller) return Conflict(new ErrorResponse(GitInstallerService.SystemManagedMessage));
 
 		var tagName = request.TagName;
 		var jobId = progressTracker.Start();

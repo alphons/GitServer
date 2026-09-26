@@ -15,11 +15,15 @@ public class GitVersionModel(
 	GitReleaseService gitReleases,
 	GitInstallerService gitInstaller,
 	AuditService audit,
+	IGitExecutablePathProvider pathProvider,
 	LocalizationService L) : PageModel
 {
 	public List<GitInstallation> Installations { get; set; } = new();
 	public Dictionary<int, bool> FilesPresent { get; set; } = new();
 	public string CurrentVersion { get; set; } = "";
+	/// <summary>False on Linux/macOS or with GitServer:GitExecutable set: git is the system's, the installer is hidden.</summary>
+	public bool IsManagedByInstaller => pathProvider.IsManagedByInstaller;
+	public string GitPath => pathProvider.CurrentPath;
 	public GitRelease? LatestRelease { get; set; }
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
