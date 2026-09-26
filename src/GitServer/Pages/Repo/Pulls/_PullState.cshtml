@@ -1,0 +1,15 @@
+@* The coloured state badge of a pull request: open, closed or merged. *@
+@model GitServer.Models.PullRequestState
+@inject GitServer.Services.LocalizationService L
+@switch (Model)
+{
+	case GitServer.Models.PullRequestState.Open:
+		<span class="badge badge-success pr-state">@L["issues_open"]</span>
+		break;
+	case GitServer.Models.PullRequestState.Merged:
+		<span class="badge badge-merged pr-state">@L["pr_merged"]</span>
+		break;
+	default:
+		<span class="badge badge-danger pr-state">@L["issues_closed"]</span>
+		break;
+}

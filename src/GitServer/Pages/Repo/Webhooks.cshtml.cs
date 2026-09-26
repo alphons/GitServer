@@ -29,6 +29,7 @@ public class WebhooksModel(
 	[BindProperty] public bool EventPush { get; set; }
 	[BindProperty] public bool EventIssues { get; set; }
 	[BindProperty] public bool EventIssueComment { get; set; }
+	[BindProperty] public bool EventPullRequest { get; set; }
 	[BindProperty] public bool Active { get; set; }
 	/// <summary>On update: keep the stored secret unless a new one is typed or "remove secret" is ticked.</summary>
 	[BindProperty] public bool RemoveSecret { get; set; }
@@ -50,7 +51,8 @@ public class WebhooksModel(
 	}
 
 	private WebhookEvents SelectedEvents =>
-		(EventPush ? WebhookEvents.Push : 0) | (EventIssues ? WebhookEvents.Issues : 0) | (EventIssueComment ? WebhookEvents.IssueComment : 0);
+		(EventPush ? WebhookEvents.Push : 0) | (EventIssues ? WebhookEvents.Issues : 0) | (EventIssueComment ? WebhookEvents.IssueComment : 0)
+		| (EventPullRequest ? WebhookEvents.PullRequest : 0);
 
 	private bool Validate()
 	{

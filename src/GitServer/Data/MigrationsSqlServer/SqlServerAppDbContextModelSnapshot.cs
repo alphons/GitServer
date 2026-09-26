@@ -438,6 +438,106 @@ namespace GitServer.Data.MigrationsSqlServer
                     b.ToTable("IssueComments");
                 });
 
+            modelBuilder.Entity("GitServer.Models.PullRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MergeCommitSha")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MergedById")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("RepositoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceBranch")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceDisplayName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SourceRepositoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("State")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TargetBranch")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("MergedById");
+
+                    b.HasIndex("SourceRepositoryId");
+
+                    b.HasIndex("RepositoryId", "State");
+
+                    b.ToTable("PullRequests");
+                });
+
+            modelBuilder.Entity("GitServer.Models.PullRequestComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PullRequestId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("PullRequestId");
+
+                    b.ToTable("PullRequestComments");
+                });
+
             modelBuilder.Entity("GitServer.Models.Repository", b =>
                 {
                     b.Property<int>("Id")
@@ -891,6 +991,58 @@ namespace GitServer.Data.MigrationsSqlServer
                     b.Navigation("Issue");
                 });
 
+            modelBuilder.Entity("GitServer.Models.PullRequest", b =>
+                {
+                    b.HasOne("GitServer.Models.AppUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GitServer.Models.AppUser", "MergedBy")
+                        .WithMany()
+                        .HasForeignKey("MergedById")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GitServer.Models.Repository", "Repository")
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GitServer.Models.Repository", "SourceRepository")
+                        .WithMany()
+                        .HasForeignKey("SourceRepositoryId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Author");
+
+                    b.Navigation("MergedBy");
+
+                    b.Navigation("Repository");
+
+                    b.Navigation("SourceRepository");
+                });
+
+            modelBuilder.Entity("GitServer.Models.PullRequestComment", b =>
+                {
+                    b.HasOne("GitServer.Models.AppUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("GitServer.Models.PullRequest", "PullRequest")
+                        .WithMany("Comments")
+                        .HasForeignKey("PullRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("PullRequest");
+                });
+
             modelBuilder.Entity("GitServer.Models.Repository", b =>
                 {
                     b.HasOne("GitServer.Models.Repository", "ForkedFrom")
@@ -1032,6 +1184,11 @@ namespace GitServer.Data.MigrationsSqlServer
                 });
 
             modelBuilder.Entity("GitServer.Models.Issue", b =>
+                {
+                    b.Navigation("Comments");
+                });
+
+            modelBuilder.Entity("GitServer.Models.PullRequest", b =>
                 {
                     b.Navigation("Comments");
                 });

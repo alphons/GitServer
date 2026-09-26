@@ -494,4 +494,93 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 		if (readme is null) return "";
 		return await GetFileContent(repoPath, treeish, readme.Name);
 	}
+
+	// ---- Pull requests ------------------------------------------------------------------------
+
+	public record GitResult(int ExitCode, string Output, string Error)
+	{
+		public bool Ok => ExitCode == 0;
+	}
+
+	/// <summary>Runs git with each argument passed as-is (no shell quoting to get wrong), optional stdin and extra
+	/// environment variables, and returns the exit code with both output streams.</summary>
+	private async Task<GitResult> RunGitDetailedAsync(string repoPath, IEnumerable<string> args, string? stdin = null, IDictionary<string, string>? env = null)
+	{
+		if (!Directory.Exists(repoPath))
+			throw new RepositoryDataMissingException(repoPath);
+
+		var psi = CreatePsi(repoPath, "");
+		foreach (var a in args) psi.ArgumentList.Add(a);
+		foreach (var (k, v) in env ?? new Dictionary<string, string>()) psi.Environment[k] = v;
+		using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start git process");
+
+		var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+		var stderrTask = proc.StandardError.ReadToEndAsync();
+		if (stdin != null) await proc.StandardInput.WriteAsync(stdin);
+		proc.StandardInput.Close();
+		await proc.WaitForExitAsync();
+		return new GitResult(proc.ExitCode, await stdoutTask, await stderrTask);
+	}
+
+	/// <summary>The commit a ref or sha names, or null.</summary>
+	public async Task<string?> ResolveCommit(string repoPath, string rev)
+	{
+		var r = await RunGitDetailedAsync(repoPath, ["rev-parse", "--verify", "--quiet", rev + "^{commit}"]);
+		return r.Ok ? r.Output.Trim() : null;
+	}
+
+	/// <summary>Copies branch <paramref name="sourceBranch"/> of <paramref name="sourceRepoPath"/> (the same repository or a fork)
+	/// into <paramref name="targetRepoPath"/> as <paramref name="refName"/>, e.g. refs/pull/7/head, so the pull request can be
+	/// compared and merged inside the target alone. Returns the fetched commit, or null when the branch doesn't exist.</summary>
+	public async Task<string?> FetchBranchAs(string targetRepoPath, string sourceRepoPath, string sourceBranch, string refName)
+	{
+		if (!IsValidBranchName(sourceBranch)) return null;
+		var r = await RunGitDetailedAsync(targetRepoPath, ["fetch", "--no-tags", "--quiet", sourceRepoPath, $"+refs/heads/{sourceBranch}:{refName}"]);
+		if (!r.Ok) _logger.LogInformation("Fetching {Branch} from {Source} failed: {Err}", sourceBranch, sourceRepoPath, r.Error.Trim());
+		return r.Ok ? await ResolveCommit(targetRepoPath, refName) : null;
+	}
+
+	public async Task<string?> MergeBase(string repoPath, string a, string b)
+	{
+		var r = await RunGitDetailedAsync(repoPath, ["merge-base", a, b]);
+		return r.Ok ? r.Output.Trim() : null;
+	}
+
+	/// <summary>The unified diff and changed file names between two commits.</summary>
+	public async Task<(string Diff, List<string> Files)> GetDiffBetween(string repoPath, string from, string to)
+	{
+		var diff = await RunGitDetailedAsync(repoPath, ["diff", "--no-color", from, to]);
+		var names = await RunGitDetailedAsync(repoPath, ["diff", "--name-only", from, to]);
+		return (diff.Output, names.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList());
+	}
+
+	/// <summary>The tree a merge of <paramref name="theirs"/> into <paramref name="ours"/> would produce, or null when it conflicts.
+	/// Works on the bare repository itself: no work tree, no checkout (git 2.38+).</summary>
+	public async Task<string?> MergeTree(string repoPath, string ours, string theirs)
+	{
+		var r = await RunGitDetailedAsync(repoPath, ["merge-tree", "--write-tree", "--no-messages", ours, theirs]);
+		return r.Ok ? r.Output.Split('\n')[0].Trim() : null;
+	}
+
+	/// <summary>Creates a commit with the given tree and parents, authored and committed by the given person.</summary>
+	public async Task<string?> CommitTree(string repoPath, string tree, IEnumerable<string> parents, string message, string name, string email)
+	{
+		var args = new List<string> { "commit-tree", tree };
+		foreach (var p in parents) { args.Add("-p"); args.Add(p); }
+		args.Add("-F");
+		args.Add("-");
+		var env = new Dictionary<string, string>
+		{
+			["GIT_AUTHOR_NAME"] = name, ["GIT_AUTHOR_EMAIL"] = email,
+			["GIT_COMMITTER_NAME"] = name, ["GIT_COMMITTER_EMAIL"] = email,
+		};
+		var r = await RunGitDetailedAsync(repoPath, args, message, env);
+		if (!r.Ok) _logger.LogWarning("commit-tree failed: {Err}", r.Error.Trim());
+		return r.Ok ? r.Output.Trim() : null;
+	}
+
+	/// <summary>Moves <paramref name="refName"/> to <paramref name="newSha"/>, but only if it still points at <paramref name="expectedOldSha"/>:
+	/// a push that landed in the meantime makes this fail instead of being overwritten.</summary>
+	public async Task<bool> UpdateRef(string repoPath, string refName, string newSha, string expectedOldSha) =>
+		(await RunGitDetailedAsync(repoPath, ["update-ref", refName, newSha, expectedOldSha])).Ok;
 }

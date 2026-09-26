@@ -101,12 +101,18 @@ public class RepositoryService(AppDbContext db,
 	public async Task<int> GetForkCountAsync(int repoId) =>
 		await _db.Repositories.CountAsync(r => r.ForkedFromId == repoId);
 
-	/// <summary>Turns the forks of these repositories into orphans (IsFork stays true) so the sources can be deleted.
-	/// SQLite would do this itself (ON DELETE SET NULL); SQL Server can't for a self-reference.</summary>
-	public async Task DetachForksAsync(IQueryable<int> sourceIds) =>
+	/// <summary>Turns the forks of these repositories into orphans (IsFork stays true), and lets pull requests opened from them
+	/// forget their source, so the repositories can be deleted. SQLite would do this itself (ON DELETE SET NULL); SQL Server
+	/// can't for a second path to the same table.</summary>
+	public async Task DetachForksAsync(IQueryable<int> sourceIds)
+	{
 		await _db.Repositories
 			.Where(r => r.ForkedFromId != null && sourceIds.Contains(r.ForkedFromId.Value))
 			.ExecuteUpdateAsync(s => s.SetProperty(r => r.ForkedFromId, (int?)null));
+		await _db.PullRequests
+			.Where(p => p.SourceRepositoryId != null && sourceIds.Contains(p.SourceRepositoryId.Value))
+			.ExecuteUpdateAsync(s => s.SetProperty(p => p.SourceRepositoryId, (int?)null));
+	}
 
 	private static void DeleteFolder(string path)
 	{

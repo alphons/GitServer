@@ -1,0 +1,13 @@
+@* The commits of a pull request, oldest first. *@
+@model (string UserName, string RepoName, List<GitServer.Services.CommitInfo> Commits)
+@inject GitServer.Services.TimeZoneService TZ
+<ul class="pr-commit-list">
+	@foreach (var c in Model.Commits)
+	{
+		<li>
+			<a href="/@Model.UserName/@Model.RepoName/commit/@c.Sha"><code>@c.ShortSha</code></a>
+			<span class="pr-commit-message">@c.Message</span>
+			<span class="text-muted">@c.Author &middot; @TZ.FormatDateTime(c.Date)</span>
+		</li>
+	}
+</ul>

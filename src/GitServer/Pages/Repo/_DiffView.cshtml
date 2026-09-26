@@ -1,0 +1,31 @@
+@* A unified diff (git diff / git show output), coloured per line. Shared by the commit page and pull requests. *@
+@model string
+<div class="diff-view">
+	@{
+		var inDiff = false;
+	}
+	@foreach (var line in Model.Split('\n'))
+	{
+		if (line.StartsWith("diff --git"))
+		{
+			inDiff = true;
+			<div class="diff-file-header">@line</div>
+		}
+		else if (line.StartsWith("@@"))
+		{
+			<div class="diff-hunk-header">@line</div>
+		}
+		else if (line.StartsWith("+") && !line.StartsWith("+++"))
+		{
+			<div class="diff-line diff-add">@line</div>
+		}
+		else if (line.StartsWith("-") && !line.StartsWith("---"))
+		{
+			<div class="diff-line diff-del">@line</div>
+		}
+		else if (inDiff)
+		{
+			<div class="diff-line diff-ctx">@line</div>
+		}
+	}
+</div>

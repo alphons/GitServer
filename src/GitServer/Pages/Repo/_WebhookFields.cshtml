@@ -20,9 +20,11 @@
 	<label class="checkbox-label"><input type="checkbox" name="EventPush" value="true" checked="@Model.Events.HasFlag(GitServer.Models.WebhookEvents.Push)" /> @L["webhook_event_push"]</label>
 	<label class="checkbox-label"><input type="checkbox" name="EventIssues" value="true" checked="@Model.Events.HasFlag(GitServer.Models.WebhookEvents.Issues)" /> @L["webhook_event_issues"]</label>
 	<label class="checkbox-label"><input type="checkbox" name="EventIssueComment" value="true" checked="@Model.Events.HasFlag(GitServer.Models.WebhookEvents.IssueComment)" /> @L["webhook_event_issue_comment"]</label>
+	<label class="checkbox-label"><input type="checkbox" name="EventPullRequest" value="true" checked="@Model.Events.HasFlag(GitServer.Models.WebhookEvents.PullRequest)" /> @L["webhook_event_pull_request"]</label>
 	<input type="hidden" name="EventPush" value="false" />
 	<input type="hidden" name="EventIssues" value="false" />
 	<input type="hidden" name="EventIssueComment" value="false" />
+	<input type="hidden" name="EventPullRequest" value="false" />
 </div>
 <div class="form-group">
 	<label class="checkbox-label"><input type="checkbox" name="Active" value="true" checked="@Model.Active" /> @L["webhook_active_label"]</label>

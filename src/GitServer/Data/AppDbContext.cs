@@ -24,6 +24,8 @@ public class AppDbContext : IdentityDbContext<AppUser>
 	public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
 	public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 	public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+	public DbSet<PullRequest> PullRequests => Set<PullRequest>();
+	public DbSet<PullRequestComment> PullRequestComments => Set<PullRequestComment>();
 	public DbSet<Webhook> Webhooks => Set<Webhook>();
 	public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
@@ -54,6 +56,41 @@ public class AppDbContext : IdentityDbContext<AppUser>
 		});
 
 		builder.Entity<AuditEntry>(e => e.HasIndex(a => a.At));
+
+		builder.Entity<PullRequest>(e =>
+		{
+			e.HasIndex(p => new { p.RepositoryId, p.State });
+			e.HasOne(p => p.Repository)
+			.WithMany()
+			.HasForeignKey(p => p.RepositoryId)
+			.OnDelete(DeleteBehavior.Cascade);
+			// The source may be a fork that is deleted later; the pull request stays. As with ForkedFromId, SQL Server can't
+			// SET NULL here (a second path to Repositories), so RepositoryService clears it itself before deleting.
+			e.HasOne(p => p.SourceRepository)
+			.WithMany()
+			.HasForeignKey(p => p.SourceRepositoryId)
+			.OnDelete(sqlServer ? DeleteBehavior.NoAction : DeleteBehavior.SetNull);
+			e.HasOne(p => p.Author)
+			.WithMany()
+			.HasForeignKey(p => p.AuthorId)
+			.OnDelete(DeleteBehavior.Restrict);
+			e.HasOne(p => p.MergedBy)
+			.WithMany()
+			.HasForeignKey(p => p.MergedById)
+			.OnDelete(DeleteBehavior.Restrict);
+		});
+
+		builder.Entity<PullRequestComment>(e =>
+		{
+			e.HasOne(c => c.PullRequest)
+			.WithMany(p => p.Comments)
+			.HasForeignKey(c => c.PullRequestId)
+			.OnDelete(DeleteBehavior.Cascade);
+			e.HasOne(c => c.Author)
+			.WithMany()
+			.HasForeignKey(c => c.AuthorId)
+			.OnDelete(DeleteBehavior.Restrict);
+		});
 
 		builder.Entity<Webhook>(e =>
 		{

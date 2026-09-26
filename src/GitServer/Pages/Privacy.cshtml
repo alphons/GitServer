@@ -1,8 +1,47 @@
 @page "/dashboard/Privacy"
 @model GitServer.Pages.PrivacyModel
 @{
-	ViewData["Title"] = "Privacy Policy";
+	ViewData["Title"] = L["privacy_title"];
 }
-<h1>@ViewData["Title"]</h1>
+<div class="container">
+	<div class="page-header">
+		<h1>@L["privacy_title"]</h1>
+	</div>
+	<p>@L["privacy_intro"]</p>
 
-<p>Use this page to detail your site's privacy policy.</p>
+	<h2>@L["privacy_data_title"]</h2>
+	<ul>
+		<li>@L["privacy_data_account"]</li>
+		<li>@L["privacy_data_content"]</li>
+		<li>@L["privacy_data_technical"]</li>
+		<li>@L["privacy_data_keys"]</li>
+	</ul>
+
+	<h2>@L["privacy_purpose_title"]</h2>
+	<p>@L["privacy_purpose_text"]</p>
+
+	<h2>@L["privacy_cookies_title"]</h2>
+	<p>@L["privacy_cookies_text"]</p>
+
+	<h2>@L["privacy_third_title"]</h2>
+	<ul>
+		<li>@L["privacy_third_gravatar"]</li>
+		<li>@L["privacy_third_cdn"]</li>
+		<li>@L["privacy_third_email"]</li>
+		<li>@L["privacy_third_webhooks"]</li>
+	</ul>
+
+	<h2>@L["privacy_retention_title"]</h2>
+	<p>
+		@L["privacy_retention_text"]
+		@(Model.AuditLogRetentionDays > 0 ? L.Format("privacy_retention_audit_days", Model.AuditLogRetentionDays) : L["privacy_retention_audit_forever"])
+	</p>
+
+	<h2>@L["privacy_rights_title"]</h2>
+	<p>@L["privacy_rights_text"]</p>
+
+	@if (!string.IsNullOrWhiteSpace(Model.ContactEmail))
+	{
+		<p>@L["terms_contact"] <a href="mailto:@Model.ContactEmail">@Model.ContactEmail</a></p>
+	}
+</div>

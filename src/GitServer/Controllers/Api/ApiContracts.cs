@@ -99,3 +99,24 @@ public record DatabaseMigrationCheckResponse(bool CanConnect, bool IsFresh, stri
 
 public record DatabaseMigrationTableResultDto(string Table, int Rows);
 public record DatabaseMigrationRunResponse(bool Success, string? Error, IReadOnlyList<DatabaseMigrationTableResultDto> Tables);
+
+// ---- Pull requests -----------------------------------------------------------------------------------------
+
+/// <summary>A pull request. <see cref="State"/> is "open", "closed" or "merged"; <see cref="Source"/> is "owner/repo" of the branch it merges from.</summary>
+public record PullRequestDto(
+	int Number, string Title, string Body, string State, string Author, string Source, string SourceBranch, string TargetBranch,
+	string Created, string? MergedBy, string? MergeCommitSha, int Comments, string Href);
+
+/// <summary>The details of one pull request: what it brings in and whether the server can merge it.</summary>
+public record PullRequestDetailDto(PullRequestDto PullRequest, bool Mergeable, IReadOnlyList<string> Commits, IReadOnlyList<string> Files);
+
+/// <summary>A new pull request from <see cref="Head"/> into <see cref="Base"/>. <see cref="HeadRepo"/> ("owner/repo") is a fork to
+/// merge from; null means a branch of the repository itself. <see cref="Base"/> defaults to the repository's default branch.</summary>
+public record CreatePullRequestRequest(string? Title, string? Head, string? Base = null, string? HeadRepo = null, string? Body = null);
+
+public record PullRequestCommentRequest(string? Body);
+
+public record PullRequestCommentDto(int Id, string Author, string Body, string Created);
+
+/// <summary>How to merge: "merge" (a merge commit, the default) or "squash" (one new commit).</summary>
+public record MergePullRequestRequest(string? Method = null);

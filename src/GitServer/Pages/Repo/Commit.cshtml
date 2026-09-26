@@ -51,37 +51,6 @@
 			</ul>
 		</div>
 
-		<div class="diff-view">
-			@{
-				var diffLines = Model.Detail.Diff.Split('\n');
-				var inDiff = false;
-				var currentFile = "";
-			}
-			@foreach (var line in diffLines)
-			{
-				if (line.StartsWith("diff --git"))
-				{
-					inDiff = true;
-					currentFile = line;
-					<div class="diff-file-header">@line</div>
-				}
-				else if (line.StartsWith("@@"))
-				{
-					<div class="diff-hunk-header">@line</div>
-				}
-				else if (line.StartsWith("+") && !line.StartsWith("+++"))
-				{
-					<div class="diff-line diff-add">@line</div>
-				}
-				else if (line.StartsWith("-") && !line.StartsWith("---"))
-				{
-					<div class="diff-line diff-del">@line</div>
-				}
-				else if (inDiff)
-				{
-					<div class="diff-line diff-ctx">@line</div>
-				}
-			}
-		</div>
+		@await Html.PartialAsync("_DiffView", Model.Detail.Diff)
 	}
 </div>

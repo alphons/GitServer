@@ -547,3 +547,80 @@
 	gap: 0.5rem;
 	margin-top: 0.5rem;
 }
+
+/* === Pull requests === */
+.badge-merged {
+	background: rgba(163, 113, 247, 0.15);
+	color: #a371f7;
+	border: 1px solid rgba(163, 113, 247, 0.3);
+}
+
+.pr-compare-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.pr-compare-form .form-group {
+	margin-bottom: 0;
+	min-width: 12rem;
+}
+
+.pr-compare-arrow {
+	font-size: 1.25rem;
+	padding-bottom: 0.4rem;
+	color: var(--text-muted);
+}
+
+.pr-tabs {
+	display: flex;
+	gap: 0.25rem;
+	border-bottom: 1px solid var(--border);
+	margin: 1rem 0;
+}
+
+.pr-tab {
+	padding: 0.5rem 0.875rem;
+	color: var(--text-muted);
+	border-bottom: 2px solid transparent;
+	text-decoration: none;
+}
+
+.pr-tab.active {
+	color: var(--text);
+	border-bottom-color: var(--accent, #58a6ff);
+}
+
+.pr-commit-list {
+	list-style: none;
+	padding: 0;
+	margin: 0 0 1rem;
+}
+
+.pr-commit-list li {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid var(--border);
+}
+
+.pr-commit-message {
+	flex: 1;
+	min-width: 12rem;
+}
+
+.pr-merge-box {
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 0.75rem 1rem;
+	margin: 1rem 0;
+}
+
+.pr-merge-form {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}

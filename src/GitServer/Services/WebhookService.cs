@@ -76,6 +76,37 @@ public class WebhookService(
 		Enqueue(hooks, "issue_comment", payload);
 	}
 
+	/// <summary>A "pull_request" delivery. <paramref name="action"/> is "opened", "closed" (also for a merge, then merged is true)
+	/// or "reopened".</summary>
+	public async Task PullRequestAsync(Repository repo, PullRequest pr, string action, AppUser actor)
+	{
+		var hooks = await HooksAsync(repo.Id, WebhookEvents.PullRequest);
+		if (hooks.Count == 0) return;
+		var payload = new
+		{
+			action,
+			number = pr.Id,
+			pull_request = new
+			{
+				id = pr.Id,
+				number = pr.Id,
+				title = pr.Title,
+				body = pr.Body,
+				state = pr.State == PullRequestState.Open ? "open" : "closed",
+				merged = pr.State == PullRequestState.Merged,
+				merge_commit_sha = pr.MergeCommitSha,
+				html_url = $"{BaseUrl}/{repo.OwnerName}/{repo.Name}/pulls/{pr.Id}",
+				head = new { @ref = pr.SourceBranch, repo = pr.SourceDisplayName },
+				@base = new { @ref = pr.TargetBranch, repo = $"{repo.OwnerName}/{repo.Name}" },
+				created_at = pr.CreatedAt,
+				updated_at = pr.UpdatedAt,
+			},
+			repository = Repo(repo),
+			sender = User(actor),
+		};
+		Enqueue(hooks, "pull_request", payload);
+	}
+
 	/// <summary>A "ping" to one webhook, whatever its events: sent when it is created and from its "test" button.</summary>
 	public Guid Ping(Webhook hook, Repository repo, AppUser? actor)
 	{
@@ -105,6 +136,7 @@ public class WebhookService(
 				"push" => WebhookEvents.Push,
 				"issues" => WebhookEvents.Issues,
 				"issue_comment" => WebhookEvents.IssueComment,
+				"pull_request" => WebhookEvents.PullRequest,
 				_ => (WebhookEvents)(-1),
 			};
 			if (events < 0) return null;
@@ -118,6 +150,7 @@ public class WebhookService(
 		if (events.HasFlag(WebhookEvents.Push)) names.Add("push");
 		if (events.HasFlag(WebhookEvents.Issues)) names.Add("issues");
 		if (events.HasFlag(WebhookEvents.IssueComment)) names.Add("issue_comment");
+		if (events.HasFlag(WebhookEvents.PullRequest)) names.Add("pull_request");
 		return names;
 	}
 

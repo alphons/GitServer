@@ -11,6 +11,8 @@
 	   href="/@Model.UserName/@Model.RepoName/tags">@L["tags_title"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "issues" ? "active" : "")"
 	   href="/@Model.UserName/@Model.RepoName/issues">@L["repo_nav_issues"]</a>
+	<a class="repo-nav-link @(Model.ActiveTab == "pulls" ? "active" : "")"
+	   href="/@Model.UserName/@Model.RepoName/pulls">@L["pr_nav"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "collaborators" ? "active" : "")"
 	   href="/@Model.UserName/@Model.RepoName/collaborators">@L["settings_collaborators"]</a>
 	<a class="repo-nav-link @(Model.ActiveTab == "webhooks" ? "active" : "")"

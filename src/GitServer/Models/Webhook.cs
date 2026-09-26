@@ -11,6 +11,8 @@ public enum WebhookEvents
 	Issues = 2,
 	/// <summary>A comment was added to an issue.</summary>
 	IssueComment = 4,
+	/// <summary>A pull request was opened, closed, reopened or merged (merged = "closed" with merged: true, as on GitHub).</summary>
+	PullRequest = 8,
 }
 
 /// <summary>A URL that receives a signed JSON POST when something happens in a repository.</summary>

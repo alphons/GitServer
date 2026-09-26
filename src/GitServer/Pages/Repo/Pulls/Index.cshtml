@@ -1,0 +1,50 @@
+@page "/{user}/{repo}/pulls"
+@model GitServer.Pages.Repo.Pulls.PullIndexModel
+@{
+	ViewData["Title"] = $"{L["pr_nav"]} — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+	<div class="repo-header">
+		<div class="repo-title">
+			<a href="/dashboard/@(Model.IsGroupOwner ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
+			<a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+		</div>
+	</div>
+
+	@await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "pulls"))
+
+	<div class="issues-header">
+		<div class="issues-filter">
+			<a class="@(Model.ShowClosed ? "" : "active")" href="/@Model.UserName/@Model.RepoName/pulls">@L["issues_open"]</a>
+			<a class="@(Model.ShowClosed ? "active" : "")" href="/@Model.UserName/@Model.RepoName/pulls?closed=1">@L["issues_closed"]</a>
+		</div>
+		@if (User.Identity?.IsAuthenticated == true)
+		{
+			<a class="btn btn-primary" href="/@Model.UserName/@Model.RepoName/pulls/new">@L["pr_new"]</a>
+		}
+	</div>
+
+	@if (Model.PullRequests.Count == 0)
+	{
+		<div class="empty-state">@(Model.ShowClosed ? L["pr_empty_closed"] : L["pr_empty_open"])</div>
+	}
+	else
+	{
+		<div class="issue-list">
+			@foreach (var pr in Model.PullRequests)
+			{
+				<div class="issue-item">
+					@await Html.PartialAsync("_PullState", pr.State)
+					<div class="issue-content">
+						<a class="issue-title" href="/@Model.UserName/@Model.RepoName/pulls/@pr.Id">@pr.Title</a>
+						<span class="issue-meta text-muted">
+							#@pr.Id @L["issues_opened_by"] @pr.Author.UserName @L["issues_on"] @TZ.FormatDate(pr.CreatedAt)
+							&nbsp;&middot; <code>@pr.SourceBranch</code> &rarr; <code>@pr.TargetBranch</code>
+							&nbsp;&middot; @pr.Comments.Count @L["issues_comments"]
+						</span>
+					</div>
+				</div>
+			}
+		</div>
+	}
+</div>

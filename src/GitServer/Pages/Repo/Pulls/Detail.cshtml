@@ -1,0 +1,142 @@
+@page "/{user}/{repo}/pulls/{id:int}"
+@model GitServer.Pages.Repo.Pulls.PullDetailModel
+@{
+	ViewData["Title"] = $"#{Model.Pr?.Id} {Model.Pr?.Title} — {Model.UserName}/{Model.RepoName}";
+	var pr = Model.Pr!;
+	var cmp = Model.Comparison!;
+	var baseUrl = $"/{Model.UserName}/{Model.RepoName}/pulls/{pr.Id}";
+	var source = pr.SourceRepository;
+}
+<div class="container">
+	<div class="repo-header">
+		<div class="repo-title">
+			<a href="/dashboard/@(Model.IsGroupOwner ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
+			<a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+		</div>
+	</div>
+
+	@await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "pulls"))
+
+	<div class="issue-detail-header">
+		<h1>@pr.Title <span class="text-muted">#@pr.Id</span></h1>
+		@await Html.PartialAsync("_PullState", pr.State)
+		<span class="text-muted">
+			@pr.Author.UserName @L["pr_wants_to_merge"]
+			<code>@(source == null ? pr.SourceDisplayName : $"{source.OwnerName}/{source.Name}"):@pr.SourceBranch</code>
+			&rarr; <code>@pr.TargetBranch</code>
+			&middot; @TZ.FormatDate(pr.CreatedAt)
+		</span>
+	</div>
+
+	@if (!string.IsNullOrEmpty(Model.Message))
+	{
+		<div class="alert @(Model.IsError ? "alert-danger" : "alert-success")">@Model.Message</div>
+	}
+
+	<div class="pr-tabs">
+		<a class="pr-tab @(Model.Tab == "conversation" ? "active" : "")" href="@baseUrl">@L["pr_tab_conversation"] (@pr.Comments.Count)</a>
+		<a class="pr-tab @(Model.Tab == "commits" ? "active" : "")" href="@baseUrl?tab=commits">@L["pr_tab_commits"] (@cmp.Commits.Count)</a>
+		<a class="pr-tab @(Model.Tab == "files" ? "active" : "")" href="@baseUrl?tab=files">@L["pr_tab_files"] (@cmp.Files.Count)</a>
+	</div>
+
+	@if (Model.Tab == "commits")
+	{
+		@await Html.PartialAsync("_PullCommits", (Model.UserName, Model.RepoName, cmp.Commits))
+	}
+	else if (Model.Tab == "files")
+	{
+		@await Html.PartialAsync("../_DiffView", cmp.Diff)
+	}
+	else
+	{
+		<div class="timeline">
+			<div class="timeline-item">
+				<div class="timeline-avatar">@pr.Author.UserName?.FirstOrDefault()</div>
+				<div class="timeline-body">
+					<div class="timeline-header">
+						<strong>@pr.Author.UserName</strong>
+						<span class="text-muted">@TZ.FormatDateTime(pr.CreatedAt)</span>
+					</div>
+					<div class="markdown-body pane-output" data-markdown-src="@baseUrl/raw"></div>
+				</div>
+			</div>
+
+			@foreach (var comment in pr.Comments.OrderBy(c => c.CreatedAt))
+			{
+				<div class="timeline-item">
+					<div class="timeline-avatar">@comment.Author.UserName?.FirstOrDefault()</div>
+					<div class="timeline-body">
+						<div class="timeline-header">
+							<strong>@comment.Author.UserName</strong>
+							<span class="text-muted">@TZ.FormatDateTime(comment.CreatedAt)</span>
+						</div>
+						<div class="markdown-body pane-output" data-markdown-src="@baseUrl/comments/@comment.Id/raw"></div>
+					</div>
+				</div>
+			}
+		</div>
+
+		<div class="pr-merge-box">
+			@if (pr.State == GitServer.Models.PullRequestState.Merged)
+			{
+				<p>
+					<span class="badge badge-merged">@L["pr_merged"]</span>
+					@L["pr_merged_by"] <strong>@pr.MergedBy?.UserName</strong> &middot; @TZ.FormatDateTime(pr.ClosedAt ?? pr.UpdatedAt)
+					@if (pr.MergeCommitSha != null)
+					{
+						<span>&middot; <a href="/@Model.UserName/@Model.RepoName/commit/@pr.MergeCommitSha"><code>@pr.MergeCommitSha[..7]</code></a></span>
+					}
+				</p>
+			}
+			else if (pr.State == GitServer.Models.PullRequestState.Open)
+			{
+				@if (cmp.Mergeable)
+				{
+					<p><span class="badge badge-success">@L["pr_mergeable"]</span></p>
+				}
+				else
+				{
+					<p><span class="badge badge-danger">@L["pr_conflicts"]</span> <span class="text-muted">@L["pr_conflicts_hint"]</span></p>
+				}
+				@if (Model.CanMerge && cmp.Mergeable)
+				{
+					<form method="post" asp-page-handler="Merge" class="pr-merge-form">
+						<button type="submit" name="squash" value="false" class="btn btn-primary">@L["pr_merge_commit"]</button>
+						<button type="submit" name="squash" value="true" class="btn btn-secondary">@L["pr_merge_squash"]</button>
+					</form>
+				}
+			}
+		</div>
+
+		@if (User.Identity?.IsAuthenticated == true)
+		{
+			<div class="issue-comment-form">
+				<form method="post" asp-page-handler="Comment">
+					<div class="form-group">
+						<label for="commentBody">@L["detail_add_comment"]</label>
+						<textarea id="commentBody" name="CommentBody" class="form-control editor-textarea" rows="5"></textarea>
+					</div>
+					<div class="form-actions">
+						<button type="submit" class="btn btn-primary">@L["detail_submit_comment"]</button>
+						@if (Model.CanClose && pr.State == GitServer.Models.PullRequestState.Open)
+						{
+							<button type="submit" name="handler" value="Close" class="btn btn-secondary">@L["pr_close"]</button>
+						}
+						else if (Model.CanClose && pr.State == GitServer.Models.PullRequestState.Closed)
+						{
+							<button type="submit" name="handler" value="Reopen" class="btn btn-secondary">@L["detail_reopen"]</button>
+						}
+					</div>
+				</form>
+			</div>
+		}
+	}
+</div>
+@section Scripts {
+	<script src="~/js/editor.js" asp-append-version="true"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+	<script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
+	<script src="~/js/markdown/md4.js" asp-append-version="true"></script>
+	<script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
+}

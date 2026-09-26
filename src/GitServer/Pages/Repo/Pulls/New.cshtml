@@ -1,0 +1,102 @@
+@page "/{user}/{repo}/pulls/new"
+@model GitServer.Pages.Repo.Pulls.PullNewModel
+@{
+	ViewData["Title"] = $"{L["pr_new"]} — {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+	<div class="repo-header">
+		<div class="repo-title">
+			<a href="/dashboard/@(Model.IsGroupOwner ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
+			<a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+		</div>
+	</div>
+
+	@await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "pulls"))
+
+	<h2>@L["pr_new"]</h2>
+	<p class="text-muted">@L["pr_new_hint"]</p>
+
+	<form method="get" class="pr-compare-form">
+		<div class="form-group">
+			<label for="base">@L["pr_base"]</label>
+			<select id="base" name="Base" class="form-control" onchange="this.form.submit()">
+				@foreach (var b in Model.TargetBranches)
+				{
+					<option value="@b" selected="@(b == Model.Base)">@Model.UserName/@Model.RepoName : @b</option>
+				}
+			</select>
+		</div>
+		<span class="pr-compare-arrow">&larr;</span>
+		<div class="form-group">
+			<label for="source">@L["pr_source_repo"]</label>
+			<select id="source" name="Source" class="form-control" onchange="this.form.Head.value=''; this.form.submit()">
+				@foreach (var s in Model.Sources)
+				{
+					<option value="@s.Id" selected="@(s.Id == Model.Source)">@s.OwnerName/@s.Name</option>
+				}
+			</select>
+		</div>
+		<div class="form-group">
+			<label for="head">@L["pr_head"]</label>
+			<select id="head" name="Head" class="form-control" onchange="this.form.submit()">
+				@foreach (var b in Model.SourceBranches)
+				{
+					<option value="@b" selected="@(b == Model.Head)">@b</option>
+				}
+			</select>
+		</div>
+		<noscript><button type="submit" class="btn btn-secondary">@L["pr_compare"]</button></noscript>
+	</form>
+
+	@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+	{
+		<div class="alert alert-danger">@Model.ErrorMessage</div>
+	}
+
+	@if (Model.Preview == null)
+	{
+		<div class="empty-state">@L["pr_choose_branches"]</div>
+	}
+	else if (Model.Preview.Commits.Count == 0)
+	{
+		<div class="empty-state">@L["pr_error_nothing"]</div>
+	}
+	else
+	{
+		<p>
+			@if (Model.Preview.Mergeable)
+			{
+				<span class="badge badge-success">@L["pr_mergeable"]</span>
+			}
+			else
+			{
+				<span class="badge badge-danger">@L["pr_conflicts"]</span>
+			}
+			@L.Format("pr_summary", Model.Preview.Commits.Count, Model.Preview.Files.Count)
+		</p>
+
+		<form method="post" asp-route-Source="@Model.Source" asp-route-Head="@Model.Head" asp-route-Base="@Model.Base">
+			<div class="form-group">
+				<label for="title">@L["title_label"] <span class="required">*</span></label>
+				<input id="title" name="Title" type="text" class="form-control" value="@(Model.Title ?? Model.Preview.Commits[^1].Message)" required />
+			</div>
+			<div class="form-group">
+				<label for="body">@L["new_issue_body_label"]</label>
+				<textarea id="body" name="Body" class="form-control editor-textarea" rows="8">@Model.Body</textarea>
+			</div>
+			<div class="form-actions">
+				<button type="submit" class="btn btn-primary">@L["pr_create"]</button>
+				<a href="/@Model.UserName/@Model.RepoName/pulls" class="btn btn-secondary">@L["cancel"]</a>
+			</div>
+		</form>
+
+		<h3>@L["pr_tab_commits"] (@Model.Preview.Commits.Count)</h3>
+		@await Html.PartialAsync("_PullCommits", (Model.UserName, Model.RepoName, Model.Preview.Commits))
+
+		<h3>@L["pr_tab_files"] (@Model.Preview.Files.Count)</h3>
+		@await Html.PartialAsync("../_DiffView", Model.Preview.Diff)
+	}
+</div>
+@section Scripts {
+	<script src="~/js/editor.js" asp-append-version="true"></script>
+}
