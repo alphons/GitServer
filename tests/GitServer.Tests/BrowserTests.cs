@@ -31,7 +31,8 @@ public class BrowserTests : IClassFixture<BrowserFixture>
 		await Expect(page.Locator("#profile-repos-container .repo-card")).ToHaveCountAsync(6);
 
 		await page.FillAsync("#profile-repo-search", "needle");
-		await Expect(page.Locator("#profile-repos-container .repo-card")).ToHaveCountAsync(1);
+		// Debounce plus two queries on a busy CI runner (the SQL Server leg) can take longer than the 5 s default.
+		await Expect(page.Locator("#profile-repos-container .repo-card")).ToHaveCountAsync(1, new() { Timeout = 20_000 });
 		await Expect(page.Locator("#profile-repos-container .repo-card .repo-name")).ToHaveTextAsync(new Regex("needle-repo"));
 	}
 

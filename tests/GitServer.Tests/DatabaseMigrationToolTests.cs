@@ -30,13 +30,13 @@ public sealed class DatabaseMigrationToolTests
 		string sqliteConnectionString;
 		string aliceId, aliceUserName;
 		int repoId;
-		using (var factory = new GitServerFactory(forceSqlServer: false))   // this test needs a real SQLite source regardless of which provider the suite as a whole is running against
-		{
-			var alice = await factory.CreateUserAsync(Unique("alice"));
-			var repo = await factory.CreateRepoAsync(alice, "repo-one", isPrivate: true);
-			(aliceId, aliceUserName, repoId) = (alice.Id, alice.UserName!, repo.Id);
-			sqliteConnectionString = $"Data Source={Path.Combine(factory.Root, "e2e.db")}";
-		}
+		// A real SQLite source regardless of which provider the suite as a whole runs against. It stays alive until the end:
+		// disposing it deletes its folder, and on Linux that removes the database file even while it is still open.
+		using var factory = new GitServerFactory(forceSqlServer: false);
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		var repo = await factory.CreateRepoAsync(alice, "repo-one", isPrivate: true);
+		(aliceId, aliceUserName, repoId) = (alice.Id, alice.UserName!, repo.Id);
+		sqliteConnectionString = $"Data Source={Path.Combine(factory.Root, "e2e.db")}";
 
 		var database = Unique("gitserver_migrate_");
 		var sqlServerConnectionString = $"{SqlServerBase};Database={database}";
@@ -70,11 +70,9 @@ public sealed class DatabaseMigrationToolTests
 	public async Task RefusesToWrite_WhenTheTargetAlreadyHasRows()
 	{
 		string sqliteConnectionString;
-		using (var factory = new GitServerFactory(forceSqlServer: false))
-		{
-			await factory.CreateUserAsync(Unique("alice"));
-			sqliteConnectionString = $"Data Source={Path.Combine(factory.Root, "e2e.db")}";
-		}
+		using var factory = new GitServerFactory(forceSqlServer: false);   // alive until the end, see above
+		await factory.CreateUserAsync(Unique("alice"));
+		sqliteConnectionString = $"Data Source={Path.Combine(factory.Root, "e2e.db")}";
 
 		var database = Unique("gitserver_migrate_");
 		var sqlServerConnectionString = $"{SqlServerBase};Database={database}";
@@ -93,6 +91,7 @@ public sealed class DatabaseMigrationToolTests
 
 			var result = await DatabaseMigrationTool.RunAsync(sqliteConnectionString, sqlServerConnectionString);
 			Assert.False(result.Success);
+			Assert.Contains("already has migrations applied", result.Error);   // refused for that reason, not because the source was unreadable
 		}
 		finally
 		{
