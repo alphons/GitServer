@@ -49,7 +49,9 @@ public sealed class BrowserFixture : IAsyncLifetime
 			await page.FillAsync("input[name=Username]", signedInAs.UserName!);
 			await page.FillAsync("input[name=Password]", GitServerFactory.Password);
 			await page.ClickAsync("form button[type=submit]");
-			await page.WaitForURLAsync(url => !url.Contains("/Auth/Login"));
+			// Only the redirect matters here, not the next page's "load" event: that waits for external resources too
+			// (Gravatar avatars, cdnjs), and one slow request on a CI runner used to time the whole test out.
+			await page.WaitForURLAsync(url => !url.Contains("/Auth/Login"), new() { WaitUntil = WaitUntilState.Commit });
 		}
 		return page;
 	}
