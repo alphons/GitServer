@@ -89,9 +89,9 @@ jobs:
           name: test-results-${{ matrix.os }}-${{ matrix.database }}
           path: tests/GitServer.Tests/TestResults/*.trx
 
-      # The badges track the Windows SQLite run; the other legs run the same suite and only need to be green, not counted again.
+      # Every leg gets its own tests badge (Windows/Linux x SQLite/SQL Server); coverage comes from the Windows SQLite run only.
       - name: Extract test and coverage stats
-        if: always() && matrix.os == 'windows-latest' && matrix.database == 'Sqlite'
+        if: always()
         id: stats
         shell: pwsh
         run: |
@@ -102,6 +102,7 @@ jobs:
           $total = [int]$counters.total
           "tests_passed=$passed" >> $env:GITHUB_OUTPUT
           "tests_total=$total" >> $env:GITHUB_OUTPUT
+          "color=$(if ($passed -eq $total -and $total -gt 0) { 'brightgreen' } else { 'red' })" >> $env:GITHUB_OUTPUT
 
           $cobertura = Get-ChildItem -Path tests/GitServer.Tests/TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -First 1
           [xml]$covXml = Get-Content $cobertura.FullName
@@ -110,15 +111,15 @@ jobs:
           "coverage=$coverage" >> $env:GITHUB_OUTPUT
 
       - name: Update tests badge
-        if: always() && matrix.os == 'windows-latest' && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
+        if: always() && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
         uses: schneegans/dynamic-badges-action@v1.9.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
           gistID: ${{ secrets.GIST_ID }}
-          filename: gitserver-tests.json
-          label: tests
-          message: ${{ steps.stats.outputs.tests_passed }} passed
-          color: brightgreen
+          filename: gitserver-tests-${{ runner.os }}-${{ matrix.database }}.json
+          label: tests ${{ runner.os == 'Windows' && 'windows' || 'linux' }} · ${{ matrix.database == 'Sqlite' && 'sqlite' || 'sql server' }}
+          message: ${{ steps.stats.outputs.tests_passed }}/${{ steps.stats.outputs.tests_total }} passed
+          color: ${{ steps.stats.outputs.color }}
 
       - name: Update coverage badge
         if: always() && matrix.os == 'windows-latest' && matrix.database == 'Sqlite' && (startsWith(github.ref, 'refs/tags/GitServer-') || startsWith(github.ref, 'refs/tags/v'))
