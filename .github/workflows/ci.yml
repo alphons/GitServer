@@ -1,8 +1,7 @@
 name: CI
 
+# Manual only: run it from the Actions tab. Never automatically, not even on a tag.
 on:
-  push:
-    tags: ['GitServer-*', 'v*']
   workflow_dispatch:
 
 permissions:

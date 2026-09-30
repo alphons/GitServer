@@ -135,7 +135,7 @@ public class GitController(
 	/// e.g. a fetch that negotiates many refs).</summary>
 	private Stream RequestBody() =>
 		string.Equals(Request.Headers.ContentEncoding.ToString(), "gzip", StringComparison.OrdinalIgnoreCase)
-			? new System.IO.Compression.GZipStream(Request.Body, System.IO.Compression.CompressionMode.Decompress)
+			? Request.Body
 			: Request.Body;
 
 	private static async Task WritePacketLineAsync(Stream stream, string line)
