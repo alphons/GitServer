@@ -41,7 +41,7 @@ public class GitController(
 	[HttpGet("{user}/{repo}.git/info/refs")]
 	public async Task InfoRefs(string user, string repo, [FromQuery] string? service)
 	{
-		if (HttpContext.Items["GitRepo"] is not Repository) { Response.StatusCode = 404; return; }
+		if (HttpContext.Items["GitRepo"] is not Repository repoObj) { Response.StatusCode = 404; return; }
 
 		var repoPath = GetCanonicalRepoPath(user, repo);
 		if (!Directory.Exists(repoPath)) { Response.StatusCode = 404; return; }
@@ -51,6 +51,9 @@ public class GitController(
 		{
 			if (service == "git-upload-pack")
 			{
+				// Repositories that were pushed before HEAD got repaired still point at a branch that does not exist;
+				// fix that before advertising, or the clone checks out nothing.
+				await git.EnsureHeadExists(repoPath, repoObj.DefaultBranch);
 				Response.ContentType = "application/x-git-upload-pack-advertisement";
 				await WritePacketLineAsync(Response.Body, $"# service={service}\n");
 				await Response.Body.WriteAsync("0000"u8.ToArray());

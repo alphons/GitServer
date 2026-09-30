@@ -54,6 +54,22 @@ public class DefaultBranchEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
+	public async Task AClone_RepairsAHeadThatPointsToABranchThatDoesNotExist()
+	{
+		var alice = await _f.CreateUserAsync(Unique("alice"));
+		await _f.CreateRepoAsync(alice, "stale");
+		await PushAsync(alice, "stale", "main");
+		var folder = Folder(alice, "stale");
+		LocalGit.Exec(folder, null, "symbolic-ref", "HEAD", "refs/heads/master");
+
+		var response = await _f.NewClient().SendAsync(Get($"/git/{alice.UserName}/stale.git/info/refs?service=git-upload-pack",
+			Basic(alice.UserName!, GitServerFactory.Password)));
+
+		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		Assert.Equal("refs/heads/main", Head(folder));
+	}
+
+	[Fact]
 	public async Task APush_LeavesAHeadThatExistsAlone()
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));
