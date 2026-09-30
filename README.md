@@ -33,7 +33,7 @@ Because your code doesn't belong to anyone else.
 ## Features
 
 ### Repository Management
-- Create public and private Git repositories — new ones start on `main`, and the default branch you set is what a clone checks out
+- Create public and private Git repositories — new ones start on `main`, and the default branch you set is what a clone checks out. A repository whose HEAD points at a branch that doesn't exist (e.g. `master` while only `main` was pushed) is repaired automatically, on the next push or the next clone/fetch. Git's gzip-compressed requests (it compresses bodies over 1 KB) are accepted, so larger fetches and pulls work
 - Full HTTP/HTTPS Git protocol support — clone, push, pull with any standard Git client
 - Browse the file tree, view files and diffs directly in the browser
 - README rendering with full Markdown support
@@ -355,6 +355,8 @@ pwsh tests/GitServer.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
 ```
 
 (Windows PowerShell works too: `powershell -File …/playwright.ps1 install chromium`.)
+
+The GitHub Actions workflow (`.github/workflows/ci.yml`) runs the suite **only when started by hand** from the Actions tab — never on a push or a tag.
 
 The whole suite can also run against **SQL Server** instead of SQLite — every test then gets its own throwaway database, dropped afterwards:
 
