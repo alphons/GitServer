@@ -144,6 +144,29 @@ public class GitSmartHttpEndToEndTests : IClassFixture<GitServerFactory>, IDispo
 	}
 
 	[Fact]
+	public async Task AGzippedFetchRequest_IsUnzippedBeforeItReachesGit()
+	{
+		// git gzips POST bodies over 1 KB ("POST git-upload-pack (gzip 1040 to 578 bytes)"), e.g. on a pull.
+		var alice = await _f.CreateUserAsync(Unique("alice"));
+		var auth = Basic(alice.UserName!, GitServerFactory.Password);
+		var local = NewLocal();
+		var sha = local.Commit("hello.txt", "hello\n", "first commit");
+		await PushAsync(alice.UserName!, "zipped", local, sha, auth);
+
+		var plain = UploadPackWantRequest(sha);
+		using var zipped = new MemoryStream();
+		await using (var gzip = new System.IO.Compression.GZipStream(zipped, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+			await gzip.WriteAsync(plain);
+		var request = Post($"/git/{alice.UserName}/zipped.git/git-upload-pack", UploadPackType, zipped.ToArray(), auth);
+		request.Content!.Headers.ContentEncoding.Add("gzip");
+
+		var response = await _client.SendAsync(request);
+
+		Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+		Assert.StartsWith("0008NAK\nPACK", AsText(await response.Content.ReadAsByteArrayAsync()));
+	}
+
+	[Fact]
 	public async Task APublicRepo_CanBeClonedWithoutCredentials_APrivateOneCannot()
 	{
 		var alice = await _f.CreateUserAsync(Unique("alice"));

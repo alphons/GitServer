@@ -90,7 +90,7 @@ public class GitController(
 
 		try
 		{
-			await git.StreamUploadPack(repoPath, Request.Body, Response.Body, advertise: false);
+			await git.StreamUploadPack(repoPath, RequestBody(), Response.Body, advertise: false);
 		}
 		catch (RepositoryDataMissingException ex)
 		{
@@ -114,7 +114,7 @@ public class GitController(
 			// Only worth the extra git call when someone listens: the refs before and after tell what the push changed.
 			var refsBefore = await webhooks.HasHooksAsync(repoObj.Id, WebhookEvents.Push) ? await git.GetRefs(repoPath) : null;
 
-			await git.StreamReceivePack(repoPath, Request.Body, Response.Body, advertise: false);
+			await git.StreamReceivePack(repoPath, RequestBody(), Response.Body, advertise: false);
 			await git.EnsureHeadExists(repoPath, repoObj.DefaultBranch);
 
 			// A push counts as an update of the repository
@@ -130,6 +130,13 @@ public class GitController(
 			if (!Response.HasStarted) Response.StatusCode = 404;
 		}
 	}
+
+	/// <summary>The request body, unzipped when git sent it with "Content-Encoding: gzip" (it does so for bodies over 1 KB,
+	/// e.g. a fetch that negotiates many refs).</summary>
+	private Stream RequestBody() =>
+		string.Equals(Request.Headers.ContentEncoding.ToString(), "gzip", StringComparison.OrdinalIgnoreCase)
+			? new System.IO.Compression.GZipStream(Request.Body, System.IO.Compression.CompressionMode.Decompress)
+			: Request.Body;
 
 	private static async Task WritePacketLineAsync(Stream stream, string line)
 	{
