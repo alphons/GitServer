@@ -90,7 +90,7 @@ public class GitController(
 
 		try
 		{
-			await git.StreamUploadPack(repoPath, RequestBody(), Response.Body, advertise: false);
+			await git.StreamUploadPack(repoPath, await RequestBodyAsync(), Response.Body, advertise: false);
 		}
 		catch (RepositoryDataMissingException ex)
 		{
@@ -114,7 +114,7 @@ public class GitController(
 			// Only worth the extra git call when someone listens: the refs before and after tell what the push changed.
 			var refsBefore = await webhooks.HasHooksAsync(repoObj.Id, WebhookEvents.Push) ? await git.GetRefs(repoPath) : null;
 
-			await git.StreamReceivePack(repoPath, RequestBody(), Response.Body, advertise: false);
+			await git.StreamReceivePack(repoPath, await RequestBodyAsync(), Response.Body, advertise: false);
 			await git.EnsureHeadExists(repoPath, repoObj.DefaultBranch);
 
 			// A push counts as an update of the repository
@@ -131,12 +131,61 @@ public class GitController(
 		}
 	}
 
-	/// <summary>The request body, unzipped when git sent it with "Content-Encoding: gzip" (it does so for bodies over 1 KB,
-	/// e.g. a fetch that negotiates many refs).</summary>
-	private Stream RequestBody() =>
-		string.Equals(Request.Headers.ContentEncoding.ToString(), "gzip", StringComparison.OrdinalIgnoreCase)
-			? Request.Body
-			: Request.Body;
+	/// <summary>The request body, unzipped when git sent it gzipped (it does so for bodies over 1 KB, e.g. a fetch that
+	/// negotiates many refs). Sniffs the gzip magic bytes instead of trusting "Content-Encoding: gzip", because IIS or a
+	/// proxy may drop that header; a pkt-line starts with four hex digits, so 0x1f 0x8b can never be anything else.</summary>
+	private async Task<Stream> RequestBodyAsync()
+	{
+		var head = new byte[2];
+		var read = 0;
+		while (read < head.Length)
+		{
+			var n = await Request.Body.ReadAsync(head.AsMemory(read));
+			if (n == 0) break;
+			read += n;
+		}
+
+		var body = new PrefixedStream(head.AsMemory(0, read).ToArray(), Request.Body);
+		return read == 2 && head[0] == 0x1f && head[1] == 0x8b
+			? new System.IO.Compression.GZipStream(body, System.IO.Compression.CompressionMode.Decompress)
+			: body;
+	}
+
+	/// <summary>Reads <paramref name="prefix"/> first, then the rest of <paramref name="inner"/>.</summary>
+	private sealed class PrefixedStream(byte[] prefix, Stream inner) : Stream
+	{
+		private int _pos;
+
+		public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count));
+
+		public override int Read(Span<byte> buffer)
+		{
+			if (_pos < prefix.Length)
+			{
+				var n = Math.Min(buffer.Length, prefix.Length - _pos);
+				prefix.AsSpan(_pos, n).CopyTo(buffer);
+				_pos += n;
+				return n;
+			}
+			return inner.Read(buffer);
+		}
+
+		public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+		{
+			if (_pos < prefix.Length) return new(Read(buffer.Span));
+			return inner.ReadAsync(buffer, cancellationToken);
+		}
+
+		public override bool CanRead => true;
+		public override bool CanSeek => false;
+		public override bool CanWrite => false;
+		public override long Length => throw new NotSupportedException();
+		public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+		public override void Flush() { }
+		public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+		public override void SetLength(long value) => throw new NotSupportedException();
+		public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+	}
 
 	private static async Task WritePacketLineAsync(Stream stream, string line)
 	{
