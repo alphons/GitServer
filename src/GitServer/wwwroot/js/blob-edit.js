@@ -88,7 +88,17 @@
 			lastLineCount = count;
 		}
 		measureWrap();
+		fitHeight();
+		fitHeight();   // again: the first pass may have made a horizontal scrollbar appear
 		syncScroll();
+	}
+
+	// The editor grows with its text so the page is the only thing that scrolls: the gutter's last row marks the bottom of the content.
+	function fitHeight() {
+		const last = gutter.lastElementChild;
+		if (!last) return;
+		const scrollbar = ta.offsetHeight - ta.clientHeight;   // a horizontal scrollbar, when there is one
+		ta.style.height = (last.offsetTop + last.offsetHeight + parseFloat(getComputedStyle(gutter).paddingBottom) + scrollbar) + 'px';
 	}
 
 	// With soft wrap a line can take several rows: measure each one in a hidden copy of the text so its number keeps the same height.
@@ -219,7 +229,7 @@
 		pane.hidden = previewing;
 		options.hidden = previewing;
 		preview.hidden = !previewing;
-		if (previewing) renderPreview(); else { previewToken++; ta.focus(); scheduleGutter(); }
+		if (previewing) renderPreview(); else { previewToken++; ta.focus({ preventScroll: true }); scheduleGutter(); }
 	}
 
 	function renderPreview() {
@@ -326,10 +336,11 @@
 		editActions.hidden = false;
 		editor.hidden = false;
 		commitBtn.disabled = true;
+		// Caret at the top before focusing: a freshly filled textarea has it at the end, and focusing that scrolls the page there.
+		ta.setSelectionRange(0, 0);
+		ta.scrollTop = 0;
 		setMode('edit');
 		updateGutter();
-		ta.focus();
-		ta.setSelectionRange(0, 0);
 	}
 
 	function exitEdit() {

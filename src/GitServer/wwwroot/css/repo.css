@@ -344,7 +344,6 @@
 .editor-pane {
 	position: relative;
 	display: flex;
-	height: 65vh;
 	min-height: 18rem;
 	background: var(--code-bg);
 }
@@ -383,7 +382,8 @@
 	-moz-tab-size: var(--tab-size, 4);
 	white-space: pre;
 	overflow-wrap: normal;
-	overflow: auto;
+	overflow-x: auto;
+	overflow-y: hidden;   /* its height follows the text, see fitHeight() in blob-edit.js */
 }
 
 .editor-text.wrap {
