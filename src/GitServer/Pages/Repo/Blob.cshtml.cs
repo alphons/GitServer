@@ -23,6 +23,9 @@ public class BlobModel(
 	public bool IsLfs { get; set; }
 	/// <summary>False when the pointer's object was never uploaded to this server.</summary>
 	public bool LfsObjectPresent { get; set; }
+	/// <summary>The viewer may commit to this branch (write access, and <see cref="Branch"/> really is a branch);
+	/// the page still only offers editing for text files.</summary>
+	public bool CanEdit { get; set; }
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string branch, string path)
 	{
@@ -41,6 +44,9 @@ public class BlobModel(
 		if (!await access.CanReadAsync(repoObj, userId)) return Forbid();
 
 		var repoPath = repos.GetRepoPath(repoObj.OwnerName, repoObj.Name);
+		CanEdit = userId != null && GitProcessService.IsValidBranchName(branch)
+			&& await access.CanWriteAsync(repoObj, userId)
+			&& await git.ResolveCommit(repoPath, $"refs/heads/{branch}") != null;
 		FileSize = await git.GetFileSize(repoPath, branch, path);
 
 		if (FileSize <= LfsStore.MaxPointerSize &&

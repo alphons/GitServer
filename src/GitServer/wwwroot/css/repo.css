@@ -272,6 +272,190 @@
 	color: var(--text-muted);
 }
 
+/* === File editor (blob page) === */
+.file-view [hidden],
+.file-editor[hidden],
+.file-view-actions[hidden] { display: none !important; }
+
+.edit-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--accent);
+	cursor: pointer;
+	font: inherit;
+}
+
+.edit-link:hover { text-decoration: underline; }
+
+.file-view-actions .btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.editor-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.5rem 0.875rem;
+	background: var(--surface2);
+	border-bottom: 1px solid var(--border);
+}
+
+.editor-tabs {
+	display: inline-flex;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.editor-tab {
+	padding: 0.25rem 0.875rem;
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	font: inherit;
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+
+.editor-tab + .editor-tab { border-left: 1px solid var(--border); }
+.editor-tab.active { background: var(--surface); color: var(--text); font-weight: 600; }
+
+.editor-options { display: flex; gap: 0.5rem; }
+
+.editor-options .form-control {
+	width: auto;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.8125rem;
+}
+
+.editor-error {
+	padding: 0.5rem 0.875rem;
+	color: var(--danger);
+	border-bottom: 1px solid var(--border);
+}
+
+.editor-pane {
+	position: relative;
+	display: flex;
+	height: 65vh;
+	min-height: 18rem;
+	background: var(--code-bg);
+}
+
+.editor-gutter {
+	flex: none;
+	min-width: 3rem;
+	padding: 0.75rem 0.75rem;
+	overflow: hidden;
+	box-sizing: border-box;
+	text-align: right;
+	color: var(--text-muted);
+	background: var(--surface2);
+	border-right: 1px solid var(--border);
+	user-select: none;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	line-height: 1.6;
+}
+
+.editor-text {
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 0.75rem 1rem;
+	border: none;
+	outline: none;
+	resize: none;
+	box-sizing: border-box;
+	background: transparent;
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	line-height: 1.6;
+	tab-size: var(--tab-size, 4);
+	-moz-tab-size: var(--tab-size, 4);
+	white-space: pre;
+	overflow-wrap: normal;
+	overflow: auto;
+}
+
+.editor-text.wrap {
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+.editor-mirror {
+	position: absolute;
+	top: 0;
+	left: 0;
+	flex: none;
+	padding: 0;
+	visibility: hidden;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.editor-preview { padding: 1rem; overflow-x: auto; }
+.editor-preview.markdown-body { min-height: 18rem; }
+
+/* Split diff, shown as the preview of a non-markdown file */
+.diff-table {
+	width: 100%;
+	table-layout: fixed;
+	border-collapse: collapse;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+
+.editor-preview:has(.diff-table) { padding: 0; }
+
+.diff-hunk {
+	padding: 0.375rem 0.75rem;
+	background: rgba(47, 129, 247, 0.15);
+	color: var(--text-muted);
+}
+
+col.diff-ln { width: 3.5rem; }
+col.diff-code { width: auto; }
+
+.diff-ln {
+	width: 3.5rem;
+	padding: 0 0.5rem;
+	text-align: right;
+	vertical-align: top;
+	color: var(--text-muted);
+	user-select: none;
+}
+
+.diff-code {
+	width: calc(50% - 3.5rem);
+	padding: 0 0.5rem;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	tab-size: 4;
+	vertical-align: top;
+}
+
+.diff-ln.del, .diff-code.del { background: rgba(248, 81, 73, 0.2); }
+.diff-ln.add, .diff-code.add { background: rgba(63, 185, 80, 0.2); }
+.diff-ln.empty, .diff-code.empty { background: var(--surface2); }
+.diff-code + .diff-ln { border-left: 1px solid var(--border); }
+.diff-note { padding: 0 0.75rem; color: var(--text-muted); font-style: italic; }
+.diff-empty { padding: 2rem; text-align: center; color: var(--text-muted); }
+
+.commit-modal { width: min(520px, 92vw); }
+.commit-modal h3 { margin: 0 0 0.75rem; }
+.commit-modal .form-group { margin-bottom: 0.75rem; }
+.commit-modal label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; }
+
 /* === Commits === */
 .commits-header { margin-bottom: 1rem; }
 

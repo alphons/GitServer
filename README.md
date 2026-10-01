@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.22.4**
+**Current version: 1.23.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -40,6 +40,7 @@ Because your code doesn't belong to anyone else.
 - Download any branch as a ZIP archive
 - Branch and tag overview
 - **Pull requests** — from a branch of the repository or of a fork, with a conversation, the commits and the changed files. Merged on the server without a work tree (git merge-tree), as a **merge commit** or **squashed** into one commit; conflicts are detected and refused. Only those who may push can merge. The source branch is kept in the target as `refs/pull/N/head`, so a pull request stays readable after its fork is deleted. Also through `/api/repos/{owner}/{repo}/pulls`
+- **Web file editor** — an **Edit** button on the file view for text files on a branch, for anyone who may push: a plain editor with line numbers, tabs/spaces and soft-wrap options, and a **Preview** that renders Markdown or shows a side-by-side diff against the original. **Commit changes...** asks for a message and commits straight onto the branch on the server, without a work tree, as the signed-in user (audit log and push webhooks included); CRLF files stay CRLF. If the branch moved while editing, the commit is refused instead of overwriting. Also through `/api/repos/{owner}/{repo}/files`
 - **Git LFS** — push and clone large files with the standard `git lfs` client (batch API, basic transfer). Objects are stored inside the repository's own folder, checked against their SHA-256 on upload, copied along when the repository is forked, and shown and downloaded as the real file in the browser. The same read/write rules as git itself apply; locking is not supported. ZIP downloads contain the LFS pointer files, not the large files
 - **Webhooks** — per repository, a signed JSON `POST` (`X-Hub-Signature-256`, HMAC-SHA256) on **push**, **issues** (opened/closed/reopened), **issue comments** and **pull requests** (opened/closed/reopened/merged), in GitHub's payload shape. Deliveries run in the background, are retried (10 s and 60 s later by default) and the last 50 attempts per hook are listed with their status. By default webhooks may only reach public internet addresses; an admin setting allows the local network. Managed on the repository's **Webhooks** tab or through `/api/repos/{owner}/{repo}/webhooks`
 - **Forking** — anyone who can read a repository can fork it into their own account or a group where they have at least the write role: a full, independent copy of all branches and tags. A fork of a private repository stays private, the fork shows where it came from (only to those who may see the source), and it keeps working as an orphan when the source is deleted. Also available as `POST /api/repos/{owner}/{repo}/fork`

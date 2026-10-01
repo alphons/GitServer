@@ -47,6 +47,29 @@ public record UpdateWebhookRequest(string? Url = null, string? Secret = null, IR
 /// <summary>The id of the queued delivery; its outcome appears in the deliveries list shortly after.</summary>
 public record WebhookPingResponse(Guid DeliveryId);
 
+// ---- Editing files -----------------------------------------------------------------------------------------
+
+/// <summary>A text file as it is on a branch. <see cref="CommitSha"/> is the branch tip it was read from: send it back as
+/// <c>baseSha</c> when committing. <see cref="LineEnding"/> is "lf" or "crlf" and is kept when the file is saved.</summary>
+public record EditableFileResponse(string Content, string CommitSha, string LineEnding);
+
+/// <summary>An edited file to compare with the version at <see cref="BaseSha"/> (default: the branch tip).</summary>
+public record FileDiffRequest(string? Branch, string? Path, string? Content, string? BaseSha = null);
+
+/// <summary>One line of a diff. <see cref="Type"/> is "context", "add", "del" or "note" (e.g. "No newline at end of file").
+/// <see cref="OldNo"/> and <see cref="NewNo"/> are 1-based line numbers, null where the line is absent.</summary>
+public record DiffLineDto(string Type, int? OldNo, int? NewNo, string Text);
+
+/// <summary>A run of changed lines with its surrounding context. <see cref="Header"/> is the "@@ -1,5 +1,6 @@" line.</summary>
+public record DiffHunkDto(string Header, IReadOnlyList<DiffLineDto> Lines);
+
+public record FileDiffResponse(int Additions, int Deletions, IReadOnlyList<DiffHunkDto> Hunks);
+
+/// <summary>Commits an edited file directly on <see cref="Branch"/>. <see cref="BaseSha"/> must still be the branch tip, otherwise 409.</summary>
+public record FileCommitRequest(string? Branch, string? Path, string? Content, string? BaseSha, string? Message, string? Description = null);
+
+public record FileCommitResponse(string CommitSha, string Href);
+
 // ---- Administration ----------------------------------------------------------------------------------------
 
 public record AdminUserDto(

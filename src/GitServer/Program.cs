@@ -62,6 +62,7 @@ builder.Services.AddScoped<RepositoryService>();
 builder.Services.AddScoped<ForkService>();
 builder.Services.AddScoped<LfsStore>();
 builder.Services.AddScoped<PullRequestService>();
+builder.Services.AddScoped<FileEditService>();
 builder.Services.AddScoped<AccessPolicy>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccessTokenService>();

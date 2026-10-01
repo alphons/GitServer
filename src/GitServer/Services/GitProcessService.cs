@@ -41,6 +41,7 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 			RedirectStandardInput = true,
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
+			StandardInputEncoding = new System.Text.UTF8Encoding(false),
 			StandardOutputEncoding = System.Text.Encoding.UTF8,
 			StandardErrorEncoding = System.Text.Encoding.UTF8,
 			UseShellExecute = false,
@@ -583,4 +584,63 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 	/// a push that landed in the meantime makes this fail instead of being overwritten.</summary>
 	public async Task<bool> UpdateRef(string repoPath, string refName, string newSha, string expectedOldSha) =>
 		(await RunGitDetailedAsync(repoPath, ["update-ref", refName, newSha, expectedOldSha])).Ok;
+
+	// ---- Editing files in the browser ----------------------------------------------------------
+
+	/// <summary>The mode (e.g. 100644) and sha of the file at <paramref name="path"/> in <paramref name="commit"/>, or null when
+	/// there is no such file (a directory or submodule does not count).</summary>
+	public async Task<(string Mode, string Sha)?> GetBlobEntry(string repoPath, string commit, string path)
+	{
+		var r = await RunGitDetailedAsync(repoPath, ["ls-tree", "-z", commit, "--", path]);
+		if (!r.Ok) return null;
+		var record = r.Output.Split('\0', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+		var tab = record?.IndexOf('\t') ?? -1;
+		if (record == null || tab < 0) return null;
+		var meta = record[..tab].Split(' ');   // <mode> <type> <sha>
+		return meta.Length == 3 && meta[1] == "blob" && record[(tab + 1)..] == path ? (meta[0], meta[2]) : null;
+	}
+
+	/// <summary>Commits a new version of one existing file on top of <paramref name="parentCommit"/> and returns the new commit
+	/// (nothing is moved yet; see <see cref="UpdateRef"/>). Works on the bare repository through a throw-away index file, without a work tree.</summary>
+	public async Task<string?> CommitFileContent(string repoPath, string parentCommit, string path, string mode, string content,
+		string message, string name, string email)
+	{
+		var blob = await RunGitDetailedAsync(repoPath, ["hash-object", "-w", "--stdin"], content);
+		if (!blob.Ok) return null;
+
+		var indexFile = Path.Combine(Path.GetTempPath(), $"gitserver-{Guid.NewGuid():N}.index");
+		var env = new Dictionary<string, string> { ["GIT_INDEX_FILE"] = indexFile };
+		try
+		{
+			if (!(await RunGitDetailedAsync(repoPath, ["read-tree", parentCommit], env: env)).Ok) return null;
+			if (!(await RunGitDetailedAsync(repoPath, ["update-index", "--cacheinfo", $"{mode},{blob.Output.Trim()},{path}"], env: env)).Ok) return null;
+			var tree = await RunGitDetailedAsync(repoPath, ["write-tree"], env: env);
+			return tree.Ok ? await CommitTree(repoPath, tree.Output.Trim(), [parentCommit], message, name, email) : null;
+		}
+		finally
+		{
+			try { File.Delete(indexFile); } catch (IOException) { /* a leftover temp file is harmless */ }
+		}
+	}
+
+	/// <summary>The unified diff (3 lines of context) between two texts, or null when git failed. Empty when they are equal.</summary>
+	public async Task<string?> DiffText(string repoPath, string oldText, string newText)
+	{
+		var dir = Path.Combine(Path.GetTempPath(), $"gitserver-diff-{Guid.NewGuid():N}");
+		Directory.CreateDirectory(dir);
+		try
+		{
+			var utf8 = new System.Text.UTF8Encoding(false);
+			var oldFile = Path.Combine(dir, "a");
+			var newFile = Path.Combine(dir, "b");
+			await File.WriteAllTextAsync(oldFile, oldText, utf8);
+			await File.WriteAllTextAsync(newFile, newText, utf8);
+			var r = await RunGitDetailedAsync(repoPath, ["diff", "--no-index", "--no-color", "--no-ext-diff", "--text", "-U3", "--", oldFile, newFile]);
+			return r.ExitCode is 0 or 1 ? r.Output : null;   // 1 = the files differ
+		}
+		finally
+		{
+			try { Directory.Delete(dir, true); } catch (IOException) { /* a leftover temp folder is harmless */ }
+		}
+	}
 }
