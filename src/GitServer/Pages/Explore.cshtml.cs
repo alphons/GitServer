@@ -22,7 +22,7 @@ public class ExploreModel(RepositoryService repos, UserManager<AppUser> userMana
 		var userId = userManager.GetUserId(User);
 		var fetched = !string.IsNullOrWhiteSpace(Query)
 			? await repos.SearchAsync(Query, p * PageSize, PageSize + 1, userId)
-			: await repos.GetPublicReposAsync(p * PageSize, PageSize + 1);
+			: await repos.GetPublicReposAsync(p * PageSize, PageSize + 1, userId);
 
 		HasNextPage = fetched.Count > PageSize;
 		Repos = fetched.Take(PageSize).ToList();

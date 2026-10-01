@@ -1,4 +1,4 @@
-using GitServer.Data;
+﻿using GitServer.Data;
 using GitServer.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -150,12 +150,21 @@ public class RepositoryService(AppDbContext db,
 				(r.GroupOwner != null && r.GroupOwner.Name == ownerName)));
 	}
 
-	public async Task<List<Repository>> GetPublicReposAsync(int skip = 0, int take = 20)
+	/// <summary>Public repositories, plus the private ones <paramref name="userId"/> can read (owner, member of the
+	/// owning group, or granted access directly or through a group).</summary>
+	private System.Linq.Expressions.Expression<Func<Repository, bool>> VisibleTo(string? userId) =>
+		r => !r.IsPrivate || (userId != null && (
+			r.OwnerId == userId ||
+			(r.GroupOwner != null && (r.GroupOwner.OwnerId == userId || r.GroupOwner.Members.Any(m => m.UserId == userId))) ||
+			_db.RepositoryAccesses.Any(a => a.RepositoryId == r.Id &&
+				(a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))))));
+
+	public async Task<List<Repository>> GetPublicReposAsync(int skip = 0, int take = 20, string? userId = null)
 	{
 		return await _db.Repositories
 			.Include(r => r.Owner)
 			.Include(r => r.GroupOwner)
-			.Where(r => !r.IsPrivate)
+			.Where(VisibleTo(userId))
 			.OrderByDescending(r => r.UpdatedAt)
 			.Skip(skip)
 			.Take(take)
@@ -260,19 +269,14 @@ public class RepositoryService(AppDbContext db,
 		return await q.OrderByDescending(r => r.UpdatedAt).Skip(skip).Take(take).ToListAsync();
 	}
 
-	/// <summary>Searches public repositories, plus the private ones <paramref name="userId"/> can read
-	/// (owner, member of the owning group, or granted access directly or through a group).</summary>
+	/// <summary>Searches the repositories visible to <paramref name="userId"/> (see <see cref="VisibleTo"/>).</summary>
 	public async Task<List<Repository>> SearchAsync(string query, int skip = 0, int take = 20, string? userId = null)
 	{
 		var lower = query.ToLower();
 		return await _db.Repositories
 			.Include(r => r.Owner)
 			.Include(r => r.GroupOwner)
-			.Where(r => !r.IsPrivate || (userId != null && (
-				r.OwnerId == userId ||
-				(r.GroupOwner != null && (r.GroupOwner.OwnerId == userId || r.GroupOwner.Members.Any(m => m.UserId == userId))) ||
-				_db.RepositoryAccesses.Any(a => a.RepositoryId == r.Id &&
-					(a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId)))))))
+			.Where(VisibleTo(userId))
 			.Where(r => (
 				r.Name.ToLower().Contains(lower) ||
 				(r.Description != null && r.Description.ToLower().Contains(lower)) ||

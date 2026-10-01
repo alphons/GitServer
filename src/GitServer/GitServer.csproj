@@ -5,7 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-		<Version>1.24.0</Version>
+		<Version>1.23.2</Version>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
