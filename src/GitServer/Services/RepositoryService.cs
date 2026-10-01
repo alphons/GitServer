@@ -260,13 +260,20 @@ public class RepositoryService(AppDbContext db,
 		return await q.OrderByDescending(r => r.UpdatedAt).Skip(skip).Take(take).ToListAsync();
 	}
 
-	public async Task<List<Repository>> SearchAsync(string query, int skip = 0, int take = 20)
+	/// <summary>Searches public repositories, plus the private ones <paramref name="userId"/> can read
+	/// (owner, member of the owning group, or granted access directly or through a group).</summary>
+	public async Task<List<Repository>> SearchAsync(string query, int skip = 0, int take = 20, string? userId = null)
 	{
 		var lower = query.ToLower();
 		return await _db.Repositories
 			.Include(r => r.Owner)
 			.Include(r => r.GroupOwner)
-			.Where(r => !r.IsPrivate && (
+			.Where(r => !r.IsPrivate || (userId != null && (
+				r.OwnerId == userId ||
+				(r.GroupOwner != null && (r.GroupOwner.OwnerId == userId || r.GroupOwner.Members.Any(m => m.UserId == userId))) ||
+				_db.RepositoryAccesses.Any(a => a.RepositoryId == r.Id &&
+					(a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId)))))))
+			.Where(r => (
 				r.Name.ToLower().Contains(lower) ||
 				(r.Description != null && r.Description.ToLower().Contains(lower)) ||
 				(r.Owner != null && r.Owner.UserName!.ToLower().Contains(lower)) ||
