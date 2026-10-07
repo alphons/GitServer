@@ -77,7 +77,7 @@ public class AdminGitApiController(
 		return progress;
 	}
 
-	/// <summary>Lists the entries of one subdirectory of an installation's mingw64\share\licenses folder (the only part of a
+	/// <summary>Lists the entries of one subdirectory of an installation's share\licenses folder (under mingw64 or ucrt64) (the only part of a
 	/// trimmed install kept around), for the license browser. <paramref name="path"/> is relative to that folder and
 	/// confined there: it can go deeper, never above it (see ResolveSafePath). Directories come first.</summary>
 	[HttpGet("installations/{id:int}/entries")]

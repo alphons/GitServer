@@ -34,7 +34,7 @@ public class TestGitExecutablePathProvider : IGitExecutablePathProvider
 			{
 				foreach (var versionDir in Directory.GetDirectories(installRoot))
 				{
-					var candidate = Path.Combine(versionDir, "mingw64", "bin", "git.exe");
+					var candidate = GitServer.Services.GitInstallerService.GetGitExePath(versionDir);
 					if (File.Exists(candidate) && Works(candidate))
 						return candidate;
 				}

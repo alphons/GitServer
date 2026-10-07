@@ -34,10 +34,17 @@ public class GitInstallerService(
 	/// from the distribution except mingw64\bin itself (git.exe's DLLs and the actual subcommand
 	/// binaries live there) — cmd\, mingw64\libexec (submodule/subtree/mergetool scripts we never
 	/// call), mingw64\doc, etc\ and usr\ can all go. mingw64\share\licenses is kept for attribution.</summary>
-	public static string GetGitExePath(string installPath) => Path.Combine(installPath, "mingw64", "bin", "git.exe");
+	public static string GetGitExePath(string installPath) => Path.Combine(GetPrefixPath(installPath), "bin", "git.exe");
+
+	/// <summary>The toolchain folder of a MinGit distribution: mingw64 up to git 2.55, ucrt64 from 2.56 on
+	/// (clangarm64 in older arm64 builds). Falls back to mingw64 when none exists yet.</summary>
+	private static readonly string[] PrefixFolders = ["ucrt64", "mingw64", "clangarm64"];
+
+	public static string GetPrefixPath(string installPath) =>
+		Path.Combine(installPath, PrefixFolders.FirstOrDefault(f => Directory.Exists(Path.Combine(installPath, f))) ?? "mingw64");
 
 	/// <summary>The only part of a trimmed install kept for the admin "view licenses" browser.</summary>
-	public static string GetLicensesPath(string installPath) => Path.Combine(installPath, "mingw64", "share", "licenses");
+	public static string GetLicensesPath(string installPath) => Path.Combine(GetPrefixPath(installPath), "share", "licenses");
 
 	private static readonly string[] RemovableBinPatterns =
 	[
@@ -107,7 +114,7 @@ public class GitInstallerService(
 
 			var gitExePath = GetGitExePath(installPath);
 			if (!File.Exists(gitExePath))
-				throw new GitInstallException($"Extracted archive did not contain mingw64\\bin\\git.exe.");
+				throw new GitInstallException("Extracted archive did not contain bin\\git.exe in a mingw64 or ucrt64 folder.");
 
 			var actualVersion = await GetExecutableVersionAsync(gitExePath, ct);
 			logger.LogInformation("Installed MinGit {tag} at {path}, reports version {version}", release.TagName, installPath, actualVersion);
@@ -195,13 +202,13 @@ public class GitInstallerService(
 			Directory.Delete(installation.InstallPath, recursive: true);
 	}
 
-	/// <summary>Strips the extracted MinGit distribution down to just mingw64\bin (git.exe, its
+	/// <summary>Strips the extracted MinGit distribution down to just {prefix}\bin (git.exe, its
 	/// runtime DLLs and the actual subcommand binaries — everything our stateless-rpc/plumbing-only
-	/// usage needs) plus mingw64\share\licenses (kept for attribution). Everything else — cmd\, the
+	/// usage needs) plus {prefix}\share\licenses (kept for attribution). Everything else — cmd\, the
 	/// libexec scripts, docs, etc\, usr\ — is deleted.</summary>
 	private void RemoveUnneededFiles(string installPath)
 	{
-		var mingw64Path = Path.Combine(installPath, "mingw64");
+		var mingw64Path = GetPrefixPath(installPath);
 
 		foreach (var entry in Directory.GetFileSystemEntries(installPath))
 		{
