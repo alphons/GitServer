@@ -139,6 +139,22 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
+	public async Task AnAccessToken_WorksAsABearerToken_OnTheApi_ButCannotManageKeys()
+	{
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		await factory.CreateRepoAsync(alice, "secret", isPrivate: true);
+		var token = await factory.UseServicesAsync(sp => sp.GetRequiredService<AccessTokenService>().CreateAsync(alice, "ci", null));
+		var client = factory.NewClient();
+		client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+		Assert.Equal(new[] { "secret" }, await RepoNamesAsync(await client.GetAsync(Repos(alice))));
+		Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync(KeysApi, new { name = "x", readOnly = false })).StatusCode);
+
+		client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "gsp_wrong");
+		Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(Repos(alice))).StatusCode);
+	}
+
+	[Fact]
 	public async Task AKey_CanBeDisabledAndEnabledAgain_AndDeleted()
 	{
 		var alice = await factory.CreateUserAsync(Unique("alice"));

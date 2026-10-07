@@ -18,9 +18,8 @@ public static class ApiKeyAuthentication
 	public const string ReadOnlyClaim = "gitserver:apikey-readonly";
 	private const string SmartScheme = "GitServer";
 
-	/// <summary>The key a request presents, in the X-Api-Key header or as "Authorization: Bearer gsk_...", or null if it
-	/// presents none. Other bearer values (such as a git access token, gsp_..., which GitAuthMiddleware handles on git
-	/// URLs) are not API keys and are left alone here.</summary>
+	/// <summary>The credential a request presents, in the X-Api-Key header or as "Authorization: Bearer ...", or null if it
+	/// presents none. A bearer value is an API key (gsk_...) or a personal access token (gsp_...); anything else is left alone.</summary>
 	public static string? GetPresentedKey(this HttpRequest request)
 	{
 		if (request.Headers.TryGetValue(ApiKeyService.HeaderName, out var header)) return header.ToString().Trim();
@@ -29,7 +28,7 @@ public static class ApiKeyAuthentication
 		if (authorization != null && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
 		{
 			var value = authorization["Bearer ".Length..].Trim();
-			if (value.StartsWith(ApiKeyService.Prefix, StringComparison.Ordinal)) return value;
+			if (value.StartsWith(ApiKeyService.Prefix, StringComparison.Ordinal) || AccessTokenService.LooksLikeToken(value)) return value;
 		}
 		return null;
 	}
@@ -57,7 +56,7 @@ public static class ApiKeyAuthentication
 
 public class ApiKeyAuthenticationHandler(
 	IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder,
-	ApiKeyService apiKeys, SignInManager<AppUser> signInManager)
+	ApiKeyService apiKeys, AccessTokenService tokens, SignInManager<AppUser> signInManager)
 	: AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -65,13 +64,26 @@ public class ApiKeyAuthenticationHandler(
 		var presented = Request.GetPresentedKey();
 		if (presented == null) return AuthenticateResult.NoResult();
 
-		var found = await apiKeys.AuthenticateAsync(presented);
-		if (found == null) return AuthenticateResult.Fail("Invalid API key.");
+		AppUser? owner;
+		var readOnly = false;
+		if (AccessTokenService.LooksLikeToken(presented))
+		{
+			// A personal access token acts as its owner, like it does on git. It can be used on the API as a bearer token only.
+			owner = await tokens.AuthenticateAsync(presented);
+			if (owner != null && (!owner.EmailConfirmed || (owner.LockoutEnd.HasValue && owner.LockoutEnd > DateTimeOffset.UtcNow))) owner = null;
+		}
+		else
+		{
+			var found = await apiKeys.AuthenticateAsync(presented);
+			owner = found?.User;
+			readOnly = found?.ReadOnly == true;
+		}
+		if (owner == null) return AuthenticateResult.Fail("Invalid API key or token.");
 
 		// Same claims as a cookie sign-in, so every controller sees the key's owner as the current user.
-		var principal = await signInManager.CreateUserPrincipalAsync(found.User);
+		var principal = await signInManager.CreateUserPrincipalAsync(owner);
 		var identity = new ClaimsIdentity(principal.Claims, ApiKeyAuthentication.Scheme);
-		if (found.ReadOnly) identity.AddClaim(new Claim(ApiKeyAuthentication.ReadOnlyClaim, "true"));
+		if (readOnly) identity.AddClaim(new Claim(ApiKeyAuthentication.ReadOnlyClaim, "true"));
 		return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name));
 	}
 }

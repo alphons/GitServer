@@ -23,7 +23,7 @@ public static class OpenApiExtensions
 					Version = typeof(OpenApiExtensions).Assembly.GetName().Version?.ToString(3) ?? "1",
 					Description = "JSON API of GitServer. Authenticate with an API key in the " + ApiKeyService.HeaderName +
 						" header, or as \"Authorization: Bearer gsk_...\" (create one under Dashboard > User > API keys); the key acts as its owner. " +
-							"Git access tokens (gsp_...) are not accepted here. " +
+							"A personal access token (gsp_..., Dashboard > User > Access tokens) is accepted as a bearer token too and acts as its owner, never as read-only. " +
 						"The site's own pages use the sign-in cookie plus an antiforgery token instead. " +
 						"Only GET and POST are used.",
 				};
@@ -41,7 +41,7 @@ public static class OpenApiExtensions
 				{
 					Type = SecuritySchemeType.Http,
 					Scheme = "bearer",
-					Description = "The same personal API key (gsk_...) as a bearer token.",
+					Description = "A personal API key (gsk_...) or a personal access token (gsp_...) as a bearer token.",
 				};
 				document.Security =
 				[
