@@ -19,8 +19,8 @@ public static class ApiKeyAuthentication
 	private const string SmartScheme = "GitServer";
 
 	/// <summary>The key a request presents, in the X-Api-Key header or as "Authorization: Bearer gsk_...", or null if it
-	/// presents none. A Bearer value that looks like a git access token (gsp_...) counts too, so that it is refused
-	/// rather than treated as anonymous: those tokens do not work on the API.</summary>
+	/// presents none. Other bearer values (such as a git access token, gsp_..., which GitAuthMiddleware handles on git
+	/// URLs) are not API keys and are left alone here.</summary>
 	public static string? GetPresentedKey(this HttpRequest request)
 	{
 		if (request.Headers.TryGetValue(ApiKeyService.HeaderName, out var header)) return header.ToString().Trim();
@@ -29,7 +29,7 @@ public static class ApiKeyAuthentication
 		if (authorization != null && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
 		{
 			var value = authorization["Bearer ".Length..].Trim();
-			if (value.StartsWith(ApiKeyService.Prefix, StringComparison.Ordinal) || AccessTokenService.LooksLikeToken(value)) return value;
+			if (value.StartsWith(ApiKeyService.Prefix, StringComparison.Ordinal)) return value;
 		}
 		return null;
 	}

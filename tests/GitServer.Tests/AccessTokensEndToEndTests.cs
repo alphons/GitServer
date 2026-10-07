@@ -52,6 +52,20 @@ public class AccessTokensEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
+	public async Task ATokenCanBeSentAsABearerHeader_WithoutAUsername_ThroughTheWholePipeline()
+	{
+		var user = await _f.CreateUserAsync(Unique("bearer"));
+		await _f.CreateRepoAsync(user, "secret", isPrivate: true);
+		var token = await CreateTokenAsync(user);
+
+		var request = Get($"/git/{user.UserName}/secret.git/info/refs?service=git-upload-pack", "Bearer " + token);
+		Assert.Equal(HttpStatusCode.OK, (await _f.NewClient().SendAsync(request)).StatusCode);
+
+		var wrong = Get($"/git/{user.UserName}/secret.git/info/refs?service=git-upload-pack", "Bearer gsp_wrong");
+		Assert.Equal(HttpStatusCode.Unauthorized, (await _f.NewClient().SendAsync(wrong)).StatusCode);
+	}
+
+	[Fact]
 	public async Task ATokenCanBeUsedToPush_ButOnlyWhereTheUserMayWrite()
 	{
 		var user = await _f.CreateUserAsync(Unique("pusher"));

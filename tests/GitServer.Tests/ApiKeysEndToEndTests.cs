@@ -133,7 +133,7 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	{
 		var alice = await factory.CreateUserAsync(Unique("alice"));
 		var session = await AsAsync(alice);
-		session.Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value);
+		session.Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "gsk_notarealkey");
 
 		Assert.Equal(HttpStatusCode.Unauthorized, (await session.GetAsync(Repos(alice))).StatusCode);
 	}
