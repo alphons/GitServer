@@ -105,6 +105,40 @@ public class ApiKeysEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
+	public async Task AKey_AlsoWorksAsABearerToken_AndAReadOnlyKeyStaysReadOnly()
+	{
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		await factory.CreateRepoAsync(alice, "secret", isPrivate: true);
+		var session = await AsAsync(alice);
+		var (_, key) = await CreateKeyAsync(session);
+		var (_, readOnlyKey) = await CreateKeyAsync(session, "ro", readOnly: true);
+
+		HttpClient WithBearer(string value)
+		{
+			var client = factory.NewClient();
+			client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value);
+			return client;
+		}
+
+		Assert.Equal(new[] { "secret" }, await RepoNamesAsync(await WithBearer(key).GetAsync(Repos(alice))));
+		Assert.Equal(HttpStatusCode.OK, (await WithBearer(readOnlyKey).GetAsync(Repos(alice))).StatusCode);
+		Assert.Equal(HttpStatusCode.Forbidden,
+			(await WithBearer(readOnlyKey).PostAsJsonAsync(KeysApi, new { name = "x", readOnly = false })).StatusCode);
+	}
+
+	[Theory]
+	[InlineData("gsk_notarealkey")]
+	[InlineData("gsp_a-git-access-token")]
+	public async Task ABearerKeyThatIsWrong_OrAGitToken_IsRefused_EvenNextToAValidSession(string value)
+	{
+		var alice = await factory.CreateUserAsync(Unique("alice"));
+		var session = await AsAsync(alice);
+		session.Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", value);
+
+		Assert.Equal(HttpStatusCode.Unauthorized, (await session.GetAsync(Repos(alice))).StatusCode);
+	}
+
+	[Fact]
 	public async Task AKey_CanBeDisabledAndEnabledAgain_AndDeleted()
 	{
 		var alice = await factory.CreateUserAsync(Unique("alice"));

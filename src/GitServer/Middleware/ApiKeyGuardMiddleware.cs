@@ -4,14 +4,14 @@ using GitServer.Services;
 
 namespace GitServer.Middleware;
 
-/// <summary>Enforces the rules for requests that carry an X-Api-Key header, on every endpoint:
+/// <summary>Enforces the rules for requests that carry an API key (X-Api-Key or Bearer), on every endpoint:
 /// a key that did not authenticate is refused (401) instead of being treated as anonymous, and a
 /// read-only key may not use anything but safe methods (403).</summary>
 public class ApiKeyGuardMiddleware(RequestDelegate next)
 {
 	public async Task InvokeAsync(HttpContext context, LocalizationService localization)
 	{
-		if (!context.Request.Headers.ContainsKey(ApiKeyService.HeaderName))
+		if (context.Request.GetPresentedKey() == null)
 		{
 			await next(context);
 			return;

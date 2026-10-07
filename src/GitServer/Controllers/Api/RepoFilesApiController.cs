@@ -50,7 +50,7 @@ public class RepoFilesApiController(FileEditService files, UserManager<AppUser> 
 
 	/// <summary>Commits the edited file as a new commit on the branch. Answers 409 when the branch has moved since
 	/// <c>baseSha</c>; the edit is then not saved and has to be redone on the new version.</summary>
-	[HttpPut]
+	[HttpPost("commit")]
 	[RequestSizeLimit(4_194_304)]
 	[ProducesResponseType<FileCommitResponse>(StatusCodes.Status200OK)]
 	[ProducesResponseType<ErrorResponse>(StatusCodes.Status409Conflict)]

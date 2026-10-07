@@ -34,6 +34,9 @@ public partial class OpenApiEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal("apiKey", scheme.GetProperty("type").GetString());
 		Assert.Equal("X-Api-Key", scheme.GetProperty("name").GetString());
 		Assert.Equal("header", scheme.GetProperty("in").GetString());
+		var bearer = document.GetProperty("components").GetProperty("securitySchemes").GetProperty("Bearer");
+		Assert.Equal("http", bearer.GetProperty("type").GetString());
+		Assert.Equal("bearer", bearer.GetProperty("scheme").GetString());
 		Assert.Equal("GitServer API", document.GetProperty("info").GetProperty("title").GetString());
 	}
 

@@ -419,7 +419,7 @@
 		dlgOk.innerHTML = '<span class="btn-spinner"></span>';
 		dlgOk.appendChild(document.createTextNode(label));
 
-		call('PUT', api, {
+		call('POST', api + '/commit', {
 			branch, path, content: ta.value, baseSha,
 			message: dlgMessage.value.trim(), description: dlgDescription.value.trim() || null,
 		}).then((result) => {

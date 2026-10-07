@@ -18,8 +18,24 @@ public static class ApiKeyAuthentication
 	public const string ReadOnlyClaim = "gitserver:apikey-readonly";
 	private const string SmartScheme = "GitServer";
 
-	/// <summary>Requests that carry an X-Api-Key header are authenticated as the key's owner; every other request
-	/// keeps using the sign-in cookie. A wrong key never falls back to the cookie.</summary>
+	/// <summary>The key a request presents, in the X-Api-Key header or as "Authorization: Bearer gsk_...", or null if it
+	/// presents none. A Bearer value that looks like a git access token (gsp_...) counts too, so that it is refused
+	/// rather than treated as anonymous: those tokens do not work on the API.</summary>
+	public static string? GetPresentedKey(this HttpRequest request)
+	{
+		if (request.Headers.TryGetValue(ApiKeyService.HeaderName, out var header)) return header.ToString().Trim();
+
+		var authorization = request.Headers.Authorization.FirstOrDefault();
+		if (authorization != null && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+		{
+			var value = authorization["Bearer ".Length..].Trim();
+			if (value.StartsWith(ApiKeyService.Prefix, StringComparison.Ordinal) || AccessTokenService.LooksLikeToken(value)) return value;
+		}
+		return null;
+	}
+
+	/// <summary>Requests that carry an API key (see <see cref="GetPresentedKey"/>) are authenticated as the key's owner; every other
+	/// request keeps using the sign-in cookie. A wrong key never falls back to the cookie.</summary>
 	public static IServiceCollection AddGitServerApiKeys(this IServiceCollection services)
 	{
 		services.AddAuthentication(o =>
@@ -30,7 +46,7 @@ public static class ApiKeyAuthentication
 			})
 			.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(Scheme, null)
 			.AddPolicyScheme(SmartScheme, null, o => o.ForwardDefaultSelector = ctx =>
-				ctx.Request.Headers.ContainsKey(ApiKeyService.HeaderName) ? Scheme : IdentityConstants.ApplicationScheme);
+				ctx.Request.GetPresentedKey() != null ? Scheme : IdentityConstants.ApplicationScheme);
 		return services;
 	}
 
@@ -46,9 +62,10 @@ public class ApiKeyAuthenticationHandler(
 {
 	protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
 	{
-		if (!Request.Headers.TryGetValue(ApiKeyService.HeaderName, out var header)) return AuthenticateResult.NoResult();
+		var presented = Request.GetPresentedKey();
+		if (presented == null) return AuthenticateResult.NoResult();
 
-		var found = await apiKeys.AuthenticateAsync(header.ToString().Trim());
+		var found = await apiKeys.AuthenticateAsync(presented);
 		if (found == null) return AuthenticateResult.Fail("Invalid API key.");
 
 		// Same claims as a cookie sign-in, so every controller sees the key's owner as the current user.

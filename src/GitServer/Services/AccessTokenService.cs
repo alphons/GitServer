@@ -57,6 +57,23 @@ public class AccessTokenService(AppDbContext db)
 		return true;
 	}
 
+	/// <summary>The owner of a live token, or null if the token is unknown or expired. Marks it as used.</summary>
+	public async Task<AppUser?> AuthenticateAsync(string token)
+	{
+		if (!LooksLikeToken(token)) return null;
+
+		var hash = Hash(token);
+		var stored = await db.AccessTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash);
+		if (stored == null || (stored.ExpiresAt.HasValue && stored.ExpiresAt <= DateTime.UtcNow)) return null;
+
+		if (stored.LastUsedAt == null || stored.LastUsedAt < DateTime.UtcNow.AddMinutes(-1))
+		{
+			stored.LastUsedAt = DateTime.UtcNow;
+			await db.SaveChangesAsync();
+		}
+		return stored.User;
+	}
+
 	public Task RevokeAllAsync(string userId) =>
 		db.AccessTokens.Where(t => t.UserId == userId).ExecuteDeleteAsync();
 }

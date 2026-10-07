@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.23.2**
+**Current version: 1.25.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -99,7 +99,7 @@ The check applies when a name is created or changed; existing accounts and group
 ### JSON API
 Everything the dashboard does through JavaScript is a plain JSON API under `/api`, usable from scripts too.
 
-- **Authentication:** send an API key in the `X-Api-Key` header (create one under **Dashboard → User → API keys**). The key acts as its owner, with the owner's rights — except that a key cannot manage API keys. A wrong, disabled or expired key always gets `401`. A **read-only** key may only use `GET`; anything else gets `403`.
+- **Authentication:** send an API key in the `X-Api-Key` header or as `Authorization: Bearer gsk_...` (create one under **Dashboard → User → API keys**). The key acts as its owner, with the owner's rights — except that a key cannot manage API keys. A wrong, disabled or expired key always gets `401`. A **read-only** key may only use `GET`; anything else gets `403`.
 - **Limits:** per IP address, 300 requests a minute by default (`ApiRequestsPerMinute`); beyond that the API answers `429` with a `Retry-After` header.
 - **Verbs:** only `GET` and `POST` are used (`POST /api/…/{id}/update`, `…/{id}/delete`).
 - **Documentation:** the OpenAPI description, with typed request/response shapes and per-endpoint summaries, is served at **`/api/openapi.json`**.
@@ -117,7 +117,7 @@ curl -H "X-Api-Key: gsk_..." https://git.yourdomain.com/api/users/alice/repos
 ### Security
 - CSRF protection on all forms and on every state-changing API call made from the site (API-key calls carry no cookie, so they need none)
 - Secure HTTP-only cookies with configurable expiry
-- Git push/pull protected by Basic Authentication (password or access token)
+- Git push/pull protected by Basic Authentication (password or access token) or `Authorization: Bearer <access token>`
 - API keys and access tokens are stored as hashes only and shown once, when created
 - Temporary lockout after repeated failed logins (`MaxFailedLoginAttempts`, `LoginLockoutMinutes`)
 - Per-IP rate limits on the JSON API and on the sign-in, registration and password-reset forms (`ApiRequestsPerMinute`, `AuthRequestsPerMinute`); rejected requests get `429` with `Retry-After`

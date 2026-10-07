@@ -228,6 +228,66 @@ public class GitAuthMiddlewareTests : IDisposable
 	}
 
 	[Fact]
+	public async Task BearerToken_LetsTheOwnerIn_WithoutAUsername_AndForPushToo()
+	{
+		var alice = await _h.AddUserAsync("alice");
+		_h.World.AddRepo(alice, "secret", isPrivate: true);
+		var token = await _h.Tokens.CreateAsync(alice, "ci", null);
+
+		var clone = await _h.CloneAsync("alice", "secret", "Bearer " + token);
+		Assert.True(_h.NextWasCalled);
+		Assert.Equal(alice.Id, ((AppUser)clone.Items["GitUser"]!).Id);
+
+		await _h.PushAsync("alice", "secret", "bearer " + token);
+		Assert.True(_h.NextWasCalled);
+	}
+
+	[Fact]
+	public async Task BearerToken_ThatIsExpired_Revoked_OrNotAToken_Is401WithABasicChallenge()
+	{
+		var alice = await _h.AddUserAsync("alice");
+		_h.World.AddRepo(alice, "secret", isPrivate: true);
+
+		var expired = await _h.Tokens.CreateAsync(alice, "old", 1);
+		var stored = _h.World.Db.AccessTokens.Single();
+		stored.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+		await _h.World.Db.SaveChangesAsync();
+
+		var revoked = await _h.Tokens.CreateAsync(alice, "gone", null);
+		await _h.Tokens.RevokeAsync(alice.Id, _h.World.Db.AccessTokens.Single(t => t.Name == "gone").Id);
+
+		foreach (var header in new[] { "Bearer " + expired, "Bearer " + revoked, "Bearer gsk_notakey", "Bearer nonsense", "Bearer " })
+		{
+			var context = await _h.CloneAsync("alice", "secret", header);
+			Assert.Equal(401, context.Response.StatusCode);
+			Assert.Equal("Basic realm=\"GitServer\"", Challenge(context));
+			Assert.False(_h.NextWasCalled);
+		}
+	}
+
+	[Fact]
+	public async Task BearerToken_OfADisabledAccount_Is401()
+	{
+		var alice = await _h.AddUserAsync("alice");
+		_h.World.AddRepo(alice, "secret", isPrivate: true);
+		var token = await _h.Tokens.CreateAsync(alice, "ci", null);
+		await _h.DisableAsync(alice);
+
+		Assert.Equal(401, (await _h.CloneAsync("alice", "secret", "Bearer " + token)).Response.StatusCode);
+	}
+
+	[Fact]
+	public async Task BearerToken_OfAnotherUser_IsIdentified_SoTheRepoIsForbidden()
+	{
+		var alice = await _h.AddUserAsync("alice");
+		var mallory = await _h.AddUserAsync("mallory");
+		_h.World.AddRepo(alice, "secret", isPrivate: true);
+		var token = await _h.Tokens.CreateAsync(mallory, "ci", null);
+
+		Assert.Equal(403, (await _h.CloneAsync("alice", "secret", "Bearer " + token)).Response.StatusCode);
+	}
+
+	[Fact]
 	public async Task AuthenticatedButUnauthorised_Is403_NotAnotherChallenge()
 	{
 		var alice = await _h.AddUserAsync("alice");

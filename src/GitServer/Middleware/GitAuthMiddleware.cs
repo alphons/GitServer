@@ -89,7 +89,7 @@ public class GitAuthMiddleware(RequestDelegate next)
 
 		AppUser? authedUser = null;
 
-		// Try Basic auth
+		// Try Basic or Bearer auth
 		// The first header only: a client can send it twice (git-lfs repeats it from both its config and the batch response),
 		// and joined together the two would no longer parse.
 		var authHeader = context.Request.Headers.Authorization.FirstOrDefault() ?? "";
@@ -122,6 +122,12 @@ public class GitAuthMiddleware(RequestDelegate next)
 				}
 			}
 			catch { /* invalid base64 */ }
+		}
+		else if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+		{
+			// The token alone identifies the user; no username needed.
+			var found = await tokens.AuthenticateAsync(authHeader["Bearer ".Length..].Trim());
+			if (found != null && !found.IsDisabled) authedUser = found;
 		}
 
 		var settings = await siteSettings.GetAsync();
