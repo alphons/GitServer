@@ -51,7 +51,8 @@ public sealed class BrowserFixture : IAsyncLifetime
 			await page.ClickAsync("form button[type=submit]");
 			// Only the redirect matters here, not the next page's "load" event: that waits for external resources too
 			// (Gravatar avatars, cdnjs), and one slow request on a CI runner used to time the whole test out.
-			await page.WaitForURLAsync(url => !url.Contains("/Auth/Login"), new() { WaitUntil = WaitUntilState.Commit });
+			// WaitForURLAsync is no use for that: once the URL matches it still waits for a load state (even with Commit).
+			await page.WaitForFunctionAsync("() => !location.pathname.includes('/Auth/Login')");
 		}
 		return page;
 	}
