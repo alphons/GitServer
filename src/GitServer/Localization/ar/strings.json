@@ -322,6 +322,7 @@
   "admin_gitversion_active": "نشط",
   "admin_gitversion_missing": "الملفات مفقودة من القرص",
   "admin_gitversion_browse": "عرض التراخيص",
+  "admin_gitversion_reinstall": "إعادة التثبيت",
   "admin_gitversion_back": "رجوع",
   "admin_gitversion_file_too_large": "الملف كبير جدًا لعرض المعاينة.",
   "admin_gitversion_file_binary": "ملف ثنائي، لا يمكن معاينته كنص.",

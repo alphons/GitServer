@@ -321,6 +321,7 @@
   "admin_gitversion_active": "Activa",
   "admin_gitversion_missing": "Faltan archivos en el disco",
   "admin_gitversion_browse": "Ver licencias",
+  "admin_gitversion_reinstall": "Reinstalar",
   "admin_gitversion_back": "Atrás",
   "admin_gitversion_file_too_large": "El archivo es demasiado grande para previsualizar.",
   "admin_gitversion_file_binary": "Archivo binario, no se puede previsualizar como texto.",

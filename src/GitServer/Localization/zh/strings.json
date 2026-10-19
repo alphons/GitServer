@@ -322,6 +322,7 @@
   "admin_gitversion_active": "使用中",
   "admin_gitversion_missing": "磁盘上文件缺失",
   "admin_gitversion_browse": "查看许可证",
+  "admin_gitversion_reinstall": "重新安装",
   "admin_gitversion_back": "返回",
   "admin_gitversion_file_too_large": "文件过大，无法预览。",
   "admin_gitversion_file_binary": "二进制文件，无法以文本形式预览。",

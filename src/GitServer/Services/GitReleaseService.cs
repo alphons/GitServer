@@ -30,6 +30,21 @@ public class GitReleaseService(IHttpClientFactory httpClientFactory, IOptions<Gi
 		return ParseRelease(doc.RootElement, AssetPattern);
 	}
 
+	public async Task<GitRelease?> GetReleaseByTagAsync(string tagName, CancellationToken ct = default)
+	{
+		using var client = CreateClient();
+		using var response = await client.GetAsync($"{ReleasesUrl}/tags/{tagName}", ct);
+		if (!response.IsSuccessStatusCode)
+		{
+			logger.LogWarning("GitHub releases/tags/{tag} returned {status}", tagName, response.StatusCode);
+			return null;
+		}
+
+		using var stream = await response.Content.ReadAsStreamAsync(ct);
+		var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+		return ParseRelease(doc.RootElement, AssetPattern);
+	}
+
 	public async Task<List<GitRelease>> ListReleasesAsync(int count, CancellationToken ct = default)
 	{
 		using var client = CreateClient();

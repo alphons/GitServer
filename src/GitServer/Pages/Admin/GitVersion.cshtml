@@ -44,6 +44,9 @@
 			else
 			{
 				<span class="text-muted">(@L["admin_gitversion_already_installed"])</span>
+				<button type="button" class="btn btn-sm btn-ghost reinstall-btn"
+						data-installation-id="@Model.Installations.First(i => i.TagName == Model.LatestRelease.TagName).Id"
+						data-error-start="@L["admin_gitversion_install_start_failed"]" data-error-failed="@L["admin_gitversion_install_failed"]">@L["admin_gitversion_reinstall"]</button>
 			}
 		</p>
 	}
@@ -97,6 +100,9 @@
 								<button type="button" class="btn btn-sm btn-ghost browse-btn"
 										data-installation-id="@installation.Id">@L["admin_gitversion_browse"]</button>
 							}
+							<button type="button" class="btn btn-sm btn-ghost reinstall-btn"
+									data-installation-id="@installation.Id"
+									data-error-start="@L["admin_gitversion_install_start_failed"]" data-error-failed="@L["admin_gitversion_install_failed"]">@L["admin_gitversion_reinstall"]</button>
 							@if (!installation.IsActive || !filesPresent)
 							{
 								<form method="post" asp-page-handler="Delete" style="display:inline">

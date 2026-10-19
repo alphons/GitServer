@@ -322,6 +322,7 @@
   "admin_gitversion_active": "Активна",
   "admin_gitversion_missing": "Файлы отсутствуют на диске",
   "admin_gitversion_browse": "Просмотреть лицензии",
+  "admin_gitversion_reinstall": "Переустановить",
   "admin_gitversion_back": "Назад",
   "admin_gitversion_file_too_large": "Файл слишком большой для предпросмотра.",
   "admin_gitversion_file_binary": "Двоичный файл, предпросмотр как текста невозможен.",

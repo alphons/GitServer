@@ -322,6 +322,7 @@
   "admin_gitversion_active": "有効",
   "admin_gitversion_missing": "ディスク上にファイルがありません",
   "admin_gitversion_browse": "ライセンスを表示",
+  "admin_gitversion_reinstall": "再インストール",
   "admin_gitversion_back": "戻る",
   "admin_gitversion_file_too_large": "ファイルが大きすぎてプレビューできません。",
   "admin_gitversion_file_binary": "バイナリファイルのためテキストとしてプレビューできません。",

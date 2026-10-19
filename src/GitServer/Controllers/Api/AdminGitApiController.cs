@@ -77,6 +77,42 @@ public class AdminGitApiController(
 		return progress;
 	}
 
+	/// <summary>Re-downloads and re-extracts an already-installed version over itself (e.g. to pick up a fix to the
+	/// install logic an existing install predates), in the background; poll <c>GET installs/{jobId}</c> as with a
+	/// normal install.</summary>
+	[HttpPost("installations/{id:int}/reinstall")]
+	[ProducesResponseType<StartInstallResponse>(StatusCodes.Status200OK)]
+	[ProducesResponseType<ErrorResponse>(StatusCodes.Status409Conflict)]
+	public async Task<ActionResult<StartInstallResponse>> Reinstall(int id)
+	{
+		if (!await IsAdminAsync()) return Forbid();
+		if (!pathProvider.IsManagedByInstaller) return Conflict(new ErrorResponse(GitInstallerService.SystemManagedMessage));
+
+		var installation = await db.GitInstallations.FindAsync(id);
+		if (installation == null) return NotFound();
+
+		var jobId = progressTracker.Start();
+		await audit.WriteAsync("git.reinstall", installation.TagName);
+
+		_ = Task.Run(async () =>
+		{
+			using var scope = scopeFactory.CreateScope();
+			var installer = scope.ServiceProvider.GetRequiredService<GitInstallerService>();
+
+			try
+			{
+				var reinstalled = await installer.ReinstallAsync(id);
+				progressTracker.Complete(jobId, reinstalled.Version);
+			}
+			catch (Exception ex)
+			{
+				progressTracker.Fail(jobId, ex is GitInstallException ? ex.Message : "Reinstall failed.");
+			}
+		});
+
+		return new StartInstallResponse(jobId);
+	}
+
 	/// <summary>Lists the entries of one subdirectory of an installation's share\licenses folder (under mingw64 or ucrt64) (the only part of a
 	/// trimmed install kept around), for the license browser. <paramref name="path"/> is relative to that folder and
 	/// confined there: it can go deeper, never above it (see ResolveSafePath). Directories come first.</summary>

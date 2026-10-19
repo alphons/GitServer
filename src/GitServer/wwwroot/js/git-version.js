@@ -3,7 +3,8 @@ var apiBase = '/api/admin/git';
 document.addEventListener('DOMContentLoaded', function () {
 	(function () {
 		var installBtn = document.getElementById('install-btn');
-		if (!installBtn) return;
+		var reinstallBtns = document.querySelectorAll('.reinstall-btn');
+		if (!installBtn && !reinstallBtns.length) return;
 
 		var progressBox = document.getElementById('install-progress');
 		var progressBar = document.getElementById('install-progress-bar');
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 		}
 
-		function poll(jobId) {
+		function poll(jobId, btn) {
 			fetch(apiBase + '/installs/' + encodeURIComponent(jobId))
 				.then(function (r) { return r.json(); })
 				.then(function (p) {
@@ -32,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
 						if (p.failed) {
 							progressBox.hidden = true;
 							errorBox.hidden = false;
-							errorBox.textContent = p.error || installBtn.dataset.errorFailed;
-							installBtn.disabled = false;
+							errorBox.textContent = p.error || btn.dataset.errorFailed;
+							btn.disabled = false;
 						} else {
 							progressText.textContent = '100%';
 							window.location.reload();
@@ -41,33 +42,45 @@ document.addEventListener('DOMContentLoaded', function () {
 						return;
 					}
 
-					setTimeout(function () { poll(jobId); }, 500);
+					setTimeout(function () { poll(jobId, btn); }, 500);
 				})
 				.catch(function () {
-					setTimeout(function () { poll(jobId); }, 1000);
+					setTimeout(function () { poll(jobId, btn); }, 1000);
 				});
 		}
 
-		installBtn.addEventListener('click', function () {
-			installBtn.disabled = true;
+		function startInstall(btn, url, body) {
+			btn.disabled = true;
 			errorBox.hidden = true;
 			progressBox.hidden = false;
 			progressBar.value = 0;
 			progressText.textContent = '';
 
-			fetch(apiBase + '/installs', {
+			fetch(url, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-				body: JSON.stringify({ tagName: installBtn.dataset.tagName }),
+				body: JSON.stringify(body),
 			})
 				.then(function (r) { return r.json(); })
-				.then(function (data) { poll(data.jobId); })
+				.then(function (data) { poll(data.jobId, btn); })
 				.catch(function () {
 					progressBox.hidden = true;
 					errorBox.hidden = false;
-					errorBox.textContent = installBtn.dataset.errorStart;
-					installBtn.disabled = false;
+					errorBox.textContent = btn.dataset.errorStart;
+					btn.disabled = false;
 				});
+		}
+
+		if (installBtn) {
+			installBtn.addEventListener('click', function () {
+				startInstall(installBtn, apiBase + '/installs', { tagName: installBtn.dataset.tagName });
+			});
+		}
+
+		reinstallBtns.forEach(function (btn) {
+			btn.addEventListener('click', function () {
+				startInstall(btn, apiBase + '/installations/' + encodeURIComponent(btn.dataset.installationId) + '/reinstall', {});
+			});
 		});
 	})();
 

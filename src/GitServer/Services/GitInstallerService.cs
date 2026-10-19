@@ -17,6 +17,7 @@ public class GitInstallerService(
 	IGitExecutablePathProvider pathProvider,
 	IWebHostEnvironment env,
 	IOptions<GitServerOptions> options,
+	GitReleaseService releases,
 	ILogger<GitInstallerService> logger)
 {
 	public const string SystemManagedMessage = "Git is provided by the operating system or the GitExecutable setting here; the MinGit installer is only for Windows.";
@@ -30,10 +31,7 @@ public class GitInstallerService(
 	}
 
 	/// <summary>The real git.exe lives at mingw64\bin\git.exe (4+ MB); cmd\git.exe is a tiny stub
-	/// that just re-execs it. Our server-side, stateless-rpc/plumbing-only usage needs nothing else
-	/// from the distribution except mingw64\bin itself (git.exe's DLLs and the actual subcommand
-	/// binaries live there) — cmd\, mingw64\libexec (submodule/subtree/mergetool scripts we never
-	/// call), mingw64\doc, etc\ and usr\ can all go. mingw64\share\licenses is kept for attribution.</summary>
+	/// that just re-execs it.</summary>
 	public static string GetGitExePath(string installPath) => Path.Combine(GetPrefixPath(installPath), "bin", "git.exe");
 
 	/// <summary>The toolchain folder of a MinGit distribution: mingw64 up to git 2.55, ucrt64 from 2.56 on
@@ -43,25 +41,44 @@ public class GitInstallerService(
 	public static string GetPrefixPath(string installPath) =>
 		Path.Combine(installPath, PrefixFolders.FirstOrDefault(f => Directory.Exists(Path.Combine(installPath, f))) ?? "mingw64");
 
-	/// <summary>The only part of a trimmed install kept for the admin "view licenses" browser.</summary>
+	/// <summary>Where the admin "view licenses" browser reads from.</summary>
 	public static string GetLicensesPath(string installPath) => Path.Combine(GetPrefixPath(installPath), "share", "licenses");
 
-	private static readonly string[] RemovableBinPatterns =
-	[
-		"Avalonia.*.dll", "av_libglesv2.dll", "gcmcore.dll", "git-credential-manager.exe*",
-		"Atlassian.Bitbucket.dll", "blocked-file-util.exe",
-	];
-
 	public async Task<GitInstallation> DownloadAndInstallAsync(GitRelease release, IProgress<(long downloaded, long total)>? progress = null, CancellationToken ct = default)
+	{
+		if (await db.GitInstallations.AnyAsync(i => i.TagName == release.TagName, ct))
+			throw new GitInstallException($"{release.TagName} is already installed.");
+
+		return await DownloadCoreAsync(release, wasActive: false, progress, ct);
+	}
+
+	/// <summary>Re-downloads and re-extracts an already-installed version over itself — e.g. to pick up a fix to the
+	/// install/extraction logic that an existing install predates (its files on disk are unaffected by a code change).
+	/// Keeps the installation active if it was active before.</summary>
+	public async Task<GitInstallation> ReinstallAsync(int installationId, CancellationToken ct = default)
+	{
+		var installation = await db.GitInstallations.FindAsync([installationId], ct)
+			?? throw new GitInstallException("Installation not found.");
+
+		var release = await releases.GetReleaseByTagAsync(installation.TagName, ct)
+			?? throw new GitInstallException($"Could not find the {installation.TagName} release on GitHub anymore.");
+
+		var wasActive = installation.IsActive;
+		db.GitInstallations.Remove(installation);
+		await db.SaveChangesAsync(ct);
+		if (Directory.Exists(installation.InstallPath))
+			DeleteDirectory(installation.InstallPath);
+
+		return await DownloadCoreAsync(release, wasActive, progress: null, ct);
+	}
+
+	private async Task<GitInstallation> DownloadCoreAsync(GitRelease release, bool wasActive, IProgress<(long downloaded, long total)>? progress, CancellationToken ct)
 	{
 		if (!pathProvider.IsManagedByInstaller)
 			throw new GitInstallException(SystemManagedMessage);
 
 		if (release.AssetUrl is null)
 			throw new GitInstallException("This release has no MinGit 64-bit asset.");
-
-		if (await db.GitInstallations.AnyAsync(i => i.TagName == release.TagName, ct))
-			throw new GitInstallException($"{release.TagName} is already installed.");
 
 		var installPath = Path.Combine(InstallRootPath, release.TagName);
 		// The folder can outlive its database row (a fresh or reset database, a switch to SQL Server). A working
@@ -75,7 +92,7 @@ public class GitInstallerService(
 				{
 					var existingVersion = await GetExecutableVersionAsync(existingExe, ct);
 					logger.LogInformation("Adopting existing MinGit {tag} at {path}, reports version {version}", release.TagName, installPath, existingVersion);
-					return await RegisterAsync(release.TagName, installPath, existingVersion, ct);
+					return await RegisterAsync(release.TagName, installPath, existingVersion, wasActive, ct);
 				}
 				catch (Exception ex) when (ex is not OperationCanceledException)
 				{
@@ -110,7 +127,6 @@ public class GitInstallerService(
 
 			Directory.CreateDirectory(installPath);
 			ZipFile.ExtractToDirectory(tempZip, installPath);
-			RemoveUnneededFiles(installPath);
 
 			var gitExePath = GetGitExePath(installPath);
 			if (!File.Exists(gitExePath))
@@ -119,7 +135,7 @@ public class GitInstallerService(
 			var actualVersion = await GetExecutableVersionAsync(gitExePath, ct);
 			logger.LogInformation("Installed MinGit {tag} at {path}, reports version {version}", release.TagName, installPath, actualVersion);
 
-			return await RegisterAsync(release.TagName, installPath, actualVersion, ct);
+			return await RegisterAsync(release.TagName, installPath, actualVersion, wasActive, ct);
 		}
 		catch
 		{
@@ -134,7 +150,7 @@ public class GitInstallerService(
 		}
 	}
 
-	private async Task<GitInstallation> RegisterAsync(string tagName, string installPath, string version, CancellationToken ct)
+	private async Task<GitInstallation> RegisterAsync(string tagName, string installPath, string version, bool wasActive, CancellationToken ct)
 	{
 		var installation = new GitInstallation
 		{
@@ -147,9 +163,9 @@ public class GitInstallerService(
 		db.GitInstallations.Add(installation);
 		await db.SaveChangesAsync(ct);
 
-		// First install ever: make it active right away instead of leaving the admin with
-		// a working download that git.exe still isn't actually configured to use.
-		if (await db.GitInstallations.CountAsync(ct) == 1)
+		// First install ever, or re-installing the one that was active: make it active right away
+		// instead of leaving the admin with a working download that git.exe isn't configured to use.
+		if (wasActive || await db.GitInstallations.CountAsync(ct) == 1)
 			await ActivateAsync(installation.Id, ct);
 
 		return installation;
@@ -200,64 +216,6 @@ public class GitInstallerService(
 
 		if (Directory.Exists(installation.InstallPath))
 			Directory.Delete(installation.InstallPath, recursive: true);
-	}
-
-	/// <summary>Strips the extracted MinGit distribution down to just {prefix}\bin (git.exe, its
-	/// runtime DLLs and the actual subcommand binaries — everything our stateless-rpc/plumbing-only
-	/// usage needs) plus {prefix}\share\licenses (kept for attribution). Everything else — cmd\, the
-	/// libexec scripts, docs, etc\, usr\ — is deleted.</summary>
-	private void RemoveUnneededFiles(string installPath)
-	{
-		var mingw64Path = GetPrefixPath(installPath);
-
-		foreach (var entry in Directory.GetFileSystemEntries(installPath))
-		{
-			if (string.Equals(entry, mingw64Path, StringComparison.OrdinalIgnoreCase)) continue;
-			TryDelete(entry);
-		}
-
-		if (Directory.Exists(mingw64Path))
-		{
-			var sharePath = Path.Combine(mingw64Path, "share");
-			foreach (var entry in Directory.GetFileSystemEntries(mingw64Path))
-			{
-				var name = Path.GetFileName(entry);
-				if (name.Equals("bin", StringComparison.OrdinalIgnoreCase)) continue;
-				if (name.Equals("share", StringComparison.OrdinalIgnoreCase)) continue;
-				TryDelete(entry);
-			}
-
-			if (Directory.Exists(sharePath))
-			{
-				foreach (var entry in Directory.GetFileSystemEntries(sharePath))
-				{
-					if (Path.GetFileName(entry).Equals("licenses", StringComparison.OrdinalIgnoreCase)) continue;
-					TryDelete(entry);
-				}
-			}
-		}
-
-		var binPath = Path.Combine(mingw64Path, "bin");
-		if (!Directory.Exists(binPath)) return;
-
-		foreach (var pattern in RemovableBinPatterns)
-		{
-			foreach (var file in Directory.GetFiles(binPath, pattern))
-				TryDelete(file);
-		}
-	}
-
-	private void TryDelete(string path)
-	{
-		try
-		{
-			if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
-			else if (File.Exists(path)) File.Delete(path);
-		}
-		catch (Exception ex)
-		{
-			logger.LogWarning(ex, "Could not remove {path} from MinGit install", path);
-		}
 	}
 
 	private static async Task<string> GetExecutableVersionAsync(string gitExePath, CancellationToken ct)

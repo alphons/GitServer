@@ -323,6 +323,7 @@
   "admin_gitversion_active": "Actief",
   "admin_gitversion_missing": "Bestanden ontbreken op schijf",
   "admin_gitversion_browse": "Licenties bekijken",
+  "admin_gitversion_reinstall": "Opnieuw installeren",
   "admin_gitversion_back": "Terug",
   "admin_gitversion_file_too_large": "Bestand is te groot om te bekijken.",
   "admin_gitversion_file_binary": "Binair bestand, kan niet als tekst worden bekeken.",
