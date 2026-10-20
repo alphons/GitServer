@@ -137,8 +137,21 @@ git push -u origin @Model.DefaultBranch</pre>
 		@if (!string.IsNullOrEmpty(Model.ReadmePath))
 		{
 			<div class="readme-container">
-				<div class="readme-header">README</div>
-				<div class="readme-body markdown-body pane-output"
+				<div class="readme-header">
+					README
+					@if (Model.ReadmeOptions.Count > 1)
+					{
+						<span class="readme-lang-picker">
+							@foreach (var option in Model.ReadmeOptions)
+							{
+								<button type="button" class="readme-lang-option@(option.FileName == Model.ReadmePath ? " active" : "")"
+										data-readme-file="@option.FileName" title="@option.FileName">@option.Flag @(option.Lang ?? "default")</button>
+							}
+						</span>
+					}
+				</div>
+				<div class="readme-body markdown-body pane-output" id="readme-body"
+					 data-readme-base="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/"
 					 data-markdown-src="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/@Model.ReadmePath"></div>
 			</div>
 		}
@@ -151,4 +164,20 @@ git push -u origin @Model.DefaultBranch</pre>
 	<script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
 	<script src="~/js/markdown/md4.js" asp-append-version="true"></script>
 	<script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
+	<script>
+		(function () {
+			var picker = document.querySelector('.readme-lang-picker');
+			if (!picker) return;
+			var body = document.getElementById('readme-body');
+			var base = body.getAttribute('data-readme-base');
+			picker.addEventListener('click', function (ev) {
+				var btn = ev.target.closest('.readme-lang-option');
+				if (!btn || btn.classList.contains('active')) return;
+				picker.querySelectorAll('.readme-lang-option').forEach(function (b) { b.classList.remove('active'); });
+				btn.classList.add('active');
+				window.renderMarkdownFrom(body, base + btn.getAttribute('data-readme-file'))
+					.catch(function () { /* source unavailable — leave the container as is */ });
+			});
+		})();
+	</script>
 }

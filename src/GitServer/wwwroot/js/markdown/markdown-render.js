@@ -27,15 +27,20 @@
 		}
 	}
 
+	function renderFrom(el, src) {
+		return fetch(src)
+			.then(function (res) { return res.ok ? streamInto(el, res) : Promise.reject(res.status); });
+	}
+
 	function renderAll() {
 		document.querySelectorAll('[data-markdown-src]').forEach(function (el) {
 			var src = el.getAttribute('data-markdown-src');
 			el.removeAttribute('data-markdown-src');
-			fetch(src)
-				.then(function (res) { return res.ok ? streamInto(el, res) : Promise.reject(res.status); })
-				.catch(function () { /* source unavailable — leave the container empty */ });
+			renderFrom(el, src).catch(function () { /* source unavailable — leave the container empty */ });
 		});
 	}
+
+	window.renderMarkdownFrom = renderFrom;
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', renderAll);
