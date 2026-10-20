@@ -115,6 +115,62 @@
 .file-tree-entry:last-child { border-bottom: none; }
 .file-tree-entry:hover { background: var(--surface2); text-decoration: none; }
 
+.repo-counts { display: flex; gap: 1rem; font-size: 0.875rem; margin-right: auto; }
+.repo-counts a { color: var(--text-muted); }
+.repo-counts a:hover { color: var(--text); text-decoration: none; }
+.repo-counts strong { color: var(--text); }
+
+.commit-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	color: var(--text);
+}
+.commit-bar-people { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.commit-bar-names { white-space: nowrap; }
+.commit-bar-message {
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
+}
+.commit-bar-meta { display: flex; align-items: center; gap: 0.875rem; flex-shrink: 0; white-space: nowrap; }
+.commit-count { color: var(--text); }
+
+.commit-hover { position: relative; }
+.commit-hover-card {
+	display: none;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	z-index: 20;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 18rem;
+	max-width: 28rem;
+	padding: 0.625rem 0.75rem;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+	white-space: normal;
+}
+.commit-hover:hover .commit-hover-card,
+.commit-hover:focus-within .commit-hover-card { display: flex; }
+
+.file-name { flex: 0 0 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-commit-message {
+	flex: 1 1 0;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-muted);
+}
+.file-commit-time { flex-shrink: 0; white-space: nowrap; }
+
 .file-icon { font-size: 1rem; flex-shrink: 0; }
 .dir-icon { }
 

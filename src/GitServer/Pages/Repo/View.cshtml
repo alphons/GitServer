@@ -78,6 +78,10 @@ git push -u origin @Model.DefaultBranch</pre>
 					}
 				</select>
 			</div>
+			<div class="repo-counts">
+				<a href="/@Model.UserName/@Model.RepoName/branches"><strong>@Model.Branches.Count</strong> @L["branches_title"]</a>
+				<a href="/@Model.UserName/@Model.RepoName/tags"><strong>@Model.TagCount</strong> @L["tags_title"]</a>
+			</div>
 			<div class="repo-actions">
 				<div class="clone-url-box">
 					<input id="cloneUrl" type="text" readonly value="@Model.CloneUrl" class="form-control clone-input" />
@@ -91,6 +95,40 @@ git push -u origin @Model.DefaultBranch</pre>
 		</div>
 
 		<div class="file-tree">
+			@if (Model.LatestCommit is { } latest)
+			{
+				var commitBase = $"/{Model.UserName}/{Model.RepoName}/commit/";
+				<div class="file-tree-header commit-bar">
+					<div class="commit-bar-people">
+						@foreach (var p in Model.CommitPeople)
+						{
+							<img class="commit-committer-avatar" src="@p.AvatarUrl" alt="@p.Name" />
+						}
+						<span class="commit-bar-names">
+							@for (var i = 0; i < Model.CommitPeople.Count; i++)
+							{
+								var p = Model.CommitPeople[i];
+								if (i > 0) { @(i == Model.CommitPeople.Count - 1 ? " & " : ", ") }
+								if (p.ProfileUser != null) { <a href="/dashboard/User/@p.ProfileUser"><strong>@p.Name</strong></a> }
+								else { <strong>@p.Name</strong> }
+							}
+						</span>
+						<a class="commit-bar-message" href="@commitBase@latest.Sha" title="@latest.Message">@latest.Message</a>
+					</div>
+					<div class="commit-bar-meta">
+						<span class="commit-hover">
+							<a class="commit-sha" href="@commitBase@latest.Sha">@latest.ShortSha</a>
+							<span class="commit-hover-card">
+								<code>@latest.Sha</code>
+								<span>@latest.Message</span>
+								<span class="text-muted">@latest.Author &middot; @TZ.FormatDateTime(latest.Date)</span>
+							</span>
+						</span>
+						<time class="time-ago" datetime="@latest.Date.ToUniversalTime().ToString("o")" title="@TZ.FormatDateTime(latest.Date)">@TZ.FormatDateTime(latest.Date)</time>
+						<a class="commit-count" href="/@Model.UserName/@Model.RepoName/commits?branch=@Model.CurrentBranch"><strong>@Model.CommitCount</strong> @L["repo_nav_commits"]</a>
+					</div>
+				</div>
+			}
 			@if (!string.IsNullOrEmpty(Model.CurrentPath))
 			{
 				<div class="file-tree-header file-breadcrumb">
@@ -129,7 +167,12 @@ git push -u origin @Model.DefaultBranch</pre>
 					{
 						<span class="file-icon">&#128196;</span>
 					}
-					@entry.Name
+					<span class="file-name">@entry.Name</span>
+					@if (Model.LastCommits.TryGetValue(entry.Path, out var last))
+					{
+						<span class="file-commit-message" title="@last.Message">@last.Message</span>
+						<time class="file-commit-time text-muted time-ago" datetime="@last.Date.ToUniversalTime().ToString("o")" title="@TZ.FormatDateTime(last.Date)">@TZ.FormatDateTime(last.Date)</time>
+					}
 				</a>
 			}
 		</div>
@@ -182,6 +225,20 @@ git push -u origin @Model.DefaultBranch</pre>
 	<script src="~/js/markdown/md4.js" asp-append-version="true"></script>
 	<script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
 	<script>
+		// "3 days ago" in the page language; the server-rendered date stays as the fallback and the tooltip.
+		(function () {
+			if (!window.Intl || !Intl.RelativeTimeFormat) return;
+			var rtf = new Intl.RelativeTimeFormat(document.documentElement.lang || undefined, { numeric: 'auto' });
+			var units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
+			document.querySelectorAll('time.time-ago').forEach(function (el) {
+				var secs = (new Date(el.getAttribute('datetime')).getTime() - Date.now()) / 1000;
+				if (isNaN(secs)) return;
+				for (var i = 0; i < units.length; i++) {
+					if (Math.abs(secs) >= units[i][1]) { el.textContent = rtf.format(Math.trunc(secs / units[i][1]), units[i][0]); return; }
+				}
+				el.textContent = rtf.format(Math.trunc(secs), 'second');
+			});
+		})();
 		(function () {
 			var body = document.getElementById('readme-body');
 			if (!body) return;

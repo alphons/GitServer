@@ -393,6 +393,34 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 		return commits;
 	}
 
+	/// <summary>The newest commit on <paramref name="branch"/> that touched <paramref name="path"/> (empty = the whole repo),
+	/// or null when there is none. Arguments are passed as-is, so a path can't break out of the command line.</summary>
+	public async Task<CommitInfo?> GetLastCommit(string repoPath, string branch, string path)
+	{
+		var args = new List<string> { "log", CommitFormat, "--max-count=1", branch, "--" };
+		if (!string.IsNullOrEmpty(path)) args.Add(path);
+		var result = await RunGitDetailedAsync(repoPath, args);
+		var block = result.Output.TrimStart('\n', '\r');
+		return result.Ok && block.Length > 0 ? ParseCommit(block.Split('\x1e')[0], "") : null;
+	}
+
+	/// <summary>The last commit per tree entry, keyed by <see cref="TreeEntry.Path"/>. One git call per entry, a few at a time.</summary>
+	public async Task<Dictionary<string, CommitInfo>> GetLastCommits(string repoPath, string branch, IEnumerable<TreeEntry> entries)
+	{
+		using var gate = new SemaphoreSlim(8);
+		var tasks = entries.Select(async e =>
+		{
+			await gate.WaitAsync();
+			try { return (e.Path, Commit: await GetLastCommit(repoPath, branch, e.Path)); }
+			finally { gate.Release(); }
+		}).ToList();
+
+		var map = new Dictionary<string, CommitInfo>();
+		foreach (var (path, commit) in await Task.WhenAll(tasks))
+			if (commit != null) map[path] = commit;
+		return map;
+	}
+
 	public async Task<CommitDetail> GetCommitDetail(string repoPath, string sha)
 	{
 		var infoResult = await RunGitAsync(repoPath, $"log -1 {CommitFormat} {sha}");

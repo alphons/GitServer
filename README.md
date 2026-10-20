@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.30.2**
+**Current version: 1.31.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -35,7 +35,7 @@ Because your code doesn't belong to anyone else.
 ### Repository Management
 - Create public and private Git repositories — new ones start on `main`, and the default branch you set is what a clone checks out. A repository whose HEAD points at a branch that doesn't exist (e.g. `master` while only `main` was pushed) is repaired automatically, on the next push or the next clone/fetch. Git's gzip-compressed requests (it compresses bodies over 1 KB) are accepted, so larger fetches and pulls work
 - Full HTTP/HTTPS Git protocol support — clone, push, pull with any standard Git client
-- Browse the file tree, view files and diffs directly in the browser
+- Browse the file tree, view files and diffs directly in the browser — GitHub-style: per file the last commit message and how long ago, a bar with the latest commit's author(s) (incl. `Co-Authored-By`), a hover card on its hash, and clickable branch, tag and commit counts
 - README rendering with full Markdown support — other root-level Markdown files (e.g. `Test.md`) are picked up too, with a dropdown when there's more than one, and a flag picker when a file has language variants (`README.nl.md` next to `README.md`)
 - Download any branch as a ZIP archive
 - Branch and tag overview

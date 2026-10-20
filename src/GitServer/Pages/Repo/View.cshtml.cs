@@ -3,11 +3,13 @@ using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Text.RegularExpressions;
 
 namespace GitServer.Pages.Repo;
 
-public class ViewModel(
+public partial class ViewModel(
 	RepositoryService repos, AccessPolicy access,
 	GitProcessService git,
 	UserManager<AppUser> userManager,
@@ -35,6 +37,17 @@ public class ViewModel(
 	public int ForkCount { get; set; }
 	/// <summary>Link the source of a fork only for viewers who may read it: a private source's name is not for everyone.</summary>
 	public bool ShowForkSource { get; set; }
+
+	public int TagCount { get; set; }
+	public int CommitCount { get; set; }
+	/// <summary>Newest commit touching the folder being viewed; drives the bar above the file list.</summary>
+	public CommitInfo? LatestCommit { get; set; }
+	/// <summary>Per entry path, the last commit that touched it.</summary>
+	public Dictionary<string, CommitInfo> LastCommits { get; set; } = new();
+	/// <summary>Author of <see cref="LatestCommit"/> followed by its "Co-Authored-By" people.</summary>
+	public List<CommitPerson> CommitPeople { get; set; } = new();
+
+	public record CommitPerson(string Name, string AvatarUrl, string? ProfileUser);
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, string? path, string? file)
 	{
@@ -64,6 +77,11 @@ public class ViewModel(
 		CurrentPath = path ?? "";
 
 		Tree = await git.GetTree(repoPath, CurrentBranch, CurrentPath);
+		TagCount = (await git.GetTags(repoPath)).Count;
+		CommitCount = await git.GetCommitCount(repoPath, CurrentBranch);
+		LatestCommit = await git.GetLastCommit(repoPath, CurrentBranch, CurrentPath);
+		LastCommits = await git.GetLastCommits(repoPath, CurrentBranch, Tree);
+		await LoadCommitPeopleAsync();
 
 		if (string.IsNullOrEmpty(CurrentPath))
 		{
@@ -100,4 +118,26 @@ public class ViewModel(
 
 		return Page();
 	}
+
+	private async Task LoadCommitPeopleAsync()
+	{
+		if (LatestCommit == null) return;
+
+		var people = new List<(string Name, string Email)> { (LatestCommit.Author, LatestCommit.Email) };
+		foreach (Match m in CoAuthorLine().Matches(LatestCommit.Body))
+			if (!people.Any(p => p.Email.Equals(m.Groups[2].Value, StringComparison.OrdinalIgnoreCase)))
+				people.Add((m.Groups[1].Value.Trim(), m.Groups[2].Value.Trim()));
+
+		var emails = people.Select(p => p.Email).ToList();
+		var users = await userManager.Users
+			.Where(u => emails.Contains(u.Email!))
+			.ToDictionaryAsync(u => u.Email!, u => u, StringComparer.OrdinalIgnoreCase);
+
+		CommitPeople = people.Select(p => users.TryGetValue(p.Email, out var u)
+			? new CommitPerson(u.DisplayName, u.EffectiveAvatarUrl ?? GravatarService.GetUrl(p.Email), u.UserName)
+			: new CommitPerson(p.Name, GravatarService.GetUrl(p.Email), null)).ToList();
+	}
+
+	[GeneratedRegex(@"^\s*Co-authored-by:\s*(.+?)\s*<([^>]+)>\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+	private static partial Regex CoAuthorLine();
 }
