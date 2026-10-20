@@ -1,4 +1,4 @@
-@page "/{user}/{repo}/{file:regex(^.+\\.md$)}"
+@page "/{user}/{repo}/{file:regex(^.+\.md$)}"
 @model GitServer.Pages.Repo.MdModel
 @{
 	ViewData["Title"] = $"{Model.FileName} &mdash; {Model.UserName}/{Model.RepoName}";
