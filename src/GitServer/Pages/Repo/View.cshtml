@@ -165,7 +165,7 @@ git push -u origin @Model.DefaultBranch</pre>
 					 data-link-dir="@Model.CurrentPath"
 					 data-link-base="/@Model.UserName/@Model.RepoName/blob/@Model.CurrentBranch/"
 					 data-image-base="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/"
-					 data-md-root-base="@(string.IsNullOrEmpty(Model.CurrentPath) ? $"/{Model.UserName}/{Model.RepoName}/" : null)"
+					 data-md-root-base="@(string.IsNullOrEmpty(Model.CurrentPath) ? $"/{Model.UserName}/{Model.RepoName}" : null)"
 					 data-md-branch="@Model.CurrentBranch"
 					 data-markdown-src="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/@Model.ReadmePath"></div>
 			</div>

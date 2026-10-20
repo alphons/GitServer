@@ -36,7 +36,7 @@ public class ViewModel(
 	/// <summary>Link the source of a fork only for viewers who may read it: a private source's name is not for everyone.</summary>
 	public bool ShowForkSource { get; set; }
 
-	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, string? path)
+	public async Task<IActionResult> OnGetAsync(string user, string repo, string? branch, string? path, string? file)
 	{
 		UserName = user;
 		RepoName = repo;
@@ -83,8 +83,18 @@ public class ViewModel(
 
 			if (MdBases.Count > 0)
 			{
-				SelectedMdBase = MdBases[0];
-				ReadmePath = MdGroups[SelectedMdBase][0].FileName;
+				// A link from a rendered markdown file to another one in the same folder (e.g. the
+				// README's own "README.nl.md") asks for that exact file via ?file=; otherwise README wins.
+				var requested = file == null ? null : MdGroups.Values
+					.SelectMany(variants => variants)
+					.FirstOrDefault(v => v.FileName.Equals(file, StringComparison.OrdinalIgnoreCase));
+
+				var selectedBase = requested != null
+					? MdGroups.First(kv => kv.Value.Contains(requested)).Key
+					: MdBases[0];
+
+				SelectedMdBase = selectedBase;
+				ReadmePath = requested?.FileName ?? MdGroups[selectedBase][0].FileName;
 			}
 		}
 

@@ -30,10 +30,12 @@
 			var resolved = resolveRepoPath(baseDir, href);
 
 			// A link to a markdown file that lives directly under the repo root (no further
-			// subfolder) goes to its own rendered viewer, not the generic blob/code view.
+			// subfolder) goes back to the repo root, which renders it in the same md viewer
+			// (?file= picks which one), instead of the generic blob/code view.
 			if (allowMdRoot && mdRootBase && resolved.indexOf('/') === -1 && /\.md$/i.test(resolved)) {
-				var branchQuery = mdBranch ? ('?branch=' + encodeURIComponent(mdBranch)) : '';
-				attrEl.setAttribute(attr, mdRootBase + resolved + branchQuery + hash);
+				var query = '?file=' + encodeURIComponent(resolved);
+				if (mdBranch) query += '&branch=' + encodeURIComponent(mdBranch);
+				attrEl.setAttribute(attr, mdRootBase + query + hash);
 				return;
 			}
 
