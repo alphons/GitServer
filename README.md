@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.26.0**
+**Current version: 1.30.1**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -36,7 +36,7 @@ Because your code doesn't belong to anyone else.
 - Create public and private Git repositories — new ones start on `main`, and the default branch you set is what a clone checks out. A repository whose HEAD points at a branch that doesn't exist (e.g. `master` while only `main` was pushed) is repaired automatically, on the next push or the next clone/fetch. Git's gzip-compressed requests (it compresses bodies over 1 KB) are accepted, so larger fetches and pulls work
 - Full HTTP/HTTPS Git protocol support — clone, push, pull with any standard Git client
 - Browse the file tree, view files and diffs directly in the browser
-- README rendering with full Markdown support
+- README rendering with full Markdown support — other root-level Markdown files (e.g. `Test.md`) are picked up too, with a dropdown when there's more than one, and a flag picker when a file has language variants (`README.nl.md` next to `README.md`)
 - Download any branch as a ZIP archive
 - Branch and tag overview
 - **Pull requests** — from a branch of the repository or of a fork, with a conversation, the commits and the changed files. Merged on the server without a work tree (git merge-tree), as a **merge commit** or **squashed** into one commit; conflicts are detected and refused. Only those who may push can merge. The source branch is kept in the target as `refs/pull/N/head`, so a pull request stays readable after its fork is deleted. Also through `/api/repos/{owner}/{repo}/pulls`
