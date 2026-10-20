@@ -1,0 +1,68 @@
+@page "/{user}/{repo}/{file:regex(^.+\\.md$)}"
+@model GitServer.Pages.Repo.MdModel
+@{
+	ViewData["Title"] = $"{Model.FileName} &mdash; {Model.UserName}/{Model.RepoName}";
+}
+<div class="container">
+	<div class="repo-header">
+		<div class="repo-title">
+			<a href="/dashboard/@(Model.IsGroupOwner ? "Group" : "User")/@Model.UserName">@Model.UserName</a> /
+			<a href="/@Model.UserName/@Model.RepoName"><strong>@Model.RepoName</strong></a>
+		</div>
+	</div>
+
+	@await Html.PartialAsync("_RepoNav", (Model.UserName, Model.RepoName, "code"))
+
+	<div class="file-breadcrumb">
+		<a href="/@Model.UserName/@Model.RepoName?branch=@Model.CurrentBranch">@Model.RepoName</a>
+		<span class="separator">/</span>
+		<strong>@Model.FileName</strong>
+	</div>
+
+	<div class="readme-container">
+		<div class="readme-header">
+			@Model.FileName
+			@if (Model.Options.Count > 1)
+			{
+				<span class="readme-lang-picker">
+					@foreach (var option in Model.Options)
+					{
+						<button type="button" class="readme-lang-option@(option.FileName == Model.FileName ? " active" : "")"
+								data-readme-file="@option.FileName" title="@option.FileName">@option.Flag @(option.Lang ?? "default")</button>
+					}
+				</span>
+			}
+		</div>
+		<div class="readme-body markdown-body pane-output" id="md-body"
+			 data-readme-base="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/"
+			 data-link-dir=""
+			 data-link-base="/@Model.UserName/@Model.RepoName/blob/@Model.CurrentBranch/"
+			 data-image-base="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/"
+			 data-md-root-base="/@Model.UserName/@Model.RepoName/"
+			 data-md-branch="@Model.CurrentBranch"
+			 data-markdown-src="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/@Model.FileName"></div>
+	</div>
+</div>
+@section Scripts {
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+	<script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
+	<script src="~/js/markdown/md4.js" asp-append-version="true"></script>
+	<script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
+	<script>
+		(function () {
+			var picker = document.querySelector('.readme-lang-picker');
+			if (!picker) return;
+			var body = document.getElementById('md-body');
+			var base = body.getAttribute('data-readme-base');
+			picker.addEventListener('click', function (ev) {
+				var btn = ev.target.closest('.readme-lang-option');
+				if (!btn || btn.classList.contains('active')) return;
+				picker.querySelectorAll('.readme-lang-option').forEach(function (b) { b.classList.remove('active'); });
+				btn.classList.add('active');
+				window.renderMarkdownFrom(body, base + btn.getAttribute('data-readme-file'))
+					.catch(function () { /* source unavailable — leave the container as is */ });
+			});
+		})();
+	</script>
+}

@@ -136,27 +136,41 @@ git push -u origin @Model.DefaultBranch</pre>
 
 		@if (!string.IsNullOrEmpty(Model.ReadmePath))
 		{
+			var selectedVariants = Model.MdGroups[Model.SelectedMdBase];
 			<div class="readme-container">
 				<div class="readme-header">
-					README
-					@if (Model.ReadmeOptions.Count > 1)
+					@if (Model.MdBases.Count > 1)
 					{
-						<span class="readme-lang-picker">
-							@foreach (var option in Model.ReadmeOptions)
+						<select class="md-base-select" id="md-base-select">
+							@foreach (var baseName in Model.MdBases)
 							{
-								<button type="button" class="readme-lang-option@(option.FileName == Model.ReadmePath ? " active" : "")"
-										data-readme-file="@option.FileName" title="@option.FileName">@option.Flag @(option.Lang ?? "default")</button>
+								<option value="@baseName" selected="@(baseName == Model.SelectedMdBase)">@baseName</option>
 							}
-						</span>
+						</select>
 					}
+					else
+					{
+						@Model.SelectedMdBase
+					}
+					<span class="readme-lang-picker" id="readme-lang-picker" hidden="@(selectedVariants.Count <= 1)">
+						@foreach (var option in selectedVariants)
+						{
+							<button type="button" class="readme-lang-option@(option.FileName == Model.ReadmePath ? " active" : "")"
+									data-readme-file="@option.FileName" title="@option.FileName">@option.Flag @(option.Lang ?? "default")</button>
+						}
+					</span>
 				</div>
 				<div class="readme-body markdown-body pane-output" id="readme-body"
 					 data-readme-base="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/"
 					 data-link-dir="@Model.CurrentPath"
 					 data-link-base="/@Model.UserName/@Model.RepoName/blob/@Model.CurrentBranch/"
 					 data-image-base="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/"
+					 data-md-root-base="@(string.IsNullOrEmpty(Model.CurrentPath) ? $"/{Model.UserName}/{Model.RepoName}/" : null)"
+					 data-md-branch="@Model.CurrentBranch"
 					 data-markdown-src="/@Model.UserName/@Model.RepoName/raw/@Model.CurrentBranch/@Model.ReadmePath"></div>
 			</div>
+			<script type="application/json" id="md-groups-data">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+				Model.MdGroups.ToDictionary(kv => kv.Key, kv => kv.Value.Select(v => new { file = v.FileName, lang = v.Lang, flag = v.Flag }))))</script>
 		}
 	}
 </div>
@@ -169,18 +183,51 @@ git push -u origin @Model.DefaultBranch</pre>
 	<script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
 	<script>
 		(function () {
-			var picker = document.querySelector('.readme-lang-picker');
-			if (!picker) return;
 			var body = document.getElementById('readme-body');
-			var base = body.getAttribute('data-readme-base');
-			picker.addEventListener('click', function (ev) {
-				var btn = ev.target.closest('.readme-lang-option');
-				if (!btn || btn.classList.contains('active')) return;
-				picker.querySelectorAll('.readme-lang-option').forEach(function (b) { b.classList.remove('active'); });
-				btn.classList.add('active');
-				window.renderMarkdownFrom(body, base + btn.getAttribute('data-readme-file'))
-					.catch(function () { /* source unavailable — leave the container as is */ });
-			});
+			if (!body) return;
+			var rawBase = body.getAttribute('data-readme-base');
+			var picker = document.getElementById('readme-lang-picker');
+			var select = document.getElementById('md-base-select');
+			var groupsEl = document.getElementById('md-groups-data');
+			var groups = groupsEl ? JSON.parse(groupsEl.textContent) : {};
+
+			function renderPicker(baseName, activeFile) {
+				if (!picker) return;
+				var variants = groups[baseName] || [];
+				picker.innerHTML = '';
+				picker.hidden = variants.length <= 1;
+				variants.forEach(function (v) {
+					var btn = document.createElement('button');
+					btn.type = 'button';
+					btn.className = 'readme-lang-option' + (v.file === activeFile ? ' active' : '');
+					btn.setAttribute('data-readme-file', v.file);
+					btn.title = v.file;
+					btn.textContent = v.flag + ' ' + (v.lang || 'default');
+					picker.appendChild(btn);
+				});
+			}
+
+			if (picker) {
+				picker.addEventListener('click', function (ev) {
+					var btn = ev.target.closest('.readme-lang-option');
+					if (!btn || btn.classList.contains('active')) return;
+					picker.querySelectorAll('.readme-lang-option').forEach(function (b) { b.classList.remove('active'); });
+					btn.classList.add('active');
+					window.renderMarkdownFrom(body, rawBase + btn.getAttribute('data-readme-file'))
+						.catch(function () { /* source unavailable — leave the container as is */ });
+				});
+			}
+
+			if (select) {
+				select.addEventListener('change', function () {
+					var variants = groups[select.value] || [];
+					if (variants.length === 0) return;
+					var defaultFile = variants[0].file;
+					renderPicker(select.value, defaultFile);
+					window.renderMarkdownFrom(body, rawBase + defaultFile)
+						.catch(function () { /* source unavailable — leave the container as is */ });
+				});
+			}
 		})();
 	</script>
 }

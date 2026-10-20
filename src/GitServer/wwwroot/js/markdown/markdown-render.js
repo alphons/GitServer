@@ -17,21 +17,31 @@
 		return !!href && !/^([a-z][a-z0-9+.-]*:|#|\/\/|\/)/i.test(href);
 	}
 
-	function rewriteRelativeUrls(el, baseDir, linkBase, imageBase) {
+	function rewriteRelativeUrls(el, baseDir, linkBase, imageBase, mdRootBase, mdBranch) {
 		if (!linkBase && !imageBase) return;
 
-		function rewrite(attrEl, attr, urlBase) {
+		function rewrite(attrEl, attr, urlBase, allowMdRoot) {
 			var href = attrEl.getAttribute(attr);
 			if (!isRelative(href)) return;
 			var hash = '';
 			var hashIdx = href.indexOf('#');
 			if (hashIdx >= 0) { hash = href.slice(hashIdx); href = href.slice(0, hashIdx); }
 			if (!href) return;
-			attrEl.setAttribute(attr, urlBase + resolveRepoPath(baseDir, href) + hash);
+			var resolved = resolveRepoPath(baseDir, href);
+
+			// A link to a markdown file that lives directly under the repo root (no further
+			// subfolder) goes to its own rendered viewer, not the generic blob/code view.
+			if (allowMdRoot && mdRootBase && resolved.indexOf('/') === -1 && /\.md$/i.test(resolved)) {
+				var branchQuery = mdBranch ? ('?branch=' + encodeURIComponent(mdBranch)) : '';
+				attrEl.setAttribute(attr, mdRootBase + resolved + branchQuery + hash);
+				return;
+			}
+
+			attrEl.setAttribute(attr, urlBase + resolved + hash);
 		}
 
-		if (linkBase) el.querySelectorAll('a[href]').forEach(function (a) { rewrite(a, 'href', linkBase); });
-		if (imageBase) el.querySelectorAll('img[src]').forEach(function (img) { rewrite(img, 'src', imageBase); });
+		if (linkBase) el.querySelectorAll('a[href]').forEach(function (a) { rewrite(a, 'href', linkBase, true); });
+		if (imageBase) el.querySelectorAll('img[src]').forEach(function (img) { rewrite(img, 'src', imageBase, false); });
 	}
 
 	async function streamInto(el, res) {
@@ -60,7 +70,8 @@
 			el.querySelectorAll('pre code').forEach(function (block) { hljs.highlightElement(block); });
 		}
 
-		rewriteRelativeUrls(el, el.getAttribute('data-link-dir') || '', el.getAttribute('data-link-base'), el.getAttribute('data-image-base'));
+		rewriteRelativeUrls(el, el.getAttribute('data-link-dir') || '', el.getAttribute('data-link-base'), el.getAttribute('data-image-base'),
+			el.getAttribute('data-md-root-base'), el.getAttribute('data-md-branch'));
 	}
 
 	function renderFrom(el, src) {

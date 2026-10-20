@@ -153,20 +153,15 @@
 
 .readme-lang-option.active { background: var(--accent); color: var(--accent-contrast, #fff); border-color: var(--accent); }
 
-.markdown-view-tabs { display: flex; gap: 0.25rem; margin-bottom: 0.75rem; }
-
-.md-view-tab {
-	font-size: 0.8125rem;
-	font-weight: 500;
-	padding: 0.25rem 0.75rem;
+.md-base-select {
+	font-size: 0.875rem;
+	font-weight: 600;
+	padding: 0.15rem 0.4rem;
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	background: var(--surface);
-	color: var(--text-muted);
-	cursor: pointer;
+	color: var(--text);
 }
-
-.md-view-tab.active { background: var(--accent); color: var(--accent-contrast, #fff); border-color: var(--accent); }
 
 .readme-body { padding: 1.25rem; }
 

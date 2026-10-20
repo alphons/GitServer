@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using GitServer.Models;
+﻿using GitServer.Models;
 using GitServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,9 +7,6 @@ using Microsoft.Extensions.Options;
 
 namespace GitServer.Pages.Repo;
 
-/// <summary>A README variant available in the current folder, e.g. README.nl.md.</summary>
-public record ReadmeOption(string FileName, string? Lang, string Flag);
-
 public class ViewModel(
 	RepositoryService repos, AccessPolicy access,
 	GitProcessService git,
@@ -18,20 +14,6 @@ public class ViewModel(
 	IOptions<GitServerOptions> options) : PageModel
 {
 	private readonly GitServerOptions _options = options.Value;
-
-	private static readonly Regex ReadmeLangPattern = new(@"^README\.([A-Za-z]{2,3})\.md$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-	private static readonly Dictionary<string, string> LangToFlag = new(StringComparer.OrdinalIgnoreCase)
-	{
-		["nl"] = "🇳🇱", ["en"] = "🇬🇧", ["de"] = "🇩🇪", ["fr"] = "🇫🇷", ["es"] = "🇪🇸",
-		["it"] = "🇮🇹", ["pt"] = "🇵🇹", ["pl"] = "🇵🇱", ["ru"] = "🇷🇺", ["tr"] = "🇹🇷",
-		["ja"] = "🇯🇵", ["zh"] = "🇨🇳", ["ko"] = "🇰🇷", ["ar"] = "🇸🇦", ["sv"] = "🇸🇪",
-		["da"] = "🇩🇰", ["no"] = "🇳🇴", ["fi"] = "🇫🇮", ["uk"] = "🇺🇦", ["cs"] = "🇨🇿",
-		["ro"] = "🇷🇴", ["hu"] = "🇭🇺", ["el"] = "🇬🇷", ["he"] = "🇮🇱", ["hi"] = "🇮🇳",
-	};
-
-	private static string FlagFor(string? lang) =>
-		lang != null && LangToFlag.TryGetValue(lang, out var flag) ? flag : "🏳️";
 
 	public string UserName { get; set; } = "";
 	public string RepoName { get; set; } = "";
@@ -44,7 +26,12 @@ public class ViewModel(
 	public string CloneUrl { get; set; } = "";
 	public string DefaultBranch { get; set; } = "main";
 	public string ReadmePath { get; set; } = "";
-	public List<ReadmeOption> ReadmeOptions { get; set; } = new();
+	/// <summary>Base names of the markdown files directly under the repo root (e.g. "README", "Test"),
+	/// README first when present, then alphabetically.</summary>
+	public List<string> MdBases { get; set; } = new();
+	/// <summary>Language variants for each base name in <see cref="MdBases"/>.</summary>
+	public Dictionary<string, List<MdVariant>> MdGroups { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+	public string SelectedMdBase { get; set; } = "";
 	public int ForkCount { get; set; }
 	/// <summary>Link the source of a fork only for viewers who may read it: a private source's name is not for everyone.</summary>
 	public bool ShowForkSource { get; set; }
@@ -80,22 +67,25 @@ public class ViewModel(
 
 		if (string.IsNullOrEmpty(CurrentPath))
 		{
-			var readmes = Tree.Where(e => e.Type == "blob" &&
-				e.Name.StartsWith("README", StringComparison.OrdinalIgnoreCase));
+			var baseNames = Tree
+				.Where(e => e.Type == "blob")
+				.Select(e => MarkdownVariants.Parse(e.Name)?.Base)
+				.Where(b => b != null)
+				.Distinct(StringComparer.OrdinalIgnoreCase);
 
-			ReadmeOptions = readmes
-				.Select(e =>
-				{
-					var match = ReadmeLangPattern.Match(e.Name);
-					var lang = match.Success ? match.Groups[1].Value.ToLowerInvariant() : null;
-					return new ReadmeOption(e.Name, lang, FlagFor(lang));
-				})
-				.OrderBy(o => o.Lang != null)
-				.ThenBy(o => o.Lang, StringComparer.OrdinalIgnoreCase)
+			foreach (var baseName in baseNames)
+				MdGroups[baseName!] = MarkdownVariants.FindVariants(Tree, baseName!);
+
+			MdBases = MdGroups.Keys
+				.OrderBy(b => b.Equals("README", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+				.ThenBy(b => b, StringComparer.OrdinalIgnoreCase)
 				.ToList();
 
-			if (ReadmeOptions.Count > 0)
-				ReadmePath = ReadmeOptions[0].FileName;
+			if (MdBases.Count > 0)
+			{
+				SelectedMdBase = MdBases[0];
+				ReadmePath = MdGroups[SelectedMdBase][0].FileName;
+			}
 		}
 
 		return Page();
