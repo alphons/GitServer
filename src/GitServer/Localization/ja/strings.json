@@ -528,6 +528,8 @@
   "file_edit": "編集",
   "file_edit_tab_edit": "編集",
   "file_edit_tab_preview": "プレビュー",
+  "file_view_preview": "プレビュー",
+  "file_view_source": "ソース",
   "file_edit_tabs": "タブ",
   "file_edit_spaces": "スペース",
   "file_edit_nowrap": "折り返しなし",

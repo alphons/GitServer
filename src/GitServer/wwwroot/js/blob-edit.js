@@ -16,6 +16,9 @@
 	const isMarkdown = view.dataset.markdown === 'true';
 
 	const fileContent = $('fileContent');
+	const mdPreview = $('mdViewPreview');
+	const mdTabs = document.querySelector('.markdown-view-tabs');
+	const mdTabSource = $('mdViewTabSource');
 	const editor = $('fileEditor');
 	const viewActions = $('viewActions');
 	const editActions = $('editActions');
@@ -332,6 +335,8 @@
 	function enterEdit() {
 		editing = true;
 		fileContent.hidden = true;
+		if (mdPreview) mdPreview.hidden = true;
+		if (mdTabs) mdTabs.hidden = true;
 		viewActions.hidden = true;
 		editActions.hidden = false;
 		editor.hidden = false;
@@ -348,7 +353,11 @@
 		previewToken++;
 		editor.hidden = true;
 		editActions.hidden = true;
-		fileContent.hidden = false;
+		if (mdTabs) mdTabs.hidden = false;
+		// Restore whichever of the markdown preview/source views was showing before editing started.
+		var sourceWasActive = !!(mdTabSource && mdTabSource.classList.contains('active'));
+		fileContent.hidden = !!mdPreview && !sourceWasActive;
+		if (mdPreview) mdPreview.hidden = sourceWasActive;
 		viewActions.hidden = false;
 		showError(errorBox, '');
 		ta.value = '';

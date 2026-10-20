@@ -112,7 +112,20 @@
 		}
 		else
 		{
-			<div class="file-content" id="fileContent">
+			var fileDir = Model.FilePath.Contains('/') ? Model.FilePath[..Model.FilePath.LastIndexOf('/')] : "";
+			@if (isMarkdown)
+			{
+				<div class="markdown-view-tabs" role="tablist">
+					<button type="button" class="md-view-tab active" id="mdViewTabPreview" role="tab" aria-selected="true">@L["file_view_preview"]</button>
+					<button type="button" class="md-view-tab" id="mdViewTabSource" role="tab" aria-selected="false">@L["file_view_source"]</button>
+				</div>
+				<div class="file-content markdown-body pane-output" id="mdViewPreview"
+					 data-markdown-src="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/@Model.FilePath"
+					 data-link-dir="@fileDir"
+					 data-link-base="/@Model.UserName/@Model.RepoName/blob/@Model.Branch/"
+					 data-image-base="/@Model.UserName/@Model.RepoName/raw/@Model.Branch/"></div>
+			}
+			<div class="file-content" id="fileContent" @(isMarkdown ? "hidden" : null)>
 				<pre class="code-view lang-@ext"><span class="line-numbers">@string.Join("\n", Enumerable.Range(1, lineCount))</span><code class="language-@ext">@trimmedContent</code></pre>
 			</div>
 			@if (canEdit)
@@ -181,13 +194,34 @@
 @section Scripts {
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+	@if (isMarkdown)
+	{
+		<script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
+		<script src="~/js/markdown/md4.js" asp-append-version="true"></script>
+		<script src="~/js/markdown/markdown-render.js" asp-append-version="true"></script>
+		<script>
+			(function () {
+				var tabPreview = document.getElementById('mdViewTabPreview');
+				var tabSource = document.getElementById('mdViewTabSource');
+				var preview = document.getElementById('mdViewPreview');
+				var source = document.getElementById('fileContent');
+				if (!tabPreview || !tabSource) return;
+				tabPreview.addEventListener('click', function () {
+					tabPreview.classList.add('active'); tabPreview.setAttribute('aria-selected', 'true');
+					tabSource.classList.remove('active'); tabSource.setAttribute('aria-selected', 'false');
+					preview.hidden = false; source.hidden = true;
+				});
+				tabSource.addEventListener('click', function () {
+					tabSource.classList.add('active'); tabSource.setAttribute('aria-selected', 'true');
+					tabPreview.classList.remove('active'); tabPreview.setAttribute('aria-selected', 'false');
+					source.hidden = false; preview.hidden = true;
+					if (window.hljs) document.querySelectorAll('#fileContent code').forEach(function (b) { hljs.highlightElement(b); });
+				});
+			})();
+		</script>
+	}
 	@if (canEdit)
 	{
-		if (isMarkdown)
-		{
-			<script src="~/js/markdown/md4-entities.js" asp-append-version="true"></script>
-			<script src="~/js/markdown/md4.js" asp-append-version="true"></script>
-		}
 		<script src="~/js/blob-edit.js" asp-append-version="true"></script>
 	}
 	<script src="~/js/blob.js" asp-append-version="true"></script>

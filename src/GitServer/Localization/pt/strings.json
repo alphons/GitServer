@@ -528,6 +528,8 @@
   "file_edit": "Editar",
   "file_edit_tab_edit": "Editar",
   "file_edit_tab_preview": "Pré-visualização",
+  "file_view_preview": "Pré-visualização",
+  "file_view_source": "Código-fonte",
   "file_edit_tabs": "Tabulações",
   "file_edit_spaces": "Espaços",
   "file_edit_nowrap": "Sem quebra de linha",

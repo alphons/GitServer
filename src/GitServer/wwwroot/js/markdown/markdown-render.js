@@ -1,5 +1,39 @@
 'use strict';
 (function () {
+	// Resolves a relative markdown link/image path against the repo directory the
+	// rendered file lives in, so "README.nl.md" from a root README resolves to the
+	// repo root, not to whatever URL the browser happened to be on.
+	function resolveRepoPath(baseDir, rel) {
+		var segments = baseDir ? baseDir.split('/') : [];
+		rel.split('/').forEach(function (part) {
+			if (part === '' || part === '.') return;
+			if (part === '..') segments.pop();
+			else segments.push(part);
+		});
+		return segments.join('/');
+	}
+
+	function isRelative(href) {
+		return !!href && !/^([a-z][a-z0-9+.-]*:|#|\/\/|\/)/i.test(href);
+	}
+
+	function rewriteRelativeUrls(el, baseDir, linkBase, imageBase) {
+		if (!linkBase && !imageBase) return;
+
+		function rewrite(attrEl, attr, urlBase) {
+			var href = attrEl.getAttribute(attr);
+			if (!isRelative(href)) return;
+			var hash = '';
+			var hashIdx = href.indexOf('#');
+			if (hashIdx >= 0) { hash = href.slice(hashIdx); href = href.slice(0, hashIdx); }
+			if (!href) return;
+			attrEl.setAttribute(attr, urlBase + resolveRepoPath(baseDir, href) + hash);
+		}
+
+		if (linkBase) el.querySelectorAll('a[href]').forEach(function (a) { rewrite(a, 'href', linkBase); });
+		if (imageBase) el.querySelectorAll('img[src]').forEach(function (img) { rewrite(img, 'src', imageBase); });
+	}
+
 	async function streamInto(el, res) {
 		var streamer = new MarkdownStreamer(el);
 
@@ -25,6 +59,8 @@
 		if (window.hljs) {
 			el.querySelectorAll('pre code').forEach(function (block) { hljs.highlightElement(block); });
 		}
+
+		rewriteRelativeUrls(el, el.getAttribute('data-link-dir') || '', el.getAttribute('data-link-base'), el.getAttribute('data-image-base'));
 	}
 
 	function renderFrom(el, src) {

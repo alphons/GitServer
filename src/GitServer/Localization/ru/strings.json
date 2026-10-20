@@ -528,6 +528,8 @@
   "file_edit": "Изменить",
   "file_edit_tab_edit": "Правка",
   "file_edit_tab_preview": "Просмотр",
+  "file_view_preview": "Просмотр",
+  "file_view_source": "Исходный код",
   "file_edit_tabs": "Табуляция",
   "file_edit_spaces": "Пробелы",
   "file_edit_nowrap": "Без переноса",

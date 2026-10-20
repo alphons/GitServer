@@ -527,6 +527,8 @@
   "file_edit": "Editar",
   "file_edit_tab_edit": "Editar",
   "file_edit_tab_preview": "Vista previa",
+  "file_view_preview": "Vista previa",
+  "file_view_source": "Código fuente",
   "file_edit_tabs": "Tabulaciones",
   "file_edit_spaces": "Espacios",
   "file_edit_nowrap": "Sin ajuste de línea",
