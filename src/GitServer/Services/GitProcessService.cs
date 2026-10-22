@@ -6,7 +6,7 @@ namespace GitServer.Services;
 public record CommitInfo(string Sha, string ShortSha, string Message, string Author, string Email, DateTime Date, string Tree, List<string> Parents, string Body = "");
 public record TagInfo(string Name, string Sha, string ShortSha, DateTime Date, string Subject, string Body, string Tagger, bool Annotated);
 public record CommitDetail(CommitInfo Info, string Diff, List<string> ChangedFiles);
-public record TreeEntry(string Mode, string Type, string Sha, string Name, string Path);
+public record TreeEntry(string Mode, string Type, string Sha, string Name, string Path, long? Size = null);
 
 /// <summary>The repository's DB record exists but its bare-git folder is missing on disk
 /// (e.g. deleted or moved outside the application).</summary>
@@ -435,19 +435,20 @@ public class GitProcessService(IGitExecutablePathProvider pathProvider, ILogger<
 	public async Task<List<TreeEntry>> GetTree(string repoPath, string treeish, string path)
 	{
 		var treeishArg = string.IsNullOrEmpty(path) ? treeish : $"{treeish}:{path}";
-		var result = await RunGitAsync(repoPath, $"ls-tree \"{treeishArg}\"");
+		var result = await RunGitAsync(repoPath, $"ls-tree -l \"{treeishArg}\"");
 		var entries = new List<TreeEntry>();
 
 		foreach (var line in result.Split('\n', StringSplitOptions.RemoveEmptyEntries))
 		{
-			// format: <mode> <type> <sha>\t<name>
+			// format: <mode> <type> <sha> <size, space-padded, '-' for trees>\t<name>
 			var tabIdx = line.IndexOf('\t');
 			if (tabIdx < 0) continue;
-			var meta = line[..tabIdx].Split(' ');
+			var meta = line[..tabIdx].Split(' ', StringSplitOptions.RemoveEmptyEntries);
 			if (meta.Length < 3) continue;
 			var name = line[(tabIdx + 1)..];
 			var entryPath = string.IsNullOrEmpty(path) ? name : $"{path}/{name}";
-			entries.Add(new TreeEntry(meta[0], meta[1], meta[2], name, entryPath));
+			long? size = meta.Length >= 4 && long.TryParse(meta[3], out var s) ? s : null;
+			entries.Add(new TreeEntry(meta[0], meta[1], meta[2], name, entryPath, size));
 		}
 
 		// Sort: trees first, then blobs

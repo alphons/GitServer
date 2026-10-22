@@ -170,6 +170,7 @@
 	color: var(--text-muted);
 }
 .file-commit-time { flex-shrink: 0; white-space: nowrap; }
+.file-size { flex-shrink: 0; white-space: nowrap; min-width: 4.5em; text-align: right; margin-left: 1rem; }
 
 .file-icon { font-size: 1rem; flex-shrink: 0; }
 .dir-icon { }

@@ -1,5 +1,12 @@
 @page "/{user}/{repo}"
 @model GitServer.Pages.Repo.ViewModel
+@functions {
+	static string FormatSize(long bytes) =>
+		bytes < 1024 ? $"{bytes} B"
+		: bytes < 1024 * 1024 ? $"{bytes / 1024.0:0.#} kB"
+		: bytes < 1024L * 1024 * 1024 ? $"{bytes / (1024.0 * 1024):0.#} MB"
+		: $"{bytes / (1024.0 * 1024 * 1024):0.#} GB";
+}
 @{
 	ViewData["Title"] = $"{Model.UserName}/{Model.RepoName}";
 }
@@ -171,6 +178,7 @@ git push -u origin @Model.DefaultBranch</pre>
 					@if (Model.LastCommits.TryGetValue(entry.Path, out var last))
 					{
 						<span class="file-commit-message" title="@last.Message">@last.Message</span>
+							<span class="file-size text-muted">@(entry.Size is long sz ? FormatSize(sz) : "")</span>
 						<time class="file-commit-time text-muted time-ago" datetime="@last.Date.ToUniversalTime().ToString("o")" title="@TZ.FormatDateTime(last.Date)">@TZ.FormatDateTime(last.Date)</time>
 					}
 				</a>
