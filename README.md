@@ -129,6 +129,92 @@ curl -H "X-Api-Key: gsk_..." https://git.yourdomain.com/api/users/alice/repos
 
 > *Browse repositories, view code, manage issues — all from a clean dark-themed UI.*
 
+### Repositories
+
+**Your repositories**
+
+![Your repositories](docs/images/profile-repositories.png)
+
+**Code overview**
+
+![Code overview](docs/images/repository-code-overview.png)
+
+**Code viewer**
+
+![Code viewer](docs/images/code-viewer.png)
+
+**Commit history**
+
+![Commit history](docs/images/commit-history.png)
+
+**Tags**
+
+![Tags](docs/images/repository-tags.png)
+
+**Collaborators**
+
+![Collaborators](docs/images/repository-collaborators.png)
+
+**Webhooks**
+
+![Webhooks](docs/images/repository-webhooks.png)
+
+**Repository settings**
+
+![Repository settings](docs/images/repository-settings.png)
+
+### Account
+
+**Account settings**
+
+![Account settings](docs/images/profile-account-settings.png)
+
+**Groups**
+
+![Groups](docs/images/profile-groups.png)
+
+**API keys**
+
+![API keys](docs/images/profile-api-keys.png)
+
+**Access tokens**
+
+![Access tokens](docs/images/profile-access-tokens.png)
+
+**Language picker**
+
+![Language picker](docs/images/language-picker.png)
+
+### Admin
+
+**Users**
+
+![Users](docs/images/admin-users.png)
+
+**Blocked emails**
+
+![Blocked emails](docs/images/admin-blocked-emails.png)
+
+**Reserved names**
+
+![Reserved names](docs/images/admin-reserved-names.png)
+
+**Audit log**
+
+![Audit log](docs/images/admin-audit-log.png)
+
+**Git version**
+
+![Git version](docs/images/admin-git-version.png)
+
+**Settings**
+
+![Settings](docs/images/admin-settings.png)
+
+**Database migration**
+
+![Database migration](docs/images/admin-database-migration.png)
+
 ---
 
 ## Prerequisites
