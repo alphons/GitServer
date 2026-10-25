@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.32.1**
+**Current version: 1.32.2**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -340,6 +340,34 @@ Folder settings may be relative (they resolve against the app's folder) and use 
 export GitServer__RepositoriesPath=/var/lib/gitserver/repos
 export Authentication__KeysPath=/var/lib/gitserver/keys
 ```
+
+**Keep your data outside the app folder.** A publish replaces the app folder, so store the database and repositories elsewhere, for example:
+
+```
+C:\GitServer\repos\            GitServer:RepositoriesPath
+C:\GitServer\data\gitserver.db ConnectionStrings:Default = Data Source=C:\GitServer\data\gitserver.db
+```
+
+Put these in `appsettings.Production.json` next to the app or in environment variables (both survive a publish), and give the account the app runs under write access to the folder. The Data Protection `KeysPath` needs the same access.
+
+On **Windows/IIS** the account is the app pool identity (here for an app pool named `git.heijden.com`). Grant Modify on the top folder; inheritance covers everything below it, so `/T` is not needed:
+
+```powershell
+icacls "C:\GitServer" /grant "IIS AppPool\git.heijden.com:(OI)(CI)M"
+icacls "C:\Data\DataProtection" /grant "IIS AppPool\git.heijden.com:(OI)(CI)M"
+```
+
+The second line covers the Data Protection `KeysPath`, which is kept apart from the repositories and database on purpose (separate backup, and it is not swept up in a copy of `C:\GitServer`).
+
+On **Linux** give the service user (`User=` in the unit below) ownership of the data folders:
+
+```bash
+sudo mkdir -p /var/lib/gitserver/repos /var/lib/gitserver/data /var/lib/gitserver/keys
+sudo chown -R gitserver:gitserver /var/lib/gitserver
+sudo chmod -R u+rwX,go-rwx /var/lib/gitserver
+```
+
+If the database or repositories can't be written you'll see errors such as `unable to open database file` or `attempt to write a readonly database`. SQLite also writes `-wal` and `-shm` files next to the database, so the folder itself must be writable, not just the file.
 
 **Example systemd unit (Linux):**
 
