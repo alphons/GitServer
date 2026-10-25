@@ -72,4 +72,23 @@
 
 		<button type="submit" class="btn btn-primary">@L["admin_save_button"]</button>
 	</form>
+
+	<h2 style="margin-top:2rem">@L["admin_settings_paths_title"]</h2>
+	<p class="text-muted">@L["admin_settings_paths_hint"]</p>
+	<div class="form-group">
+		<label>@L["admin_settings_repos_path"]</label>
+		<input type="text" class="form-control" value="@Model.RepositoriesPath" readonly />
+		@await Html.PartialAsync("_PathCheck", Model.RepositoriesCheck)
+	</div>
+	@if (Model.SqliteDatabasePath != null)
+	{
+		<div class="form-group">
+			<label>@L["admin_settings_db_path"]</label>
+			<input type="text" class="form-control" value="@Model.SqliteDatabasePath" readonly />
+			@await Html.PartialAsync("_PathCheck", Model.DatabaseCheck)
+		</div>
+	}
+	<form method="get">
+		<button type="submit" class="btn btn-secondary">@L["admin_settings_paths_recheck"]</button>
+	</form>
 </div>

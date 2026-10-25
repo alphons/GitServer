@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.32.2**
+**Current version: 1.33.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -82,6 +82,7 @@ Because your code doesn't belong to anyone else.
   - Show commit author avatar
   - Allow webhooks to this machine and the local network (off by default)
   - API key lifetime in days (default 90) — applies to newly created keys
+  - Read-only storage locations: the repositories folder and (SQLite) the database file, each with a writable check (green tick / red cross, with a re-check button)
 
 ### Site layout
 - Everything you click on lives under **`/dashboard`** (`/dashboard/Explore`, `/dashboard/User/<name>`, `/dashboard/Admin/Users`, …)
