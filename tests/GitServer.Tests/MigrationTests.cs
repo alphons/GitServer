@@ -32,6 +32,23 @@ public sealed class MigrationTests : IDisposable
 	// ---- The migration set as a whole ---------------------------------------------------------
 
 	[Fact]
+	public void GroupCreators_BecomeAdminMembers_EvenWhenAnotherAdminExists()
+	{
+		using var db = NewContext();
+		var migrator = db.GetService<IMigrator>();
+		migrator.Migrate(MigrationId(db, "AddPullRequests"));
+
+		db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = OFF");   // only the group rows matter here
+		db.Database.ExecuteSqlRaw("INSERT INTO Groups (Id, Name, OwnerId, CreatedAt) VALUES (1,'Team','u1','2026-01-01')");
+		db.Database.ExecuteSqlRaw("INSERT INTO GroupMembers (GroupId, UserId, Role) VALUES (1,'u2',2)");
+
+		migrator.Migrate(MigrationId(db, "GroupCreatorsBecomeAdminMembers"));
+
+		var roles = db.Database.SqlQueryRaw<int>("SELECT Role AS Value FROM GroupMembers WHERE GroupId = 1 AND UserId = 'u1'").ToList();
+		Assert.Equal(new[] { 2 }, roles);
+	}
+
+	[Fact]
 	public void AllMigrations_ApplyToAnEmptyDatabase()
 	{
 		using var db = NewContext();

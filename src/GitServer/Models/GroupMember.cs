@@ -7,7 +7,7 @@ public enum GroupRole
 	Read = 0,
 	/// <summary>Also push, and create or fork repositories into the group.</summary>
 	Write = 1,
-	/// <summary>Also administer the group's repositories and manage the group's members (but not delete the group).</summary>
+	/// <summary>Also administer the group's repositories and manage the group's members, and delete the group.</summary>
 	Admin = 2,
 }
 
