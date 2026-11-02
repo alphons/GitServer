@@ -227,7 +227,6 @@
   "timezone_default": "默认 (UTC)",
   "timezone_hint": "用于将网站上的日期和时间转换为你的本地时间。",
   "theme_label": "主题",
-  "theme_hint": "网站的配色方案，保存在你的账户中。",
   "theme_dark": "深色",
   "theme_light": "浅色",
   "theme_pastel": "柔和色",

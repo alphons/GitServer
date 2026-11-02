@@ -227,7 +227,6 @@
   "timezone_default": "デフォルト (UTC)",
   "timezone_hint": "サイト上の日時をあなたのローカル時間に変換するために使用されます。",
   "theme_label": "テーマ",
-  "theme_hint": "サイトの配色。アカウントに保存されます。",
   "theme_dark": "ダーク",
   "theme_light": "ライト",
   "theme_pastel": "パステル",

@@ -227,7 +227,6 @@
   "timezone_default": "افتراضي (UTC)",
   "timezone_hint": "تُستخدم لتحويل التواريخ والأوقات على الموقع إلى توقيتك المحلي.",
   "theme_label": "السمة",
-  "theme_hint": "نظام ألوان الموقع، يُحفظ في حسابك.",
   "theme_dark": "داكن",
   "theme_light": "فاتح",
   "theme_pastel": "باستيل",

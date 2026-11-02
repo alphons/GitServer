@@ -125,7 +125,7 @@ app.UseMiddleware<ApiKeyGuardMiddleware>();
 
 app.UseAuthorization();
 
-app.MapSetLanguage();
+app.MapSetLanguage().MapSetTheme();
 
 app.MapControllers();
 app.MapOpenApi(OpenApiExtensions.DocumentPath);

@@ -66,20 +66,21 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
-	public async Task TheTheme_DefaultsToDark_IsSavedOnTheUser_AndShownOnEveryPage()
+	public async Task TheTheme_DefaultsToDark_IsPickedInTheNavbar_AndSavedOnTheSignedInUser()
 	{
 		var user = await _f.CreateUserAsync(Unique("theme"));
 		var session = await AsAsync(user);
-		Assert.Contains("data-theme=\"dark\"", await session.GetHtmlAsync("/dashboard/User/Settings"));
+		Assert.Contains("data-theme=\"dark\"", await session.GetHtmlAsync("/"));
 
-		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Profile", ("NewDisplayName", "T"), ("NewTheme", "pastel"));
+		var picked = await session.GetAsync("/dashboard/set-theme?theme=pastel&returnUrl=%2F");
+		Assert.Equal(HttpStatusCode.Redirect, picked.StatusCode);
 		Assert.Equal("pastel", (await Reload(user.Id))!.Theme);
 		Assert.Contains("data-theme=\"pastel\"", await session.GetHtmlAsync("/"));
-		Assert.Contains(En("theme_pastel"), await session.GetHtmlAsync("/dashboard/User/Settings"));
 
-		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Profile", ("NewDisplayName", "T"), ("NewTheme", "bogus"));
+		await session.GetAsync("/dashboard/set-theme?theme=bogus");
+		Assert.Equal("pastel", (await Reload(user.Id))!.Theme);
+		await session.GetAsync("/dashboard/set-theme?theme=dark");
 		Assert.Null((await Reload(user.Id))!.Theme);
-		Assert.Contains("data-theme=\"dark\"", await Anonymous().GetHtmlAsync("/"));
 	}
 
 	[Fact]

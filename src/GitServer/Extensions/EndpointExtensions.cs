@@ -1,3 +1,6 @@
+using GitServer.Models;
+using GitServer.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
@@ -18,6 +21,34 @@ public static class EndpointExtensions
 					SameSite = SameSiteMode.Lax,
 					HttpOnly = true
 				});
+			}
+			return Results.Redirect(IsLocalUrl(returnUrl) ? returnUrl! : "/");
+		});
+
+		return endpoints;
+	}
+
+	/// <summary>Picks a colour theme: remembered in a cookie, and saved on the account when someone is signed in.</summary>
+	public static IEndpointRouteBuilder MapSetTheme(this IEndpointRouteBuilder endpoints)
+	{
+		endpoints.MapGet("/dashboard/set-theme", async (string? theme, string? returnUrl, HttpContext http, UserManager<AppUser> userManager) =>
+		{
+			if (Themes.All.Contains(theme))
+			{
+				http.Response.Cookies.Append(Themes.CookieName, theme!, new CookieOptions
+				{
+					Expires = DateTimeOffset.UtcNow.AddYears(1),
+					IsEssential = true,
+					SameSite = SameSiteMode.Lax,
+					HttpOnly = true
+				});
+
+				var user = await userManager.GetUserAsync(http.User);
+				if (user != null)
+				{
+					user.Theme = theme == Themes.Default ? null : theme;
+					await userManager.UpdateAsync(user);
+				}
 			}
 			return Results.Redirect(IsLocalUrl(returnUrl) ? returnUrl! : "/");
 		});

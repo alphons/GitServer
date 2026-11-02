@@ -251,7 +251,6 @@
   "timezone_default": "Default (UTC)",
   "timezone_hint": "Used to convert dates and times on the site to your local time.",
   "theme_label": "Theme",
-  "theme_hint": "Colour scheme of the site, saved on your account.",
   "theme_dark": "Dark",
   "theme_light": "Light",
   "theme_pastel": "Pastel",

@@ -6,9 +6,11 @@
 @{
 	var layoutCurrentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
 	var layoutIsAdmin = AccessPolicy.IsSiteAdmin(layoutCurrentUser);
+	// A signed-in user's saved theme wins; visitors keep the one they picked in a cookie.
+	var layoutTheme = Themes.Normalize(layoutCurrentUser != null ? layoutCurrentUser.Theme : Context.Request.Cookies[Themes.CookieName]);
 }
 <!DOCTYPE html>
-<html lang="@L.CurrentLanguage" data-theme="@Themes.Normalize(layoutCurrentUser?.Theme)">
+<html lang="@L.CurrentLanguage" data-theme="@layoutTheme">
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -68,6 +70,12 @@
 					<a class="btn btn-ghost nav-link" href="/dashboard/Auth/Login">@L["nav_login"]</a>
 					<a class="btn btn-primary nav-link" href="/dashboard/Auth/Register">@L["nav_register"]</a>
 				}
+				<select class="lang-select" onchange="window.location='/dashboard/set-theme?theme='+this.value+'&returnUrl='+encodeURIComponent(window.location.pathname+window.location.search)" aria-label="@L["theme_label"]">
+					@foreach (var theme in Themes.All)
+					{
+						<option value="@theme" selected="@(theme == layoutTheme)">@ThemeName(theme)</option>
+					}
+				</select>
 				<select class="lang-select" onchange="window.location='/dashboard/set-language?lang='+this.value+'&returnUrl='+encodeURIComponent(window.location.pathname)" aria-label="@L["nav_language"]">
 					@foreach (var (code, name) in L.AvailableLanguages())
 					{
@@ -98,3 +106,12 @@
 	@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+@functions {
+	private string ThemeName(string theme) => theme switch
+	{
+		"light" => L["theme_light"],
+		"pastel" => L["theme_pastel"],
+		_ => L["theme_dark"],
+	};
+}

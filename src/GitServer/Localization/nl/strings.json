@@ -251,7 +251,6 @@
   "timezone_default": "Standaard (UTC)",
   "timezone_hint": "Wordt gebruikt om datums en tijden op de site om te zetten naar jouw lokale tijd.",
   "theme_label": "Thema",
-  "theme_hint": "Kleurenschema van de site, bewaard bij je account.",
   "theme_dark": "Donker",
   "theme_light": "Licht",
   "theme_pastel": "Pastel",

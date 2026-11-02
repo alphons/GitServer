@@ -227,7 +227,6 @@
   "timezone_default": "Par défaut (UTC)",
   "timezone_hint": "Utilisé pour convertir les dates et heures du site vers votre heure locale.",
   "theme_label": "Thème",
-  "theme_hint": "Palette de couleurs du site, enregistrée sur ton compte.",
   "theme_dark": "Sombre",
   "theme_light": "Clair",
   "theme_pastel": "Pastel",
