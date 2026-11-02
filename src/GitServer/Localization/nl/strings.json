@@ -199,7 +199,6 @@
   "error_group_name_required": "Voer een groepsnaam in.",
   "error_invalid_group_name": "Alleen letters, cijfers, - en _.",
   "error_group_name_taken": "Je hebt al een groep met deze naam.",
-  "error_group_member_is_owner": "De eigenaar van de groep kan niet als lid worden toegevoegd.",
   "group_repos_title": "Repositories",
   "group_repos_empty": "Deze groep heeft nog geen repositories.",
   "success_group_member_added": "Lid toegevoegd.",

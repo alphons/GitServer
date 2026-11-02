@@ -278,7 +278,6 @@
   "group_add_member": "إضافة عضو",
   "group_delete": "حذف المجموعة",
   "confirm_delete_group": "حذف المجموعة {0}؟",
-  "error_group_member_is_owner": "لا يمكن إضافة مالك المجموعة كعضو.",
   "group_repos_title": "المستودعات",
   "group_repos_empty": "لا تملك هذه المجموعة أي مستودعات بعد.",
   "success_group_member_added": "تمت إضافة العضو.",

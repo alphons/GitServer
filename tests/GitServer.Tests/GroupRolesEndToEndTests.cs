@@ -50,7 +50,7 @@ public class GroupRolesEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
-	public async Task AnAdminMember_ManagesTheGroup_ButCannotDeleteIt()
+	public async Task AnAdminMember_ManagesTheGroup_RemovesTheCreator_AndDeletesIt()
 	{
 		var owner = await _f.CreateUserAsync(Unique("owner"));
 		var admin = await _f.CreateUserAsync(Unique("admin"));
@@ -61,13 +61,21 @@ public class GroupRolesEndToEndTests : IClassFixture<GitServerFactory>
 
 		var html = await session.GetHtmlAsync(Page(group));
 		var add = await session.PostFormAsync(Page(group), Page(group) + "?handler=AddMember", ("MemberName", carol.UserName!), ("MemberRole", "Write"));
+		var creator = await Db(d => d.GroupMembers.SingleAsync(m => m.GroupId == group.Id && m.UserId == owner.Id));
+		var removeCreator = await session.PostFormAsync(Page(group), Page(group) + $"?handler=RemoveMember&memberId={creator.Id}");
+		var self = await Db(d => d.GroupMembers.SingleAsync(m => m.GroupId == group.Id && m.UserId == admin.Id));
+		await session.PostFormAsync(Page(group), Page(group) + $"?handler=RemoveMember&memberId={self.Id}");   // last admin: refused
+		var carolRole = await RoleAsync(group, carol);
+		var adminSurvived = await Db(d => d.GroupMembers.AnyAsync(m => m.Id == self.Id));
 		var delete = await session.PostFormAsync(Page(group), Page(group) + "?handler=Delete");
 
-		Assert.DoesNotContain("handler=Delete", html);
+		Assert.Contains("handler=Delete", html);
 		Assert.Equal(HttpStatusCode.Redirect, add.StatusCode);
-		Assert.Equal(GroupRole.Write, await RoleAsync(group, carol));
-		Assert.NotEqual(HttpStatusCode.OK, delete.StatusCode);
-		Assert.True(await Db(d => d.Groups.AnyAsync(g => g.Id == group.Id)));
+		Assert.Equal(GroupRole.Write, carolRole);
+		Assert.Equal(HttpStatusCode.Redirect, removeCreator.StatusCode);
+		Assert.True(adminSurvived);
+		Assert.Equal(HttpStatusCode.Redirect, delete.StatusCode);
+		Assert.False(await Db(d => d.Groups.AnyAsync(g => g.Id == group.Id)));
 	}
 
 	[Fact]

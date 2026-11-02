@@ -1,6 +1,7 @@
 using GitServer.Data;
 using GitServer.Extensions;
 using GitServer.Middleware;
+using GitServer.Models;
 using GitServer.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -101,6 +102,16 @@ using (var scope = app.Services.CreateScope())
 {
 	var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 	db.Database.Migrate();
+
+	// Groups used to have an owner outside the member list; make every such group's creator a regular admin member.
+	var adminless = await db.Groups.Where(g => !g.Members.Any(m => m.Role == GroupRole.Admin)).ToListAsync();
+	foreach (var g in adminless)
+	{
+		var existing = await db.GroupMembers.FirstOrDefaultAsync(m => m.GroupId == g.Id && m.UserId == g.OwnerId);
+		if (existing != null) existing.Role = GroupRole.Admin;
+		else db.GroupMembers.Add(new GroupMember { GroupId = g.Id, UserId = g.OwnerId, Role = GroupRole.Admin });
+	}
+	if (adminless.Count > 0) await db.SaveChangesAsync();
 }
 
 if (!app.Environment.IsDevelopment())

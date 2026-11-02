@@ -108,8 +108,6 @@
 			}))</script>
 	</section>
 
-	@if (Model.IsOwner)
-	{
 	<section class="settings-section">
 		<h2>@L["settings_danger_zone"]</h2>
 		<form method="post" asp-page-handler="Delete"
@@ -118,7 +116,6 @@
 			<button type="submit" class="btn btn-danger">@L["group_delete"]</button>
 		</form>
 	</section>
-	}
 </div>
 
 @functions {

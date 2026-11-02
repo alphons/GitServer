@@ -152,7 +152,7 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.DoesNotContain("private-one", html);
 		Assert.Contains(owner.UserName!, html);
 		Assert.Contains(member.UserName!, html);
-		Assert.Contains(En("new_repo_owner_label"), html);
+		Assert.Contains(En("group_role_admin"), html);
 		Assert.Contains(En("group_repos_title") + " (1)", html);
 	}
 
@@ -547,11 +547,11 @@ public class WebPagesEndToEndTests : IClassFixture<GitServerFactory>
 		Assert.Equal(HttpStatusCode.OK, (await session.GetAsync(page)).StatusCode);
 
 		await session.PostFormAsync(page, page + "?handler=AddMember", ("MemberName", member.UserName!));
-		Assert.Equal(1, await Db(db => db.GroupMembers.CountAsync(m => m.GroupId == group.Id)));
+		Assert.Equal(2, await Db(db => db.GroupMembers.CountAsync(m => m.GroupId == group.Id)));   // the creator is an admin member
 
-		var membership = await Db(db => db.GroupMembers.SingleAsync(m => m.GroupId == group.Id));
+		var membership = await Db(db => db.GroupMembers.SingleAsync(m => m.GroupId == group.Id && m.UserId == member.Id));
 		await session.PostFormAsync(page, page + $"?handler=RemoveMember&memberId={membership.Id}");
-		Assert.Equal(0, await Db(db => db.GroupMembers.CountAsync(m => m.GroupId == group.Id)));
+		Assert.Equal(1, await Db(db => db.GroupMembers.CountAsync(m => m.GroupId == group.Id)));
 
 		var delete = await session.PostFormAsync(page, page + "?handler=Delete");
 		Assert.Equal(HttpStatusCode.Redirect, delete.StatusCode);

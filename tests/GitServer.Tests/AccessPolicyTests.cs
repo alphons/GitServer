@@ -320,29 +320,7 @@ public class AccessPolicyTests : IDisposable
 	// ---- Groups ------------------------------------------------------------------------------
 
 	[Fact]
-	public void IsGroupOwner_MatchesOwnerIdOnly()
-	{
-		var group = new Group { OwnerId = "u1" };
-
-		Assert.True(AccessPolicy.IsGroupOwner(group, "u1"));
-		Assert.False(AccessPolicy.IsGroupOwner(group, "u2"));
-		Assert.False(AccessPolicy.IsGroupOwner(group, null));
-	}
-
-	[Fact]
-	public async Task GetOwnedGroup_ReturnsOnlyForOwner()
-	{
-		var owner = _w.AddUser("owner");
-		var other = _w.AddUser("other");
-		var group = _w.AddGroup("Team", owner);
-
-		Assert.Equal(group.Id, (await _w.Access.GetOwnedGroupAsync(group.Id, owner.Id))!.Id);
-		Assert.Null(await _w.Access.GetOwnedGroupAsync(group.Id, other.Id));
-		Assert.Null(await _w.Access.GetOwnedGroupAsync(group.Id + 999, owner.Id));
-	}
-
-	[Fact]
-	public async Task GetOwnedGroups_AreSortedByName_AndOnlyTheUsersOwn()
+	public async Task GetManagedGroups_AreSortedByName_AndOnlyTheUsersOwn()
 	{
 		var owner = _w.AddUser("owner");
 		var other = _w.AddUser("other");
@@ -351,10 +329,10 @@ public class AccessPolicyTests : IDisposable
 		_w.AddGroup("Alpha", owner);
 		_w.AddGroup("Foreign", other);
 
-		var groups = await _w.Access.GetOwnedGroupsAsync(owner.Id, includeMembers: true);
+		var groups = await _w.Access.GetManagedGroupsAsync(owner.Id, includeMembers: true);
 
 		Assert.Equal(new[] { "Alpha", "Zulu" }, groups.Select(g => g.Name));
-		Assert.Single(groups.Single(g => g.Name == "Zulu").Members);
+		Assert.Equal(2, groups.Single(g => g.Name == "Zulu").Members.Count);   // the creator is a plain admin member
 	}
 
 	[Fact]
@@ -445,6 +423,5 @@ public class AccessPolicyTests : IDisposable
 		Assert.Equal(new[] { "Administered", "Own", "Writable" }, (await _w.Access.GetGroupsForRepoCreationAsync(user.Id)).Select(g => g.Name));
 		Assert.NotNull(await _w.Access.GetManagedGroupAsync(administered.Id, user.Id));
 		Assert.Null(await _w.Access.GetManagedGroupAsync(writable.Id, user.Id));
-		Assert.Null(await _w.Access.GetOwnedGroupAsync(administered.Id, user.Id));   // administering is not owning: no deleting
 	}
 }

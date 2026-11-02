@@ -111,6 +111,7 @@ public class GitServerFactory : WebApplicationFactory<Program>
 			var group = new Group { Name = name, OwnerId = owner.Id };
 			db.Groups.Add(group);
 			await db.SaveChangesAsync();
+			db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = owner.Id, Role = GroupRole.Admin });
 			foreach (var member in members)
 				db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = member.Id });
 			await db.SaveChangesAsync();

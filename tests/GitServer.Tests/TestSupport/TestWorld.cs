@@ -55,6 +55,7 @@ public sealed class TestWorld : IDisposable
 		var group = new Group { Name = name, OwnerId = owner.Id, Owner = owner };
 		Db.Groups.Add(group);
 		Db.SaveChanges();
+		Db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = owner.Id, Role = GroupRole.Admin });
 		foreach (var member in members)
 			Db.GroupMembers.Add(new GroupMember { GroupId = group.Id, UserId = member.Id });
 		Db.SaveChanges();

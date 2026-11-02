@@ -278,7 +278,6 @@
   "group_add_member": "メンバーを追加",
   "group_delete": "グループを削除",
   "confirm_delete_group": "グループ「{0}」を削除しますか？",
-  "error_group_member_is_owner": "グループのオーナーはメンバーとして追加できません。",
   "group_repos_title": "リポジトリ",
   "group_repos_empty": "このグループはまだリポジトリを所有していません。",
   "success_group_member_added": "メンバーを追加しました。",

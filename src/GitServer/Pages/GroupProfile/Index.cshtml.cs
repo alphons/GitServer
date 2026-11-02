@@ -25,7 +25,6 @@ public class IndexModel(AppDbContext db, RepositoryService repos, AccessPolicy a
 	public async Task<IActionResult> OnGetAsync(string name, int p = 0)
 	{
 		GroupEntity = await db.Groups
-			.Include(g => g.Owner)
 			.Include(g => g.Members).ThenInclude(m => m.User)
 			.FirstOrDefaultAsync(g => g.Name == name);
 		if (GroupEntity == null) return NotFound();

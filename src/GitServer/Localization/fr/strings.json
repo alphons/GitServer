@@ -277,7 +277,6 @@
   "group_add_member": "Ajouter un membre",
   "group_delete": "Supprimer le groupe",
   "confirm_delete_group": "Supprimer le groupe {0} ?",
-  "error_group_member_is_owner": "Le propriétaire du groupe ne peut pas être ajouté comme membre.",
   "group_repos_title": "Dépôts",
   "group_repos_empty": "Ce groupe ne possède pas encore de dépôts.",
   "success_group_member_added": "Membre ajouté.",

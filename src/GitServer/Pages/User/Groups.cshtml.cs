@@ -72,7 +72,8 @@ public class GroupsModel(AppDbContext db, AccessPolicy access, UserManager<AppUs
 			return Page();
 		}
 
-		var group = new Group { Name = name, OwnerId = CurrentUser.Id };
+		var group = new Group { Name = name, OwnerId = CurrentUser.Id };   // OwnerId only records the creator; rights come from the admin membership below
+		group.Members.Add(new GroupMember { UserId = CurrentUser.Id, Role = GroupRole.Admin });
 		db.Groups.Add(group);
 		await db.SaveChangesAsync();
 

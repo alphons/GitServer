@@ -199,7 +199,6 @@
   "error_group_name_required": "Enter a group name.",
   "error_invalid_group_name": "Letters, digits, - and _ only.",
   "error_group_name_taken": "You already have a group with this name.",
-  "error_group_member_is_owner": "The group's owner cannot be added as a member.",
   "group_repos_title": "Repositories",
   "group_repos_empty": "This group doesn't own any repositories yet.",
   "success_group_member_added": "Member added.",

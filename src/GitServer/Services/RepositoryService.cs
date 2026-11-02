@@ -155,7 +155,7 @@ public class RepositoryService(AppDbContext db,
 	private System.Linq.Expressions.Expression<Func<Repository, bool>> VisibleTo(string? userId) =>
 		r => !r.IsPrivate || (userId != null && (
 			r.OwnerId == userId ||
-			(r.GroupOwner != null && (r.GroupOwner.OwnerId == userId || r.GroupOwner.Members.Any(m => m.UserId == userId))) ||
+			(r.GroupOwner != null && (r.GroupOwner.Members.Any(m => m.UserId == userId))) ||
 			_db.RepositoryAccesses.Any(a => a.RepositoryId == r.Id &&
 				(a.UserId == userId || (a.GroupId != null && a.Group!.Members.Any(m => m.UserId == userId))))));
 

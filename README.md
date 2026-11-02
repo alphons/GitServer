@@ -12,7 +12,7 @@
 > **Your code. Your server. Your rules.**
 > A fast, lightweight, self-hosted Git platform — completely free and open source.
 
-**Current version: 1.33.0**
+**Current version: 1.34.0**
 
 GitServer gives you everything you need to host your own Git repositories without sending your code to the cloud, paying monthly fees, or trusting a third party with your intellectual property. Deploy it on a Windows or Linux VPS or your own hardware in minutes.
 
@@ -58,7 +58,7 @@ Because your code doesn't belong to anyone else.
 ### User Management
 - User registration and authentication via ASP.NET Core Identity (email confirmation, password reset)
 - Groups with members, usable as a unit when granting repository access
-- **Group roles** — each member is **Read** (clone and browse), **Write** (also push, and create or fork repositories into the group) or **Admin** (also administer the group's repositories and manage its members). Only the group's owner can delete the group
+- **Group roles** — each member is **Read** (clone and browse), **Write** (also push, and create or fork repositories into the group) or **Admin** (also administer the group's repositories and manage its members). Groups have no owner: the creator is just the first admin, any admin can add or remove members (the creator included) and delete the group, and the last admin cannot be removed
 - Per-repository access control — grant individual users or whole groups **Read** or **Write** access to private repos
 - **Search & Explore** — the homepage search and the `/dashboard/Explore` listing cover public repositories and, when signed in, also the private repositories you can read (your own, those of your groups, and ones shared with you)
 - Per-user profile pages with bio, company, country and avatar (via Gravatar or a custom URL)

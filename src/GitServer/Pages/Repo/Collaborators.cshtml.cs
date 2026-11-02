@@ -56,7 +56,7 @@ public class CollaboratorsModel(
 
 	private async Task LoadOwnGroupsAsync(string userId)
 	{
-		OwnGroups = await access.GetOwnedGroupsAsync(userId);
+		OwnGroups = await access.GetManagedGroupsAsync(userId);
 	}
 
 	public async Task<IActionResult> OnGetAsync(string user, string repo)

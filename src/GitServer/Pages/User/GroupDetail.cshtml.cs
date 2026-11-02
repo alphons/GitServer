@@ -19,8 +19,6 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 	public int RepoTotalCount { get; set; }
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
-	/// <summary>Only the owner may delete the group; admin members manage everything else.</summary>
-	public bool IsOwner => Group != null && AccessPolicy.IsGroupOwner(Group, CurrentUser?.Id);
 
 	[BindProperty] public string? MemberName { get; set; }
 	[BindProperty] public GroupRole MemberRole { get; set; } = GroupRole.Write;
@@ -43,6 +41,10 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 
 		return true;
 	}
+
+	/// <summary>A group always keeps at least one admin, otherwise nobody could manage or delete it.</summary>
+	private bool IsLastAdmin(GroupMember member) =>
+		member.Role == GroupRole.Admin && Members.Count(m => m.Role == GroupRole.Admin) == 1;
 
 	public async Task<IActionResult> OnGetAsync(int id)
 	{
@@ -70,13 +72,6 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 			return Page();
 		}
 
-		if (member.Id == Group!.OwnerId)
-		{
-			Message = L["error_group_member_is_owner"];
-			IsError = true;
-			return Page();
-		}
-
 		if (!Members.Any(m => m.UserId == member.Id))
 		{
 			db.GroupMembers.Add(new GroupMember { GroupId = Group!.Id, UserId = member.Id, Role = MemberRole });
@@ -91,8 +86,8 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 	{
 		if (!await LoadAsync(id)) return NotFound();
 
-		var member = await db.GroupMembers.FirstOrDefaultAsync(m => m.Id == memberId && m.GroupId == id);
-		if (member != null)
+		var member = Members.FirstOrDefault(m => m.Id == memberId);
+		if (member != null && !IsLastAdmin(member))
 		{
 			db.GroupMembers.Remove(member);
 			await db.SaveChangesAsync();
@@ -107,7 +102,7 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 		if (!Enum.IsDefined(role)) return BadRequest();
 
 		var member = Members.FirstOrDefault(m => m.Id == memberId);
-		if (member != null)
+		if (member != null && (role == GroupRole.Admin || !IsLastAdmin(member)))
 		{
 			member.Role = role;
 			await db.SaveChangesAsync();
@@ -119,7 +114,6 @@ public class GroupDetailModel(AppDbContext db, AccessPolicy access, UserManager<
 	public async Task<IActionResult> OnPostDeleteAsync(int id)
 	{
 		if (!await LoadAsync(id)) return NotFound();
-		if (!IsOwner) return Forbid();
 
 		// Removed here instead of by database cascades so that every provider behaves the same: SQL Server does not allow the
 		// several cascade paths (group -> repositories -> access rows, group -> access rows) that SQLite follows implicitly.
