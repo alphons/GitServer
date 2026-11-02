@@ -12,12 +12,56 @@
 	--danger:       #f85149;
 	--warning:      #d29922;
 	--code-bg:      #1a1f29;
+	--danger-text:  #ffa198;
+	--success-text: #3fb950;
+	--info-text:    #58a6ff;
+	--on-accent:    #fff;
+	color-scheme: dark;
 
 	--radius:       6px;
 	--radius-sm:    4px;
 	--font-mono:    'Consolas', 'Monaco', 'Cascadia Code', monospace;
 	--font-sans:    -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 	--nav-height:   56px;
+}
+
+/* Themes: dark is the default (:root above); the user's choice is set as data-theme on <html>. */
+html[data-theme="light"] {
+	--bg:           #ffffff;
+	--surface:      #f6f8fa;
+	--surface2:     #eaeef2;
+	--border:       #d0d7de;
+	--text:         #1f2328;
+	--text-muted:   #59636e;
+	--accent:       #0969da;
+	--accent-hover: #0550ae;
+	--success:      #1a7f37;
+	--danger:       #cf222e;
+	--warning:      #9a6700;
+	--code-bg:      #eff2f5;
+	--danger-text:  #a40e26;
+	--success-text: #1a7f37;
+	--info-text:    #0969da;
+	color-scheme: light;
+}
+
+html[data-theme="pastel"] {
+	--bg:           #fdf6f0;
+	--surface:      #f8ebf3;
+	--surface2:     #f0e0ec;
+	--border:       #dcc6d6;
+	--text:         #4a3f4e;
+	--text-muted:   #7d6b82;
+	--accent:       #7c6bc4;
+	--accent-hover: #6552b3;
+	--success:      #4f9d78;
+	--danger:       #d1667a;
+	--warning:      #c58a3d;
+	--code-bg:      #f3e6ee;
+	--danger-text:  #a8405a;
+	--success-text: #2f7a58;
+	--info-text:    #5a6cc4;
+	color-scheme: light;
 }
 
 /* === Reset === */
@@ -238,7 +282,7 @@ p { margin-bottom: 0.75rem; }
 .alert-danger {
 	background: rgba(248, 81, 73, 0.1);
 	border-color: rgba(248, 81, 73, 0.4);
-	color: #ffa198;
+	color: var(--danger-text);
 }
 
 .alert-success {

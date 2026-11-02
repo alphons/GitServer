@@ -3,8 +3,12 @@
 @inject SignInManager<GitServer.Models.AppUser> SignInManager
 @inject UserManager<GitServer.Models.AppUser> UserManager
 @inject GitProcessService GitProcess
+@{
+	var layoutCurrentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+	var layoutIsAdmin = AccessPolicy.IsSiteAdmin(layoutCurrentUser);
+}
 <!DOCTYPE html>
-<html lang="@L.CurrentLanguage">
+<html lang="@L.CurrentLanguage" data-theme="@Themes.Normalize(layoutCurrentUser?.Theme)">
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,10 +20,6 @@
 	<link rel="stylesheet" href="~/css/md4-dark.css" asp-append-version="true" />
 </head>
 <body>
-	@{
-		var layoutCurrentUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
-		var layoutIsAdmin = AccessPolicy.IsSiteAdmin(layoutCurrentUser);
-	}
 	<nav class="navbar">
 		<div class="navbar-inner">
 			<a class="navbar-brand" href="/">

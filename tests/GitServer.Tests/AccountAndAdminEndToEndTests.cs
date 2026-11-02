@@ -66,6 +66,23 @@ public class AccountAndAdminEndToEndTests : IClassFixture<GitServerFactory>
 	}
 
 	[Fact]
+	public async Task TheTheme_DefaultsToDark_IsSavedOnTheUser_AndShownOnEveryPage()
+	{
+		var user = await _f.CreateUserAsync(Unique("theme"));
+		var session = await AsAsync(user);
+		Assert.Contains("data-theme=\"dark\"", await session.GetHtmlAsync("/dashboard/User/Settings"));
+
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Profile", ("NewDisplayName", "T"), ("NewTheme", "pastel"));
+		Assert.Equal("pastel", (await Reload(user.Id))!.Theme);
+		Assert.Contains("data-theme=\"pastel\"", await session.GetHtmlAsync("/"));
+		Assert.Contains(En("theme_pastel"), await session.GetHtmlAsync("/dashboard/User/Settings"));
+
+		await session.PostFormAsync("/dashboard/User/Settings", "/dashboard/User/Settings?handler=Profile", ("NewDisplayName", "T"), ("NewTheme", "bogus"));
+		Assert.Null((await Reload(user.Id))!.Theme);
+		Assert.Contains("data-theme=\"dark\"", await Anonymous().GetHtmlAsync("/"));
+	}
+
+	[Fact]
 	public async Task ChangingThePassword_NeedsTheCurrentOne_AndTheNewOneThenWorks()
 	{
 		var user = await _f.CreateUserAsync(Unique("pw"));

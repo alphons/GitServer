@@ -7,3 +7,12 @@
   --accent:#00e5a0; --text:#d4d4d8; --text-dim:#71717a; --code-bg:#1e1e24;
   --mono:'JetBrains Mono',monospace; --serif:'Newsreader',Georgia,serif;
 }
+
+html[data-theme="light"] .pane-output {
+  --bg:#ffffff; --border:#d0d7de;
+  --accent:#0969da; --text:#1f2328; --text-dim:#59636e; --code-bg:#eff2f5;
+}
+html[data-theme="pastel"] .pane-output {
+  --bg:#fdf6f0; --border:#dcc6d6;
+  --accent:#7c6bc4; --text:#4a3f4e; --text-dim:#7d6b82; --code-bg:#f3e6ee;
+}

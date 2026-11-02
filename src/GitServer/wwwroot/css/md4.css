@@ -11,7 +11,7 @@
 .pane-output h5 { font-size:.9em; font-weight:600; margin:.5em 0 .2em; }
 .pane-output h6 { font-size:.85em; font-weight:600; color:var(--text-dim); margin:.5em 0 .2em; }
 .pane-output p  { margin:.5em 0; }
-.pane-output strong { font-weight:700; color:#fff; }
+.pane-output strong { font-weight:700; color:var(--text); }
 .pane-output em     { font-style:italic; }
 .pane-output u      { text-decoration:underline; text-underline-offset:3px; }
 .pane-output s      { text-decoration:line-through; opacity:.7; }
@@ -64,7 +64,7 @@
 .pane-output summary { cursor:pointer; font-weight:600; color:var(--accent); }
 .pane-output kbd { font-family:var(--mono); font-size:.8em; background:var(--code-bg); border:1px solid var(--border); border-bottom-width:2px; border-radius:3px; padding:1px 7px; color:var(--text); }
 .pane-output dl { margin:.5em 0; }
-.pane-output dt { font-weight:700; color:#fff; margin-top:.5em; }
+.pane-output dt { font-weight:700; color:var(--text); margin-top:.5em; }
 .pane-output dd { margin-left:1.6em; color:var(--text-dim); }
 .pane-output .fn-ref { font-size:.75em; vertical-align:super; line-height:0; color:#60c8ff; text-decoration:none; }
 .pane-output .fn-ref:hover { text-decoration:underline; }

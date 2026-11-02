@@ -722,7 +722,7 @@ col.diff-code { width: auto; }
 }
 
 .diff-add { background: rgba(63, 185, 80, 0.12); color: #aff5b4; }
-.diff-del { background: rgba(248, 81, 73, 0.12); color: #ffa198; }
+.diff-del { background: rgba(248, 81, 73, 0.12); color: var(--danger-text); }
 .diff-ctx { color: var(--text-muted); }
 
 /* === Branches === */

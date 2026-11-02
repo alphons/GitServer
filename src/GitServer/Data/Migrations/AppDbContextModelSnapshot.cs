@@ -180,6 +180,9 @@ namespace GitServer.Data.Migrations
                     b.Property<string>("TermsVersion")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Theme")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TimeZoneId")
                         .HasColumnType("TEXT");
 

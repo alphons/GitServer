@@ -19,6 +19,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 	public string? CompanyName { get; set; }
 	public string? PreferredLanguage { get; set; }
 	public string? TimeZoneId { get; set; }
+	public string Theme { get; set; } = Themes.Default;
 	public string? Message { get; set; }
 	public bool IsError { get; set; }
 	public bool HasPassword { get; set; }
@@ -30,6 +31,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 	[BindProperty] public string? NewCompanyName { get; set; }
 	[BindProperty] public string? NewPreferredLanguage { get; set; }
 	[BindProperty] public string? NewTimeZoneId { get; set; }
+	[BindProperty] public string? NewTheme { get; set; }
 	[BindProperty] public string CurrentPassword { get; set; } = "";
 	[BindProperty] public string NewPassword { get; set; } = "";
 
@@ -43,6 +45,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 		CompanyName = user.CompanyName;
 		PreferredLanguage = user.PreferredLanguage;
 		TimeZoneId = user.TimeZoneId;
+		Theme = Themes.Normalize(user.Theme);
 	}
 
 	public async Task OnGetAsync()
@@ -65,6 +68,7 @@ public class UserSettingsModel(UserManager<AppUser> userManager, SignInManager<A
 		user.CompanyName = string.IsNullOrWhiteSpace(NewCompanyName) ? null : NewCompanyName.Trim();
 		user.PreferredLanguage = string.IsNullOrWhiteSpace(NewPreferredLanguage) ? null : NewPreferredLanguage;
 		user.TimeZoneId = string.IsNullOrWhiteSpace(NewTimeZoneId) ? null : NewTimeZoneId;
+		user.Theme = Themes.Normalize(NewTheme) == Themes.Default ? null : NewTheme;
 
 		var result = await userManager.UpdateAsync(user);
 		Message = result.Succeeded ? L["success_profile_saved"] : string.Join(" ", result.Errors.Select(e => e.Description));

@@ -13,6 +13,8 @@ public class AppUser : IdentityUser
 	public string? CompanyName { get; set; }
 	public string? PreferredLanguage { get; set; }
 	public string? TimeZoneId { get; set; }
+	/// <summary>The chosen colour theme (see <see cref="Themes"/>); null means the default, dark.</summary>
+	public string? Theme { get; set; }
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 	public DateTime? LastLoginAt { get; set; }
 	public bool IsAdmin { get; set; }

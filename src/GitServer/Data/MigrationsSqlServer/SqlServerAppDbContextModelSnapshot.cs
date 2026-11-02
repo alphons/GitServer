@@ -191,6 +191,9 @@ namespace GitServer.Data.MigrationsSqlServer
                     b.Property<string>("TermsVersion")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Theme")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TimeZoneId")
                         .HasColumnType("nvarchar(max)");
 

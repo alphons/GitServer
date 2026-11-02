@@ -351,12 +351,12 @@ textarea.form-control { resize: vertical; }
 
 .badge-write {
 	background: rgba(63, 185, 80, 0.15);
-	color: #3fb950;
+	color: var(--success-text);
 }
 
 .badge-group {
 	background: rgba(88, 166, 255, 0.15);
-	color: #58a6ff;
+	color: var(--info-text);
 	margin-right: 0.4rem;
 }
 
